@@ -1,6 +1,6 @@
 package co.istad.ai_interview_app.features.allrepo_demos;
 
-import co.istad.ai_interview_app.features.communication.domain.Message;
+import co.istad.ai_interview_app.communication.entity.Message;
 import co.istad.ai_interview_app.shared.enums.conversation.MessageStatus;
 import co.istad.ai_interview_app.shared.enums.conversation.MessageType;
 import org.springframework.data.jpa.repository.JpaRepository;

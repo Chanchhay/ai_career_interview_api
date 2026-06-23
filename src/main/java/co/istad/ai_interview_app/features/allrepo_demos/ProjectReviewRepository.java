@@ -1,6 +1,6 @@
 package co.istad.ai_interview_app.features.allrepo_demos;
 
-import co.istad.ai_interview_app.features.moderator.domain.ProjectReview;
+import co.istad.ai_interview_app.project.entity.ProjectReview;
 import co.istad.ai_interview_app.shared.enums.InterviewResult;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;

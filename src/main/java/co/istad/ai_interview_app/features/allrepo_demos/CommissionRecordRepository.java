@@ -1,6 +1,6 @@
 package co.istad.ai_interview_app.features.allrepo_demos;
 
-import co.istad.ai_interview_app.features.finance.domain.CommissionRecord;
+import co.istad.ai_interview_app.finance.entity.CommissionRecord;
 import co.istad.ai_interview_app.shared.enums.finance.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;

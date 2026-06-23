@@ -1,5 +1,6 @@
 # API Plan
 
+
 The backend exposes REST APIs from Spring Boot.
 
 Both frontend apps call the same backend API using RTK Query.

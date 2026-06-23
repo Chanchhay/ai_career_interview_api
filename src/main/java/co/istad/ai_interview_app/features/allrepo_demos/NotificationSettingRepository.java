@@ -1,6 +1,6 @@
 package co.istad.ai_interview_app.features.allrepo_demos;
 
-import co.istad.ai_interview_app.features.admin.domain.NotificationSetting;
+import co.istad.ai_interview_app.notification.entity.NotificationSetting;
 import co.istad.ai_interview_app.shared.enums.admin.NotificationChannel;
 import co.istad.ai_interview_app.shared.enums.admin.NotificationEventType;
 import org.springframework.data.jpa.repository.JpaRepository;
