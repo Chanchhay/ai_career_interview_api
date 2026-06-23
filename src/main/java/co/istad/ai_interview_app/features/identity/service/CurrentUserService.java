@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.identity.service;
 
+import co.istad.ai_interview_app.features.common.audit.BaseEntity;
 import co.istad.ai_interview_app.features.identity.dto.CurrentUserProfilesResponse;
 import co.istad.ai_interview_app.features.identity.dto.CurrentUserResponse;
 import co.istad.ai_interview_app.features.identity.entity.UserAccount;
@@ -10,6 +11,7 @@ import co.istad.ai_interview_app.features.identity.repository.CurrentUserModerat
 import co.istad.ai_interview_app.features.identity.repository.CurrentUserRecruiterProfileRepository;
 import co.istad.ai_interview_app.features.identity.repository.IdentityUserAccountRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -22,6 +24,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CurrentUserService {
@@ -38,6 +41,8 @@ public class CurrentUserService {
             Collection<? extends GrantedAuthority> authorities
     ) {
         String keycloakUserId = jwt.getSubject();
+        log.info("jwt: {}", jwt);
+        log.info("subject: {}", keycloakUserId);
 
         if (keycloakUserId == null || keycloakUserId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated token is missing subject");
@@ -59,19 +64,19 @@ public class CurrentUserService {
                 resolveRoles(authorities),
                 new CurrentUserProfilesResponse(
                         jobSeekerProfileRepository.findByUserAccount_Id(userAccountId)
-                                .map(profile -> profile.getId())
+                                .map(BaseEntity::getId)
                                 .orElse(null),
                         recruiterProfileRepository.findByUserAccount_Id(userAccountId)
-                                .map(profile -> profile.getId())
+                                .map(BaseEntity::getId)
                                 .orElse(null),
                         moderatorProfileRepository.findByUserAccount_Id(userAccountId)
-                                .map(profile -> profile.getId())
+                                .map(BaseEntity::getId)
                                 .orElse(null),
                         adminProfileRepository.findByUserAccount_Id(userAccountId)
-                                .map(profile -> profile.getId())
+                                .map(BaseEntity::getId)
                                 .orElse(null),
                         financeProfileRepository.findByUserAccount_Id(userAccountId)
-                                .map(profile -> profile.getId())
+                                .map(BaseEntity::getId)
                                 .orElse(null)
                 )
         );

@@ -3,7 +3,7 @@ package co.istad.ai_interview_app.features.job.entity;
 import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
-import co.istad.ai_interview_app.shared.enums.JobStatus;
+import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,7 +1,7 @@
 package co.istad.ai_interview_app.features.job.entity;
 
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
-import co.istad.ai_interview_app.shared.enums.JobPostSectionType;
+import co.istad.ai_interview_app.shared.enums.job.JobPostSectionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

@@ -2,7 +2,7 @@ package co.istad.ai_interview_app.features.project.entity;
 
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
 import co.istad.ai_interview_app.features.identity.entity.UserAccount;
-import co.istad.ai_interview_app.shared.enums.InterviewResult;
+import co.istad.ai_interview_app.shared.enums.interview.InterviewResult;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

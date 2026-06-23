@@ -2,7 +2,7 @@ package co.istad.ai_interview_app.features.moderator.entity;
 
 import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
-import co.istad.ai_interview_app.shared.enums.ModerationDecision;
+import co.istad.ai_interview_app.shared.enums.moderation.ModerationDecision;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

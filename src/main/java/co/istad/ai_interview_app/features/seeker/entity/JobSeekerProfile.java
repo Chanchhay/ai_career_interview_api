@@ -2,9 +2,9 @@ package co.istad.ai_interview_app.features.seeker.entity;
 
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
 import co.istad.ai_interview_app.features.identity.entity.UserAccount;
-import co.istad.ai_interview_app.shared.enums.ProfileStatus;
-import co.istad.ai_interview_app.shared.enums.SalaryVisibility;
-import co.istad.ai_interview_app.shared.enums.VerificationStatus;
+import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.shared.enums.profile.SalaryVisibility;
+import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
