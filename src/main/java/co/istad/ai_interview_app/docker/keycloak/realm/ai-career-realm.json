@@ -1,0 +1,150 @@
+{
+  "realm": "ai-career",
+  "enabled": true,
+  "displayName": "AI Career Platform",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": false,
+  "roles": {
+    "realm": [
+      { "name": "ADMIN", "description": "System administrator" },
+      { "name": "MODERATOR", "description": "Platform moderator" },
+      { "name": "RECRUITER", "description": "Corporate recruiter" },
+      { "name": "SEEKER", "description": "Job seeker" },
+      { "name": "FINANCE", "description": "Finance staff" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ai-career-frontend",
+      "name": "AI Career Frontend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access"
+      ]
+    },
+    {
+      "clientId": "ai-career-backend",
+      "name": "AI Career Backend",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "backend-secret-dev"
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@aicareer.local",
+      "firstName": "System",
+      "lastName": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMIN"]
+    },
+    {
+      "username": "moderator",
+      "email": "moderator@aicareer.local",
+      "firstName": "Platform",
+      "lastName": "Moderator",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Moderator@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["MODERATOR"]
+    },
+    {
+      "username": "recruiter",
+      "email": "recruiter@aicareer.local",
+      "firstName": "Demo",
+      "lastName": "Recruiter",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Recruiter@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["RECRUITER"]
+    },
+    {
+      "username": "seeker",
+      "email": "seeker@aicareer.local",
+      "firstName": "Demo",
+      "lastName": "Seeker",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Seeker@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["SEEKER"]
+    },
+    {
+      "username": "finance",
+      "email": "finance@aicareer.local",
+      "firstName": "Demo",
+      "lastName": "Finance",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Finance@123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["FINANCE"]
+    }
+  ]
+}
