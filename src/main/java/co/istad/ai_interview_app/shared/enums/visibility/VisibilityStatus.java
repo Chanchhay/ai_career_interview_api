@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.shared.enums;
+package co.istad.ai_interview_app.shared.enums.visibility;
 
 public enum VisibilityStatus {
     PUBLIC,
