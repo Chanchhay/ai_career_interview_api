@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.recruiter.service;
 
+import co.istad.ai_interview_app.config.security.AuthUtils;
 import co.istad.ai_interview_app.features.recruiter.dto.RecruiterProfileResponse;
 import co.istad.ai_interview_app.features.recruiter.dto.RecruiterProfileUpdateRequest;
 import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
@@ -21,10 +22,9 @@ public class RecruiterProfileServiceImpl implements RecruiterProfileService {
     @Override
     @Transactional
     public RecruiterProfileResponse updateMyProfile(
-            String keycloakUserId,
             RecruiterProfileUpdateRequest request
     ) {
-        RecruiterProfile recruiterProfile = recruiterProfileRepository.findByUserAccount_KeycloakUserId(keycloakUserId)
+        RecruiterProfile recruiterProfile = recruiterProfileRepository.findByUserAccount_KeycloakUserId(AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Recruiter profile was not found for authenticated user"

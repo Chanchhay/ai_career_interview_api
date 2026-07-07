@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.company.service;
 
+import co.istad.ai_interview_app.config.security.AuthUtils;
 import co.istad.ai_interview_app.features.company.dto.CompanyCreateRequest;
 import co.istad.ai_interview_app.features.company.dto.CompanyResponse;
 import co.istad.ai_interview_app.features.company.entity.Company;
@@ -28,10 +29,9 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public CompanyResponse createCompany(
-            String keycloakUserId,
             CompanyCreateRequest request
     ) {
-        RecruiterProfile recruiterProfile = recruiterProfileRepository.findByUserAccount_KeycloakUserId(keycloakUserId)
+        RecruiterProfile recruiterProfile = recruiterProfileRepository.findByUserAccount_KeycloakUserId(AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Recruiter profile was not found for authenticated user"

@@ -1,6 +1,6 @@
 services:
   keycloak-db:
-    image: postgres:17
+    image: postgres:18
     container_name: ai-career-keycloak-db
     environment:
       POSTGRES_DB: keycloak

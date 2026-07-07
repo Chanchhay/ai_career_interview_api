@@ -6,7 +6,6 @@ import co.istad.ai_interview_app.features.recruiter.dto.RecruiterProfileUpdateRe
 public interface RecruiterProfileService {
 
     RecruiterProfileResponse updateMyProfile(
-            String keycloakUserId,
             RecruiterProfileUpdateRequest request
     );
 }
