@@ -2,11 +2,14 @@ package co.istad.ai_interview_app.auth;
 
 import co.istad.ai_interview_app.auth.dto.RegisterRequest;
 import co.istad.ai_interview_app.auth.dto.RegisterResponse;
+import co.istad.ai_interview_app.auth.dto.RegistrationRole;
 import co.istad.ai_interview_app.auth.mapper.AuthMapper;
 import co.istad.ai_interview_app.config.props.KeycloakAdminClientProps;
 import co.istad.ai_interview_app.features.identity.entity.UserAccount;
 import co.istad.ai_interview_app.features.identity.repository.CurrentUserJobSeekerProfileRepository;
 import co.istad.ai_interview_app.features.identity.repository.IdentityUserAccountRepository;
+import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
+import co.istad.ai_interview_app.features.recruiter.repository.RecruiterProfileRepository;
 import co.istad.ai_interview_app.features.seeker.entity.JobSeekerProfile;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.Response;
@@ -37,11 +40,11 @@ public class AuthServiceImpl implements AuthService {
     private final KeycloakAdminClientProps props;
     private final IdentityUserAccountRepository userAccountRepository;
     private final CurrentUserJobSeekerProfileRepository jobSeekerProfileRepository;
+    private final RecruiterProfileRepository recruiterProfileRepository;
 
     private static final String ATTRIBUTE_GENDER = "gender";
     private static final String ATTRIBUTE_PHONE_NUMBER = "phone_number";
     private static final String ATTRIBUTE_REGISTRATION_SOURCE = "registration_source";
-    private static final String DEFAULT_REGISTRATION_ROLE = "SEEKER";
     private static final String REGISTRATION_SOURCE_SELF = "self_registration";
 
     @Override
@@ -49,6 +52,9 @@ public class AuthServiceImpl implements AuthService {
     public RegisterResponse register(@Valid RegisterRequest registerRequest) {
         if (!registerRequest.password().equals(registerRequest.confirmPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password and Confirm password does not match");
+        }
+        if (registerRequest.role() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role must be either SEEKER or RECRUITER");
         }
 
         UserRepresentation userRepresentation = authMapper.toUserRepresentation(registerRequest);
@@ -82,8 +88,8 @@ public class AuthServiceImpl implements AuthService {
             }
 
             String createdUserId = CreatedResponseUtil.getCreatedId(response);
-            assignDefaultRegistrationRole(createdUserId);
-            UserAccount userAccount = createLocalUserAccount(createdUserId);
+            assignRegistrationRole(createdUserId, registerRequest.role());
+            UserAccount userAccount = createLocalUserAccount(createdUserId, registerRequest.role());
             UserRepresentation createdUser = usersResource.get(createdUserId).toRepresentation();
 
             return RegisterResponse.builder()
@@ -93,6 +99,7 @@ public class AuthServiceImpl implements AuthService {
                     .firstName(createdUser.getFirstName())
                     .lastName(createdUser.getLastName())
                     .gender(readAttribute(createdUser, ATTRIBUTE_GENDER))
+                    .role(registerRequest.role())
                     .phoneNumber(readAttribute(createdUser, ATTRIBUTE_PHONE_NUMBER))
                     .registrationSource(readAttribute(createdUser, ATTRIBUTE_REGISTRATION_SOURCE))
                     .build();
@@ -115,10 +122,10 @@ public class AuthServiceImpl implements AuthService {
         return attributes;
     }
 
-    private void assignDefaultRegistrationRole(String keycloakUserId) {
+    private void assignRegistrationRole(String keycloakUserId, RegistrationRole registrationRole) {
         RoleRepresentation role = keycloak.realm(props.getTargetRealm())
                 .roles()
-                .get(DEFAULT_REGISTRATION_ROLE)
+                .get(registrationRole.name())
                 .toRepresentation();
 
         keycloak.realm(props.getTargetRealm())
@@ -129,14 +136,20 @@ public class AuthServiceImpl implements AuthService {
                 .add(List.of(role));
     }
 
-    private UserAccount createLocalUserAccount(String keycloakUserId) {
+    private UserAccount createLocalUserAccount(String keycloakUserId, RegistrationRole registrationRole) {
         UserAccount userAccount = new UserAccount();
         userAccount.setKeycloakUserId(keycloakUserId);
         UserAccount savedUserAccount = userAccountRepository.save(userAccount);
 
-        JobSeekerProfile jobSeekerProfile = new JobSeekerProfile();
-        jobSeekerProfile.setUserAccount(savedUserAccount);
-        jobSeekerProfileRepository.save(jobSeekerProfile);
+        if (registrationRole == RegistrationRole.SEEKER) {
+            JobSeekerProfile jobSeekerProfile = new JobSeekerProfile();
+            jobSeekerProfile.setUserAccount(savedUserAccount);
+            jobSeekerProfileRepository.save(jobSeekerProfile);
+        } else if (registrationRole == RegistrationRole.RECRUITER) {
+            RecruiterProfile recruiterProfile = new RecruiterProfile();
+            recruiterProfile.setUserAccount(savedUserAccount);
+            recruiterProfileRepository.save(recruiterProfile);
+        }
 
         return savedUserAccount;
     }

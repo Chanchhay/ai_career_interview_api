@@ -10,6 +10,7 @@ public record RegisterResponse(
         String firstName,
         String lastName,
         String gender,
+        RegistrationRole role,
         String phoneNumber,
         String registrationSource
 ) {

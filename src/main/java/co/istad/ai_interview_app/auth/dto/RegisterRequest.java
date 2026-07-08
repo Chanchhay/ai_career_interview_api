@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.auth.dto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -31,6 +32,7 @@ public record RegisterRequest(
 
         GenderOptions gender,
 
+        @NotNull(message = "role must be either SEEKER or RECRUITER")
         RegistrationRole role,
 
         @JsonAlias("phone_number")
