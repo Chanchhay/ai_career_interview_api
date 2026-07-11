@@ -15,7 +15,6 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jspecify.annotations.Nullable;
 import org.keycloak.admin.client.CreatedResponseUtil;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.UsersResource;
@@ -30,6 +29,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 
 @Service
 @RequiredArgsConstructor
@@ -155,11 +156,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String readAttribute(UserRepresentation userRepresentation, String attributeName) {
-        return readAtt(userRepresentation, attributeName);
-    }
-
-    @Nullable
-    public static String readAtt(UserRepresentation userRepresentation, String attributeName) {
         Map<String, List<String>> attributes = userRepresentation.getAttributes();
 
         if (attributes == null || attributes.get(attributeName) == null || attributes.get(attributeName).isEmpty()) {
@@ -167,9 +163,5 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return attributes.get(attributeName).getFirst();
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
     }
 }

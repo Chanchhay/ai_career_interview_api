@@ -3,13 +3,14 @@ package co.istad.ai_interview_app.features.company.service;
 import co.istad.ai_interview_app.config.security.AuthUtils;
 import co.istad.ai_interview_app.features.company.dto.CompanyCreateRequest;
 import co.istad.ai_interview_app.features.company.dto.CompanyResponse;
+import co.istad.ai_interview_app.features.company.dto.CompanyUpdateRequest;
 import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.features.company.entity.Industry;
 import co.istad.ai_interview_app.features.company.mapper.CompanyMapper;
 import co.istad.ai_interview_app.features.company.repository.CompanyRepository;
 import co.istad.ai_interview_app.features.company.repository.IndustryRepository;
 import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
-import co.istad.ai_interview_app.features.recruiter.repository.RecruiterProfileRepository;
+import co.istad.ai_interview_app.features.recruiter.service.AuthenticatedRecruiterProfileResolver;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,13 +18,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+
 @Service
 @RequiredArgsConstructor
 public class CompanyServiceImpl implements CompanyService {
 
     private final CompanyRepository companyRepository;
     private final IndustryRepository industryRepository;
-    private final RecruiterProfileRepository recruiterProfileRepository;
+    private final AuthenticatedRecruiterProfileResolver recruiterProfileResolver;
     private final CompanyMapper companyMapper;
 
     @Override
@@ -31,13 +34,16 @@ public class CompanyServiceImpl implements CompanyService {
     public CompanyResponse createCompany(
             CompanyCreateRequest request
     ) {
-        RecruiterProfile recruiterProfile = recruiterProfileRepository.findByUserAccount_KeycloakUserId(AuthUtils.extractUserId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Recruiter profile was not found for authenticated user"
-                ));
+        RecruiterProfile recruiterProfile = recruiterProfileResolver.resolve();
 
-        String businessRegistrationNo = normalize(request.businessRegistrationNo());
+        if (companyRepository.existsByRecruiterProfile_Id(recruiterProfile.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Recruiter already has a company profile"
+            );
+        }
+
+        String businessRegistrationNo = normalizeBlankToNull(request.businessRegistrationNo());
         if (businessRegistrationNo != null && companyRepository.existsByBusinessRegistrationNo(businessRegistrationNo)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -45,19 +51,58 @@ public class CompanyServiceImpl implements CompanyService {
             );
         }
 
-        Company company = new Company();
+        Company company = companyMapper.toEntity(
+                request,
+                resolveIndustry(request.industryId())
+        );
         company.setRecruiterProfile(recruiterProfile);
-        company.setIndustry(resolveIndustry(request.industryId()));
-        company.setName(normalizeRequired(request.name()));
-        company.setDescription(normalize(request.description()));
-        company.setWebsiteUrl(normalize(request.websiteUrl()));
-        company.setAddress(normalize(request.address()));
-        company.setContactEmail(normalize(request.contactEmail()));
-        company.setContactPhone(normalize(request.contactPhone()));
-        company.setLogoUrl(normalize(request.logoUrl()));
-        company.setBusinessRegistrationNo(businessRegistrationNo);
 
         return companyMapper.toResponse(companyRepository.save(company));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CompanyResponse getMyCompany() {
+        Company company = companyRepository.findByRecruiterProfile_UserAccount_KeycloakUserId(AuthUtils.extractUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Company profile was not found for authenticated recruiter"
+                ));
+
+        return companyMapper.toResponse(company);
+    }
+
+    @Override
+    @Transactional
+    public CompanyResponse updateCompany(
+            Long id,
+            CompanyUpdateRequest request
+    ) {
+        Company company = companyRepository.findByIdAndRecruiterProfile_UserAccount_KeycloakUserId(
+                        id,
+                        AuthUtils.extractUserId()
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Company profile was not found for authenticated recruiter"
+                ));
+
+        String businessRegistrationNo = normalizeBlankToNull(request.businessRegistrationNo());
+        if (businessRegistrationNo != null
+                && companyRepository.existsByBusinessRegistrationNoAndIdNot(businessRegistrationNo, company.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Business registration number already exists"
+            );
+        }
+
+        companyMapper.updateEntity(
+                company,
+                request,
+                resolveIndustry(request.industryId())
+        );
+
+        return companyMapper.toResponse(company);
     }
 
     private Industry resolveIndustry(Long industryId) {
@@ -76,23 +121,5 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         return industry;
-    }
-
-    private String normalizeRequired(String value) {
-        String normalizedValue = normalize(value);
-
-        if (normalizedValue == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Company name is required");
-        }
-
-        return normalizedValue;
-    }
-
-    private String normalize(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return value.trim();
     }
 }

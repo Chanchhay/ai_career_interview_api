@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.config.security;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -57,6 +59,8 @@ public class SecurityConfig {
                         new SimpleGrantedAuthority("ROLE_" + role)
                 ));
             }
+
+            log.info("jwt: {}", jwt.getTokenValue());
 
             return authorities;
         });

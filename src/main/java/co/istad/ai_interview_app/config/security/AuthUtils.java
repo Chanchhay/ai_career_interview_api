@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
+
 public final class AuthUtils {
 
     private AuthUtils() {
@@ -99,7 +101,7 @@ public final class AuthUtils {
         String givenName = claimAsString(jwt, "given_name");
         String familyName = claimAsString(jwt, "family_name");
         String combinedName = Stream.of(givenName, familyName)
-                .filter(AuthUtils::hasText)
+                .filter(value -> hasText(value))
                 .collect(Collectors.joining(" "));
 
         if (hasText(combinedName)) {
@@ -136,7 +138,4 @@ public final class AuthUtils {
                 .filter(Objects::nonNull);
     }
 
-    private static boolean hasText(String value) {
-        return value != null && !value.isBlank();
-    }
 }

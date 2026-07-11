@@ -2,17 +2,10 @@ package co.istad.ai_interview_app.features.recruiter.mapper;
 
 import co.istad.ai_interview_app.features.recruiter.dto.RecruiterProfileResponse;
 import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-@Component
-public class RecruiterProfileMapper {
+@Mapper(componentModel = "spring")
+public interface RecruiterProfileMapper {
 
-    public RecruiterProfileResponse toResponse(RecruiterProfile profile) {
-        return new RecruiterProfileResponse(
-                profile.getId(),
-                profile.getPosition(),
-                profile.getLinkedinUrl(),
-                profile.getStatus()
-        );
-    }
+    RecruiterProfileResponse toResponse(RecruiterProfile profile);
 }
