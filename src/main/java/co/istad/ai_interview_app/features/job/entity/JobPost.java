@@ -63,4 +63,11 @@ public class JobPost extends BaseEntity {
             orphanRemoval = true
     )
     private List<JobPostSection> sections = new ArrayList<>();
+
+    @OneToMany(
+            mappedBy = "jobPost",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<JobPostSkill> skills = new ArrayList<>();
 }
