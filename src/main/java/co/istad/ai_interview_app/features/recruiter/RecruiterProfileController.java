@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.features.recruiter.controller;
+package co.istad.ai_interview_app.features.recruiter;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
 import co.istad.ai_interview_app.features.recruiter.dto.RecruiterProfileResponse;

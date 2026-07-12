@@ -1,12 +1,14 @@
 package co.istad.ai_interview_app.features.seeker.entity;
 
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
+import co.istad.ai_interview_app.shared.enums.visibility.VisibilityStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
 import java.util.Map;
 
 @Getter
@@ -34,4 +36,10 @@ public class Resume extends BaseEntity {
 
     @Column(nullable = false)
     private Boolean isDefault = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private VisibilityStatus visibility = VisibilityStatus.PRIVATE;
+
+    private Instant publishedAt;
 }

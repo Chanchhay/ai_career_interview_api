@@ -10,7 +10,15 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @Entity
-@Table(name = "ai_interview_answers")
+@Table(
+        name = "ai_interview_answers",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_ai_interview_answers_question",
+                        columnNames = "question_id"
+                )
+        }
+)
 public class AiInterviewAnswer extends BaseEntity {
 
     @ManyToOne(optional = false)

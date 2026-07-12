@@ -2,6 +2,7 @@ package co.istad.ai_interview_app.auth;
 
 import co.istad.ai_interview_app.auth.dto.RegisterRequest;
 import co.istad.ai_interview_app.auth.dto.RegisterResponse;
+import co.istad.ai_interview_app.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

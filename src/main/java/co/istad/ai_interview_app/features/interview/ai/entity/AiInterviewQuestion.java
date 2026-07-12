@@ -29,6 +29,9 @@ public class AiInterviewQuestion extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String expectedAnswer;
 
+    @Column(nullable = false)
+    private Integer maxScore = 10;
+
     private Integer displayOrder;
 
     @OneToMany(

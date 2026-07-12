@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.auth;
+package co.istad.ai_interview_app.auth.service;
 
 import co.istad.ai_interview_app.auth.dto.RegisterRequest;
 import co.istad.ai_interview_app.auth.dto.RegisterResponse;

@@ -5,11 +5,13 @@ import co.istad.ai_interview_app.features.identity.entity.UserAccount;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
 import co.istad.ai_interview_app.shared.enums.profile.SalaryVisibility;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
+import co.istad.ai_interview_app.shared.enums.visibility.VisibilityStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -46,6 +48,15 @@ public class JobSeekerProfile extends BaseEntity {
 
     @Column(length = 50)
     private String availabilityStatus;
+
+    @Column(unique = true, length = 120)
+    private String publicProfileSlug;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private VisibilityStatus profileVisibility = VisibilityStatus.PRIVATE;
+
+    private Instant publishedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

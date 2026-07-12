@@ -21,7 +21,7 @@ import java.util.List;
 @Table(name = "ai_interview_sessions")
 public class AiInterviewSession extends BaseEntity {
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     @JoinColumn(name = "application_id")
     private JobApplication application;
 
@@ -61,4 +61,11 @@ public class AiInterviewSession extends BaseEntity {
             orphanRemoval = true
     )
     private List<AiInterviewQuestion> questions = new ArrayList<>();
+
+    @OneToOne(
+            mappedBy = "session",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private AiInterviewFeedback feedback;
 }

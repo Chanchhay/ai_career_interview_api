@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.features.company.controller;
+package co.istad.ai_interview_app.features.company;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
 import co.istad.ai_interview_app.features.company.dto.CompanyCreateRequest;

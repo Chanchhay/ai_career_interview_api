@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.features.job.controller;
+package co.istad.ai_interview_app.features.job;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
 import co.istad.ai_interview_app.features.job.dto.JobPostRequest;

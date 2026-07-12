@@ -7,6 +7,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
+
 @Getter
 @Setter
 @Entity
@@ -28,7 +30,9 @@ public class Portfolio extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private VisibilityStatus visibility = VisibilityStatus.PUBLIC;
+    private VisibilityStatus visibility = VisibilityStatus.PRIVATE;
+
+    private Instant publishedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

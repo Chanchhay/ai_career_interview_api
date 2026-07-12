@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.features.identity.controller;
+package co.istad.ai_interview_app.features.identity;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
 import co.istad.ai_interview_app.features.identity.dto.CurrentUserResponse;
