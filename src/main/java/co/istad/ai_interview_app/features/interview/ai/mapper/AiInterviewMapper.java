@@ -22,6 +22,7 @@ public class AiInterviewMapper {
 
         return new AiInterviewSessionResponse(
                 session.getId(),
+                session.getApplication() == null ? null : session.getApplication().getId(),
                 session.getJobPost().getId(),
                 session.getJobPost().getTitle(),
                 session.getStatus(),

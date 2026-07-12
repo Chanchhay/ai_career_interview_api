@@ -1,6 +1,8 @@
 package co.istad.ai_interview_app.features.interview.ai.service;
 
 import co.istad.ai_interview_app.config.security.AuthUtils;
+import co.istad.ai_interview_app.features.application.entity.JobApplication;
+import co.istad.ai_interview_app.features.application.repository.JobApplicationRepository;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewAnswerRequest;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewResultResponse;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewSessionResponse;
@@ -22,10 +24,14 @@ import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewSes
 import co.istad.ai_interview_app.features.job.entity.JobPost;
 import co.istad.ai_interview_app.features.job.entity.JobPostSection;
 import co.istad.ai_interview_app.features.job.repository.JobPostRepository;
+import co.istad.ai_interview_app.features.moderator.entity.CandidateApplicationReview;
+import co.istad.ai_interview_app.features.moderator.repository.CandidateApplicationReviewRepository;
 import co.istad.ai_interview_app.features.seeker.entity.JobSeekerProfile;
 import co.istad.ai_interview_app.features.seeker.repository.JobSeekerProfileRepository;
+import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.interview.InterviewStatus;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
+import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -55,8 +61,10 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     private final AiInterviewQuestionGenerator questionGenerator;
     private final AiInterviewEvaluator evaluator;
     private final JobPostRepository jobPostRepository;
+    private final JobApplicationRepository applicationRepository;
     private final JobSeekerProfileRepository jobSeekerProfileRepository;
     private final AiInterviewSessionRepository sessionRepository;
+    private final CandidateApplicationReviewRepository reviewRepository;
     private final AiInterviewQuestionRepository questionRepository;
     private final AiInterviewAnswerRepository answerRepository;
     private final AiInterviewFeedbackRepository feedbackRepository;
@@ -66,9 +74,36 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     @Value("${spring.ai.google.genai.chat.model:gemini}")
     private String aiModel;
 
+    private static final Set<InterviewStatus> ACTIVE_APPLICATION_INTERVIEW_STATUSES = Set.of(
+            InterviewStatus.PREPARING,
+            InterviewStatus.READY,
+            InterviewStatus.PENDING,
+            InterviewStatus.IN_PROGRESS
+    );
+
     @Override
     public AiInterviewSessionResponse createInterviewForJob(Long jobId) {
         GenerationContext context = transactionTemplate.execute(status -> createPreparingSession(jobId));
+
+        GeneratedQuestionSet generatedQuestions;
+        try {
+            generatedQuestions = questionGenerator.generateQuestions(
+                    context.jobTitle(),
+                    context.jobDescription(),
+                    context.experienceLevel(),
+                    context.requiredSkills()
+            );
+        } catch (RuntimeException ex) {
+            transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
+            throw ex;
+        }
+
+        return transactionTemplate.execute(status -> persistGeneratedQuestions(context.sessionId(), generatedQuestions));
+    }
+
+    @Override
+    public AiInterviewSessionResponse createInterviewForApplication(Long applicationId) {
+        GenerationContext context = transactionTemplate.execute(status -> createPreparingApplicationSession(applicationId));
 
         GeneratedQuestionSet generatedQuestions;
         try {
@@ -168,9 +203,20 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             return transactionTemplate.execute(status -> mapper.toResultResponse(resolveMySessionWithResult(sessionId)));
         }
 
-        InterviewEvaluationResult evaluation = evaluator.evaluate(context.request());
+        InterviewEvaluationResult evaluation;
+        try {
+            evaluation = evaluator.evaluate(context.request());
+        } catch (RuntimeException ex) {
+            transactionTemplate.executeWithoutResult(status -> markSessionFailed(sessionId));
+            throw ex;
+        }
 
-        return transactionTemplate.execute(status -> persistEvaluation(sessionId, evaluation));
+        try {
+            return transactionTemplate.execute(status -> persistEvaluation(sessionId, evaluation));
+        } catch (RuntimeException ex) {
+            transactionTemplate.executeWithoutResult(status -> markSessionFailed(sessionId));
+            throw ex;
+        }
     }
 
     @Override
@@ -196,6 +242,49 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         session.setProvider("GEMINI");
         session.setAiModel(aiModel);
         session.setStatus(InterviewStatus.PREPARING);
+
+        AiInterviewSession savedSession = sessionRepository.save(session);
+
+        return new GenerationContext(
+                savedSession.getId(),
+                jobPost.getTitle(),
+                buildJobDescription(jobPost),
+                jobPost.getExperienceLevel(),
+                requiredSkills(jobPost)
+        );
+    }
+
+    private GenerationContext createPreparingApplicationSession(Long applicationId) {
+        JobApplication application = applicationRepository
+                .findByIdAndJobSeekerProfile_UserAccount_KeycloakUserId(applicationId, AuthUtils.extractUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Application was not found for authenticated job seeker"
+                ));
+
+        if (application.getStatus() == ApplicationStatus.WITHDRAWN
+                || application.getStatus() == ApplicationStatus.REJECTED
+                || application.getStatus() == ApplicationStatus.HIRED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This application cannot start an AI interview");
+        }
+        if (application.getStatus() == ApplicationStatus.MODERATOR_REVIEW_PENDING
+                || application.getStatus() == ApplicationStatus.SHORTLISTED
+                || application.getStatus() == ApplicationStatus.HUMAN_INTERVIEW_SCHEDULED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This application already has a completed AI interview");
+        }
+        if (sessionRepository.existsByApplication_IdAndStatusIn(application.getId(), ACTIVE_APPLICATION_INTERVIEW_STATUSES)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This application already has an active AI interview");
+        }
+
+        JobPost jobPost = application.getJobPost();
+        AiInterviewSession session = new AiInterviewSession();
+        session.setApplication(application);
+        session.setJobPost(jobPost);
+        session.setJobSeeker(application.getJobSeekerProfile().getUserAccount());
+        session.setProvider("GEMINI");
+        session.setAiModel(aiModel);
+        session.setStatus(InterviewStatus.PREPARING);
+        application.setStatus(ApplicationStatus.AI_INTERVIEW_IN_PROGRESS);
 
         AiInterviewSession savedSession = sessionRepository.save(session);
 
@@ -319,6 +408,17 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         session.setStatus(InterviewStatus.COMPLETED);
         session.setEndedAt(Instant.now());
 
+        if (session.getApplication() != null) {
+            session.getApplication().setStatus(ApplicationStatus.MODERATOR_REVIEW_PENDING);
+            reviewRepository.findByApplication_Id(session.getApplication().getId())
+                    .orElseGet(() -> {
+                        CandidateApplicationReview review = new CandidateApplicationReview();
+                        review.setApplication(session.getApplication());
+                        review.setReviewStatus(CandidateApplicationReviewStatus.PENDING);
+                        return reviewRepository.save(review);
+                    });
+        }
+
         return mapper.toResultResponse(session);
     }
 
@@ -375,7 +475,12 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     private void markSessionFailed(Long sessionId) {
-        sessionRepository.findById(sessionId).ifPresent(session -> session.setStatus(InterviewStatus.FAILED));
+        sessionRepository.findById(sessionId).ifPresent(session -> {
+            session.setStatus(InterviewStatus.FAILED);
+            if (session.getApplication() != null) {
+                session.getApplication().setStatus(ApplicationStatus.AI_INTERVIEW_FAILED);
+            }
+        });
     }
 
     private String buildJobDescription(JobPost jobPost) {

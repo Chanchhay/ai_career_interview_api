@@ -10,6 +10,8 @@ public interface AiInterviewService {
 
     AiInterviewSessionResponse createInterviewForJob(Long jobId);
 
+    AiInterviewSessionResponse createInterviewForApplication(Long applicationId);
+
     List<AiInterviewSessionResponse> getMyInterviews();
 
     AiInterviewSessionResponse getMyInterview(Long sessionId);
