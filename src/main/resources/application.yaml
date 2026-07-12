@@ -1,4 +1,9 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL}
   application:
     name: ai_interview_backend_api
   datasource:
@@ -8,8 +13,28 @@ spring:
     url: ${DB_URL}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          max-output-tokens: 4096
+          temperature: 0.2
+          model: ${GEMINI_MODEL:gemini-3.5-flash}
+
+keycloak:
+  admin:
+    server-url: ${KEYCLOAK_URL}
+    client-id: ${KEYCLOAK_CLIENT_ID}
+    realm: master
+    target-realm: ai-career
+    client-secret: ${KEYCLOAK_CLIENT_SECRET}

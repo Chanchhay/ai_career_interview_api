@@ -193,7 +193,7 @@ Upload company document.
 
 ### `GET /api/v1/recruiter/companies/me`
 
-Get recruiter's company/company list.
+Get recruiter's company.
 
 ### `POST /api/v1/recruiter/jobs`
 
