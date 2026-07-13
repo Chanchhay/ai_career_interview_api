@@ -19,6 +19,8 @@ import co.istad.ai_interview_app.features.job.repository.SkillRepository;
 import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
 import co.istad.ai_interview_app.features.recruiter.service.AuthenticatedRecruiterProfileResolver;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
+import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 
 @Service
 @RequiredArgsConstructor
@@ -100,11 +103,26 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
         if (jobPost.getStatus() == JobStatus.CLOSED || jobPost.getStatus() == JobStatus.EXPIRED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Closed or expired jobs cannot be published");
         }
+        validatePublishable(jobPost);
 
         jobPost.setStatus(JobStatus.PUBLISHED);
         if (jobPost.getPublishedAt() == null) {
             jobPost.setPublishedAt(Instant.now());
         }
+
+        return jobPostMapper.toResponse(jobPost);
+    }
+
+    @Override
+    @Transactional
+    public JobPostResponse resumeMyJob(Long id) {
+        JobPost jobPost = resolveMyJob(id);
+        if (jobPost.getStatus() != JobStatus.PAUSED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only paused jobs can be resumed");
+        }
+        validatePublishable(jobPost);
+
+        jobPost.setStatus(JobStatus.PUBLISHED);
 
         return jobPostMapper.toResponse(jobPost);
     }
@@ -244,6 +262,22 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
                     HttpStatus.BAD_REQUEST,
                     "Minimum salary cannot be greater than maximum salary"
             );
+        }
+    }
+
+    private void validatePublishable(JobPost jobPost) {
+        Company company = jobPost.getCompany();
+        if (company.getVerificationStatus() != VerificationStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Company must be approved before publishing jobs");
+        }
+        if (company.getStatus() != ProfileStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Company must be active before publishing jobs");
+        }
+        if (!hasText(jobPost.getTitle()) || !hasText(jobPost.getDescription())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Job title and description are required before publishing");
+        }
+        if (jobPost.getExpiredAt() != null && !jobPost.getExpiredAt().isAfter(Instant.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expired jobs cannot be published");
         }
     }
 }

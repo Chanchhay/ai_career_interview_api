@@ -39,8 +39,7 @@ public class AiInterviewMapper {
     public AiInterviewResultResponse toResultResponse(AiInterviewSession session) {
         return new AiInterviewResultResponse(
                 toSessionResponse(session),
-                toFeedbackResponse(session.getFeedback()),
-                toQuestionResponses(session.getQuestions())
+                toFeedbackResponse(session.getFeedback())
         );
     }
 
