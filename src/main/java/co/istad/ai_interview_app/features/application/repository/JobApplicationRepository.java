@@ -14,6 +14,8 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
 
     boolean existsByJobPost_IdAndJobSeekerProfile_Id(Long jobPostId, Long jobSeekerProfileId);
 
+    boolean existsByResume_Id(Long resumeId);
+
     @EntityGraph(attributePaths = {"jobPost", "resume", "jobSeekerProfile", "jobSeekerProfile.userAccount"})
     List<JobApplication> findAllByJobSeekerProfile_UserAccount_KeycloakUserIdOrderByAppliedAtDesc(String keycloakUserId);
 
