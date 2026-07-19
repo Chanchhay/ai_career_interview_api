@@ -22,6 +22,7 @@ public class AiInterviewMapper {
 
         return new AiInterviewSessionResponse(
                 session.getId(),
+                session.getApplication() == null ? null : session.getApplication().getId(),
                 session.getJobPost().getId(),
                 session.getJobPost().getTitle(),
                 session.getStatus(),
@@ -38,8 +39,7 @@ public class AiInterviewMapper {
     public AiInterviewResultResponse toResultResponse(AiInterviewSession session) {
         return new AiInterviewResultResponse(
                 toSessionResponse(session),
-                toFeedbackResponse(session.getFeedback()),
-                toQuestionResponses(session.getQuestions())
+                toFeedbackResponse(session.getFeedback())
         );
     }
 

@@ -83,6 +83,16 @@ public class RecruiterJobPostController {
         );
     }
 
+    @PostMapping("/{id}/resume")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<JobPostResponse> resumeMyJob(
+            @PathVariable Long id
+    ) {
+        return ApiResponse.success(
+                recruiterJobPostService.resumeMyJob(id)
+        );
+    }
+
     @PostMapping("/{id}/close")
     @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> closeMyJob(
