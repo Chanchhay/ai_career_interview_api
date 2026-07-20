@@ -1,6 +1,6 @@
-package co.istad.ai_interview_app.auth.mapper;
+package co.istad.ai_interview_app.features.auth.mapper;
 
-import co.istad.ai_interview_app.auth.dto.RegisterRequest;
+import co.istad.ai_interview_app.features.auth.dto.RegisterRequest;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.mapstruct.Mapper;
 

@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.auth.dto;
+package co.istad.ai_interview_app.features.auth.dto;
 
 import lombok.Builder;
 

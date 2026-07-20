@@ -1,9 +1,9 @@
-package co.istad.ai_interview_app.auth.service;
+package co.istad.ai_interview_app.features.auth.service;
 
-import co.istad.ai_interview_app.auth.dto.RegisterRequest;
-import co.istad.ai_interview_app.auth.dto.RegisterResponse;
-import co.istad.ai_interview_app.auth.dto.RegistrationRole;
-import co.istad.ai_interview_app.auth.mapper.AuthMapper;
+import co.istad.ai_interview_app.features.auth.dto.RegisterRequest;
+import co.istad.ai_interview_app.features.auth.dto.RegisterResponse;
+import co.istad.ai_interview_app.features.auth.dto.RegistrationRole;
+import co.istad.ai_interview_app.features.auth.mapper.AuthMapper;
 import co.istad.ai_interview_app.config.props.KeycloakAdminClientProps;
 import co.istad.ai_interview_app.features.identity.entity.UserAccount;
 import co.istad.ai_interview_app.features.identity.repository.CurrentUserJobSeekerProfileRepository;
