@@ -1,0 +1,5354 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Interview Backend API",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:18080",
+      "description": "Generated server url"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/recruiter/jobs/{id}": {
+      "get": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "getMyJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "updateMyJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/companies/{id}": {
+      "put": {
+        "tags": [
+          "company-controller"
+        ],
+        "operationId": "updateCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/ai-interviews/{sessionId}/questions/{questionId}/answer": {
+      "put": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "submitAnswer",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "questionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiInterviewAnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAiInterviewSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/jobs": {
+      "get": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "getMyJobs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "createJobDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobPostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/jobs/{id}/resume": {
+      "post": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "resumeMyJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/jobs/{id}/publish": {
+      "post": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "publishMyJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/jobs/{id}/pause": {
+      "post": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "pauseMyJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/jobs/{id}/close": {
+      "post": {
+        "tags": [
+          "recruiter-job-post-controller"
+        ],
+        "operationId": "closeMyJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobPostResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/companies": {
+      "post": {
+        "tags": [
+          "company-controller"
+        ],
+        "operationId": "createCompany",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/companies/{companyId}/submit-verification": {
+      "post": {
+        "tags": [
+          "company-controller"
+        ],
+        "operationId": "submitVerification",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/companies/{companyId}/documents": {
+      "get": {
+        "tags": [
+          "company-controller"
+        ],
+        "operationId": "getDocuments",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListCompanyDocumentResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "company-controller"
+        ],
+        "operationId": "addDocument",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyDocumentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyDocumentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/human-interviews/{interviewId}/complete": {
+      "post": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "completeHumanInterview",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanInterviewCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHumanInterviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/human-interviews/{interviewId}/cancel": {
+      "post": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "cancelHumanInterview",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHumanInterviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/companies/{companyId}/request-revision": {
+      "post": {
+        "tags": [
+          "moderator-company-verification-controller"
+        ],
+        "operationId": "requestRevision",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyVerificationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/companies/{companyId}/reject": {
+      "post": {
+        "tags": [
+          "moderator-company-verification-controller"
+        ],
+        "operationId": "reject",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyVerificationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/companies/{companyId}/approve": {
+      "post": {
+        "tags": [
+          "moderator-company-verification-controller"
+        ],
+        "operationId": "approve",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyVerificationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/candidate-applications/{applicationId}/reject": {
+      "post": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "reject_1",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCandidateApplicationReviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/candidate-applications/{applicationId}/human-interviews": {
+      "post": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "scheduleHumanInterview",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanInterviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHumanInterviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/candidate-applications/{applicationId}/forward": {
+      "post": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "forward",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCandidateApplicationReviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/candidate-applications/{applicationId}/approve": {
+      "post": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "approve_1",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCandidateApplicationReviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/resumes": {
+      "get": {
+        "tags": [
+          "job-seeker-resume-controller"
+        ],
+        "operationId": "getMyResumes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListResumeResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "job-seeker-resume-controller"
+        ],
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseResumeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/resumes/{resumeId}/default": {
+      "post": {
+        "tags": [
+          "job-seeker-resume-controller"
+        ],
+        "operationId": "setDefault",
+        "parameters": [
+          {
+            "name": "resumeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseResumeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/portfolios": {
+      "get": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "getMyPortfolios",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListPortfolioResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "createPortfolio",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePortfolioResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/portfolios/{portfolioId}/projects": {
+      "post": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "createProject",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioProjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePortfolioProjectResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/jobs/{jobId}/applications": {
+      "post": {
+        "tags": [
+          "job-seeker-application-controller"
+        ],
+        "operationId": "apply",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobApplicationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/jobs/{jobId}/ai-interviews": {
+      "post": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "createInterviewForJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAiInterviewSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/applications/{applicationId}/withdraw": {
+      "post": {
+        "tags": [
+          "job-seeker-application-controller"
+        ],
+        "operationId": "withdraw",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/applications/{applicationId}/ai-interviews": {
+      "post": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "createInterviewForApplication",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAiInterviewSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/ai-interviews/{sessionId}/start": {
+      "post": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "startInterview",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAiInterviewSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/ai-interviews/{sessionId}/complete": {
+      "post": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "completeInterview",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAiInterviewResultResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth-controller"
+        ],
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/profile": {
+      "patch": {
+        "tags": [
+          "recruiter-profile-controller"
+        ],
+        "operationId": "updateMyProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecruiterProfileUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRecruiterProfileResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/human-interviews/{interviewId}/reschedule": {
+      "patch": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "rescheduleHumanInterview",
+        "parameters": [
+          {
+            "name": "interviewId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanInterviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseHumanInterviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/resumes/{resumeId}": {
+      "get": {
+        "tags": [
+          "job-seeker-resume-controller"
+        ],
+        "operationId": "getMyResume",
+        "parameters": [
+          {
+            "name": "resumeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseResumeResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "job-seeker-resume-controller"
+        ],
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "resumeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "job-seeker-resume-controller"
+        ],
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "resumeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseResumeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/resumes/{resumeId}/publication": {
+      "patch": {
+        "tags": [
+          "job-seeker-publication-controller"
+        ],
+        "operationId": "updateResumePublication",
+        "parameters": [
+          {
+            "name": "resumeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePublicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/profile": {
+      "get": {
+        "tags": [
+          "job-seeker-profile-controller"
+        ],
+        "operationId": "getMyProfile",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobSeekerProfileResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "job-seeker-profile-controller"
+        ],
+        "operationId": "updateMyProfile_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobSeekerProfileUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobSeekerProfileResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/profile/publication": {
+      "patch": {
+        "tags": [
+          "job-seeker-publication-controller"
+        ],
+        "operationId": "updateProfilePublication",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePublicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/portfolios/{portfolioId}": {
+      "get": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "getMyPortfolio",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePortfolioResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "deletePortfolio",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "updatePortfolio",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePortfolioResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/portfolios/{portfolioId}/publication": {
+      "patch": {
+        "tags": [
+          "job-seeker-publication-controller"
+        ],
+        "operationId": "updatePortfolioPublication",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePublicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/portfolios/{portfolioId}/projects/{projectId}": {
+      "delete": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "deleteProject",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "job-seeker-portfolio-controller"
+        ],
+        "operationId": "updateProject",
+        "parameters": [
+          {
+            "name": "portfolioId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PortfolioProjectUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePortfolioProjectResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/talent": {
+      "get": {
+        "tags": [
+          "recruiter-talent-controller"
+        ],
+        "operationId": "findPublicTalent",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "preferredLocation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "availabilityStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagePublicTalentListItemResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/talent/{publicProfileSlug}": {
+      "get": {
+        "tags": [
+          "recruiter-talent-controller"
+        ],
+        "operationId": "getPublicTalent",
+        "parameters": [
+          {
+            "name": "publicProfileSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePublicTalentDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/talent/{publicProfileSlug}/resumes/{resumeId}/download": {
+      "get": {
+        "tags": [
+          "recruiter-talent-controller"
+        ],
+        "operationId": "getPublicResumeDownload",
+        "parameters": [
+          {
+            "name": "publicProfileSlug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resumeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePublicResumeDownloadResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/forwarded-applications": {
+      "get": {
+        "tags": [
+          "recruiter-forwarded-application-controller"
+        ],
+        "operationId": "getForwardedApplications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListForwardedApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/forwarded-applications/{applicationId}": {
+      "get": {
+        "tags": [
+          "recruiter-forwarded-application-controller"
+        ],
+        "operationId": "getForwardedApplication",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseForwardedApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/companies/me": {
+      "get": {
+        "tags": [
+          "company-controller"
+        ],
+        "operationId": "getMyCompany",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCompanyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/skills": {
+      "get": {
+        "tags": [
+          "public-job-controller"
+        ],
+        "operationId": "getSkills",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListPublicSkillResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/jobs": {
+      "get": {
+        "tags": [
+          "public-job-controller"
+        ],
+        "operationId": "findPublicJobs",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "skillIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          },
+          {
+            "name": "workMode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePagePublicJobResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/jobs/{jobId}": {
+      "get": {
+        "tags": [
+          "public-job-controller"
+        ],
+        "operationId": "getPublicJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePublicJobResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/job-categories": {
+      "get": {
+        "tags": [
+          "public-job-controller"
+        ],
+        "operationId": "getJobCategories",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListPublicJobCategoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/industries": {
+      "get": {
+        "tags": [
+          "public-job-controller"
+        ],
+        "operationId": "getIndustries",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListPublicIndustryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/companies": {
+      "get": {
+        "tags": [
+          "moderator-company-verification-controller"
+        ],
+        "operationId": "getCompanies",
+        "parameters": [
+          {
+            "name": "verificationStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING_VERIFICATION",
+                "APPROVED",
+                "REJECTED",
+                "SUSPENDED"
+              ]
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageModeratorCompanyListItemResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/companies/{companyId}": {
+      "get": {
+        "tags": [
+          "moderator-company-verification-controller"
+        ],
+        "operationId": "getCompany",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseModeratorCompanyDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/candidate-applications": {
+      "get": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "getReviewQueue",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "IN_REVIEW",
+                "HUMAN_INTERVIEW_SCHEDULED",
+                "DECISION_PENDING",
+                "APPROVED",
+                "REJECTED",
+                "FORWARDED"
+              ]
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePageCandidateApplicationListItemResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderator/candidate-applications/{applicationId}": {
+      "get": {
+        "tags": [
+          "moderator-candidate-application-controller"
+        ],
+        "operationId": "getReviewDetail",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCandidateApplicationDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "current-user-controller"
+        ],
+        "operationId": "getCurrentUser",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseCurrentUserResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/applications": {
+      "get": {
+        "tags": [
+          "job-seeker-application-controller"
+        ],
+        "operationId": "getMyApplications",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListJobApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/applications/{applicationId}": {
+      "get": {
+        "tags": [
+          "job-seeker-application-controller"
+        ],
+        "operationId": "getMyApplication",
+        "parameters": [
+          {
+            "name": "applicationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseJobApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/ai-interviews": {
+      "get": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "getMyInterviews",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListAiInterviewSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/ai-interviews/{sessionId}": {
+      "get": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "getMyInterview",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAiInterviewSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/job-seeker/ai-interviews/{sessionId}/result": {
+      "get": {
+        "tags": [
+          "ai-interview-controller"
+        ],
+        "operationId": "getResult",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAiInterviewResultResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recruiter/companies/{companyId}/documents/{documentId}": {
+      "delete": {
+        "tags": [
+          "company-controller"
+        ],
+        "operationId": "deleteDocument",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "JobPostRequest": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "jobType": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "workMode": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "salaryMin": {
+            "type": "number"
+          },
+          "salaryMax": {
+            "type": "number"
+          },
+          "experienceLevel": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "expiredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostSectionRequest"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostSkillRequest"
+            }
+          }
+        },
+        "required": [
+          "description",
+          "title"
+        ]
+      },
+      "JobPostSectionRequest": {
+        "type": "object",
+        "properties": {
+          "sectionType": {
+            "type": "string",
+            "enum": [
+              "DESCRIPTION",
+              "REQUIREMENT_RESPONSIBILITY",
+              "BENEFIT",
+              "QUALIFICATION",
+              "NICE_TO_HAVE",
+              "ABOUT_ROLE"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "contentMarkdown": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentText": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "contentMarkdown",
+          "displayOrder",
+          "sectionType",
+          "title"
+        ]
+      },
+      "JobPostSkillRequest": {
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "requiredLevel": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "skillId"
+        ]
+      },
+      "ApiResponseJobPostResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JobPostResponse"
+          }
+        }
+      },
+      "JobPostResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "recruiterProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "categoryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "jobType": {
+            "type": "string"
+          },
+          "workMode": {
+            "type": "string"
+          },
+          "salaryMin": {
+            "type": "number"
+          },
+          "salaryMax": {
+            "type": "number"
+          },
+          "experienceLevel": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "PUBLISHED",
+              "PAUSED",
+              "CLOSED",
+              "EXPIRED"
+            ]
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostSectionResponse"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostSkillResponse"
+            }
+          }
+        }
+      },
+      "JobPostSectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sectionType": {
+            "type": "string",
+            "enum": [
+              "DESCRIPTION",
+              "REQUIREMENT_RESPONSIBILITY",
+              "BENEFIT",
+              "QUALIFICATION",
+              "NICE_TO_HAVE",
+              "ABOUT_ROLE"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "contentMarkdown": {
+            "type": "string"
+          },
+          "contentText": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "JobPostSkillResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "skillId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "skillName": {
+            "type": "string"
+          },
+          "skillType": {
+            "type": "string"
+          },
+          "requiredLevel": {
+            "type": "string"
+          }
+        }
+      },
+      "CompanyUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "industryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "address": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "contactPhone": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "businessRegistrationNo": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ApiResponseCompanyResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CompanyResponse"
+          }
+        }
+      },
+      "CompanyResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recruiterProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "industryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "industryName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "websiteUrl": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "contactPhone": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string"
+          },
+          "businessRegistrationNo": {
+            "type": "string"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING_VERIFICATION",
+              "APPROVED",
+              "REJECTED",
+              "SUSPENDED"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "PENDING",
+              "SUSPENDED"
+            ]
+          }
+        }
+      },
+      "AiInterviewAnswerRequest": {
+        "type": "object",
+        "properties": {
+          "answerText": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "answerText"
+        ]
+      },
+      "AiInterviewAnswerResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "answerText": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "feedback": {
+            "type": "string"
+          }
+        }
+      },
+      "AiInterviewQuestionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "questionType": {
+            "type": "string",
+            "enum": [
+              "TECHNICAL",
+              "BEHAVIORAL",
+              "SITUATIONAL",
+              "COMMUNICATION",
+              "PROBLEM_SOLVING",
+              "GENERAL"
+            ]
+          },
+          "questionText": {
+            "type": "string"
+          },
+          "maxScore": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "answered": {
+            "type": "boolean"
+          },
+          "answer": {
+            "$ref": "#/components/schemas/AiInterviewAnswerResponse"
+          }
+        }
+      },
+      "AiInterviewSessionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "applicationId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "jobId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PREPARING",
+              "READY",
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalScore": {
+            "type": "number"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED",
+              "NEEDS_REVIEW"
+            ]
+          },
+          "questionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "answeredCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiInterviewQuestionResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseAiInterviewSessionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiInterviewSessionResponse"
+          }
+        }
+      },
+      "CompanyCreateRequest": {
+        "type": "object",
+        "properties": {
+          "industryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string"
+          },
+          "websiteUrl": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "address": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "contactPhone": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "logoUrl": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "businessRegistrationNo": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CompanyDocumentRequest": {
+        "type": "object",
+        "properties": {
+          "documentType": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "documentUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "documentType",
+          "documentUrl"
+        ]
+      },
+      "ApiResponseCompanyDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CompanyDocumentResponse"
+          }
+        }
+      },
+      "CompanyDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uploadedByRecruiterProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "documentType": {
+            "type": "string"
+          },
+          "documentUrl": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "PENDING",
+              "SUSPENDED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HumanInterviewCompleteRequest": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED",
+              "NEEDS_REVIEW"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "ApiResponseHumanInterviewResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/HumanInterviewResponse"
+          }
+        }
+      },
+      "HumanInterviewResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "applicationId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "meetingUrl": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PREPARING",
+              "READY",
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED",
+              "NEEDS_REVIEW"
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DecisionRequest": {
+        "type": "object",
+        "properties": {
+          "decisionNote": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          }
+        }
+      },
+      "ApiResponseCompanyVerificationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CompanyVerificationResponse"
+          }
+        }
+      },
+      "CompanyVerificationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "moderatorProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED",
+              "NEEDS_REVISION"
+            ]
+          },
+          "note": {
+            "type": "string"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseCandidateApplicationReviewResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CandidateApplicationReviewResponse"
+          }
+        }
+      },
+      "CandidateApplicationReviewResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reviewStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "IN_REVIEW",
+              "HUMAN_INTERVIEW_SCHEDULED",
+              "DECISION_PENDING",
+              "APPROVED",
+              "REJECTED",
+              "FORWARDED"
+            ]
+          },
+          "decisionNote": {
+            "type": "string"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "forwardedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HumanInterviewRequest": {
+        "type": "object",
+        "properties": {
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "meetingUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "meetingUrl",
+          "scheduledAt"
+        ]
+      },
+      "ResumeCreateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "resumeFileUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "resumeData": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "ApiResponseResumeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResumeResponse"
+          }
+        }
+      },
+      "ResumeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "resumeFileUrl": {
+            "type": "string"
+          },
+          "resumeData": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE",
+              "HIDDEN"
+            ]
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortfolioCreateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          },
+          "publicUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "ApiResponsePortfolioResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PortfolioResponse"
+          }
+        }
+      },
+      "PortfolioProjectResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "projectUrl": {
+            "type": "string"
+          },
+          "githubUrl": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "techStack": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortfolioResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE",
+              "HIDDEN"
+            ]
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "PENDING",
+              "SUSPENDED"
+            ]
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortfolioProjectResponse"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortfolioProjectRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          },
+          "projectUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "githubUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "techStack": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 0
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "ApiResponsePortfolioProjectResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PortfolioProjectResponse"
+          }
+        }
+      },
+      "JobApplicationCreateRequest": {
+        "type": "object",
+        "properties": {
+          "resumeId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "coverLetter": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          }
+        }
+      },
+      "ApiResponseJobApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JobApplicationResponse"
+          }
+        }
+      },
+      "JobApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "jobId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "resumeId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "resumeTitle": {
+            "type": "string"
+          },
+          "coverLetter": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUBMITTED",
+              "UNDER_REVIEW",
+              "AI_INTERVIEW_REQUIRED",
+              "AI_INTERVIEW_IN_PROGRESS",
+              "AI_INTERVIEW_FAILED",
+              "MODERATOR_REVIEW_PENDING",
+              "AI_INTERVIEW_PASSED",
+              "SHORTLISTED",
+              "HUMAN_INTERVIEW_SCHEDULED",
+              "HIRED",
+              "REJECTED",
+              "WITHDRAWN"
+            ]
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AiInterviewFeedbackResponse": {
+        "type": "object",
+        "properties": {
+          "communicationScore": {
+            "type": "number"
+          },
+          "technicalScore": {
+            "type": "number"
+          },
+          "confidenceScore": {
+            "type": "number"
+          },
+          "problemSolvingScore": {
+            "type": "number"
+          },
+          "overallScore": {
+            "type": "number"
+          },
+          "strengths": {
+            "type": "string"
+          },
+          "weaknesses": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED",
+              "NEEDS_REVIEW"
+            ]
+          }
+        }
+      },
+      "AiInterviewResultResponse": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/AiInterviewSessionResponse"
+          },
+          "feedback": {
+            "$ref": "#/components/schemas/AiInterviewFeedbackResponse"
+          }
+        }
+      },
+      "ApiResponseAiInterviewResultResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AiInterviewResultResponse"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 3
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 8
+          },
+          "confirmPassword": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 8
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "minLength": 1
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "MALE",
+              "FEMALE",
+              "OTHER",
+              "UNSPECIFIED"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SEEKER",
+              "RECRUITER"
+            ]
+          },
+          "phoneNumber": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 8,
+            "pattern": "^\\+?[0-9 ]+$"
+          }
+        },
+        "required": [
+          "confirmPassword",
+          "email",
+          "firstName",
+          "lastName",
+          "password",
+          "role",
+          "username"
+        ]
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SEEKER",
+              "RECRUITER"
+            ]
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "registrationSource": {
+            "type": "string"
+          }
+        }
+      },
+      "RecruiterProfileUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 0
+          },
+          "linkedinUrl": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          }
+        }
+      },
+      "ApiResponseRecruiterProfileResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RecruiterProfileResponse"
+          }
+        }
+      },
+      "RecruiterProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "position": {
+            "type": "string"
+          },
+          "linkedinUrl": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "PENDING",
+              "SUSPENDED"
+            ]
+          }
+        }
+      },
+      "ResumeUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "resumeFileUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "resumeData": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "PublicationRequest": {
+        "type": "object",
+        "properties": {
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE",
+              "HIDDEN"
+            ]
+          }
+        },
+        "required": [
+          "visibility"
+        ]
+      },
+      "ApiResponsePublicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PublicationResponse"
+          }
+        }
+      },
+      "PublicationResponse": {
+        "type": "object",
+        "properties": {
+          "resourceType": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE",
+              "HIDDEN"
+            ]
+          },
+          "publicProfileSlug": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "JobSeekerProfileUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "headline": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 0
+          },
+          "bio": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          },
+          "currentPosition": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "expectedSalaryMin": {
+            "type": "number"
+          },
+          "expectedSalaryMax": {
+            "type": "number"
+          },
+          "expectedSalaryCurrency": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 0
+          },
+          "salaryVisibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "RECRUITERS_ONLY",
+              "PUBLIC"
+            ]
+          },
+          "preferredLocation": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "availabilityStatus": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 0
+          }
+        }
+      },
+      "ApiResponseJobSeekerProfileResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JobSeekerProfileResponse"
+          }
+        }
+      },
+      "JobSeekerProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "currentPosition": {
+            "type": "string"
+          },
+          "expectedSalaryMin": {
+            "type": "number"
+          },
+          "expectedSalaryMax": {
+            "type": "number"
+          },
+          "expectedSalaryCurrency": {
+            "type": "string"
+          },
+          "salaryVisibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "RECRUITERS_ONLY",
+              "PUBLIC"
+            ]
+          },
+          "preferredLocation": {
+            "type": "string"
+          },
+          "availabilityStatus": {
+            "type": "string"
+          },
+          "publicProfileSlug": {
+            "type": "string"
+          },
+          "profileVisibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE",
+              "HIDDEN"
+            ]
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING_VERIFICATION",
+              "APPROVED",
+              "REJECTED",
+              "SUSPENDED"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "PENDING",
+              "SUSPENDED"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PortfolioUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          },
+          "publicUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          }
+        }
+      },
+      "PortfolioProjectUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 150,
+            "minLength": 0
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "minLength": 0
+          },
+          "projectUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "githubUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "imageUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 0
+          },
+          "techStack": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 0
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "Pageable": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ApiResponsePagePublicTalentListItemResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PagePublicTalentListItemResponse"
+          }
+        }
+      },
+      "PagePublicTalentListItemResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTalentListItemResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PageableObject": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "paged": {
+            "type": "boolean"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unpaged": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PublicTalentListItemResponse": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "publicProfileSlug": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "currentPosition": {
+            "type": "string"
+          },
+          "preferredLocation": {
+            "type": "string"
+          },
+          "availabilityStatus": {
+            "type": "string"
+          },
+          "expectedSalaryMin": {
+            "type": "number"
+          },
+          "expectedSalaryMax": {
+            "type": "number"
+          },
+          "expectedSalaryCurrency": {
+            "type": "string"
+          },
+          "salaryVisibility": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "RECRUITERS_ONLY",
+              "PUBLIC"
+            ]
+          }
+        }
+      },
+      "SortObject": {
+        "type": "object",
+        "properties": {
+          "empty": {
+            "type": "boolean"
+          },
+          "sorted": {
+            "type": "boolean"
+          },
+          "unsorted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponsePublicTalentDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PublicTalentDetailResponse"
+          }
+        }
+      },
+      "PublicPortfolioProjectResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "projectUrl": {
+            "type": "string"
+          },
+          "githubUrl": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "techStack": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PublicPortfolioResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "publicUrl": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPortfolioProjectResponse"
+            }
+          }
+        }
+      },
+      "PublicResumeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PublicTalentDetailResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/PublicTalentListItemResponse"
+          },
+          "portfolios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPortfolioResponse"
+            }
+          },
+          "resumes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicResumeResponse"
+            }
+          }
+        }
+      },
+      "ApiResponsePublicResumeDownloadResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PublicResumeDownloadResponse"
+          }
+        }
+      },
+      "PublicResumeDownloadResponse": {
+        "type": "object",
+        "properties": {
+          "resumeId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "downloadUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListJobPostResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseListForwardedApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ForwardedApplicationResponse"
+            }
+          }
+        }
+      },
+      "ApplicationSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "jobId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "jobTitle": {
+            "type": "string"
+          },
+          "coverLetter": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUBMITTED",
+              "UNDER_REVIEW",
+              "AI_INTERVIEW_REQUIRED",
+              "AI_INTERVIEW_IN_PROGRESS",
+              "AI_INTERVIEW_FAILED",
+              "MODERATOR_REVIEW_PENDING",
+              "AI_INTERVIEW_PASSED",
+              "SHORTLISTED",
+              "HUMAN_INTERVIEW_SCHEDULED",
+              "HIRED",
+              "REJECTED",
+              "WITHDRAWN"
+            ]
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CandidateProfileResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "currentPosition": {
+            "type": "string"
+          },
+          "preferredLocation": {
+            "type": "string"
+          },
+          "availabilityStatus": {
+            "type": "string"
+          }
+        }
+      },
+      "ForwardedApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "application": {
+            "$ref": "#/components/schemas/ApplicationSummaryResponse"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateProfileResponse"
+          },
+          "submittedResume": {
+            "$ref": "#/components/schemas/SubmittedResumeResponse"
+          },
+          "aiResult": {
+            "$ref": "#/components/schemas/AiInterviewResultResponse"
+          },
+          "humanInterviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HumanInterviewResponse"
+            }
+          },
+          "forwardedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SubmittedResumeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "resumeFileUrl": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "PUBLIC",
+              "PRIVATE",
+              "HIDDEN"
+            ]
+          }
+        }
+      },
+      "ApiResponseForwardedApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ForwardedApplicationResponse"
+          }
+        }
+      },
+      "ApiResponseListCompanyDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyDocumentResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseListPublicSkillResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSkillResponse"
+            }
+          }
+        }
+      },
+      "PublicSkillResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "skillType": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponsePagePublicJobResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PagePublicJobResponse"
+          }
+        }
+      },
+      "PagePublicJobResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicJobResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PublicJobResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "jobType": {
+            "type": "string"
+          },
+          "workMode": {
+            "type": "string"
+          },
+          "salaryMin": {
+            "type": "number"
+          },
+          "salaryMax": {
+            "type": "number"
+          },
+          "experienceLevel": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostSectionResponse"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobPostSkillResponse"
+            }
+          }
+        }
+      },
+      "ApiResponsePublicJobResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PublicJobResponse"
+          }
+        }
+      },
+      "ApiResponseListPublicJobCategoryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicJobCategoryResponse"
+            }
+          }
+        }
+      },
+      "PublicJobCategoryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListPublicIndustryResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicIndustryResponse"
+            }
+          }
+        }
+      },
+      "PublicIndustryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponsePageModeratorCompanyListItemResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageModeratorCompanyListItemResponse"
+          }
+        }
+      },
+      "ModeratorCompanyListItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recruiterProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "industryId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "industryName": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "websiteUrl": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "businessRegistrationNo": {
+            "type": "string"
+          },
+          "verificationStatus": {
+            "type": "string",
+            "enum": [
+              "PENDING_VERIFICATION",
+              "APPROVED",
+              "REJECTED",
+              "SUSPENDED"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "PENDING",
+              "SUSPENDED"
+            ]
+          }
+        }
+      },
+      "PageModeratorCompanyListItemResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModeratorCompanyListItemResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseModeratorCompanyDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ModeratorCompanyDetailResponse"
+          }
+        }
+      },
+      "ModeratorCompanyDetailResponse": {
+        "type": "object",
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/CompanyResponse"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyDocumentResponse"
+            }
+          },
+          "verificationHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanyVerificationResponse"
+            }
+          }
+        }
+      },
+      "ApiResponsePageCandidateApplicationListItemResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageCandidateApplicationListItemResponse"
+          }
+        }
+      },
+      "CandidateApplicationListItemResponse": {
+        "type": "object",
+        "properties": {
+          "application": {
+            "$ref": "#/components/schemas/ApplicationSummaryResponse"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateProfileResponse"
+          },
+          "submittedResume": {
+            "$ref": "#/components/schemas/SubmittedResumeResponse"
+          },
+          "review": {
+            "$ref": "#/components/schemas/CandidateApplicationReviewResponse"
+          }
+        }
+      },
+      "PageCandidateApplicationListItemResponse": {
+        "type": "object",
+        "properties": {
+          "totalElements": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateApplicationListItemResponse"
+            }
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "boolean"
+          },
+          "last": {
+            "type": "boolean"
+          },
+          "numberOfElements": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "$ref": "#/components/schemas/SortObject"
+          },
+          "pageable": {
+            "$ref": "#/components/schemas/PageableObject"
+          },
+          "empty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApiResponseCandidateApplicationDetailResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CandidateApplicationDetailResponse"
+          }
+        }
+      },
+      "CandidateApplicationDetailResponse": {
+        "type": "object",
+        "properties": {
+          "application": {
+            "$ref": "#/components/schemas/ApplicationSummaryResponse"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateProfileResponse"
+          },
+          "submittedResume": {
+            "$ref": "#/components/schemas/SubmittedResumeResponse"
+          },
+          "review": {
+            "$ref": "#/components/schemas/CandidateApplicationReviewResponse"
+          },
+          "aiResult": {
+            "$ref": "#/components/schemas/AiInterviewResultResponse"
+          },
+          "humanInterviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HumanInterviewResponse"
+            }
+          },
+          "projectAssignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectAssignmentSummaryResponse"
+            }
+          }
+        }
+      },
+      "ProjectAssignmentSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "deadlineAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ASSIGNED",
+              "SUBMITTED",
+              "REVIEWED",
+              "PASSED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          }
+        }
+      },
+      "ApiResponseCurrentUserResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CurrentUserResponse"
+          }
+        }
+      },
+      "CurrentUserProfilesResponse": {
+        "type": "object",
+        "properties": {
+          "jobSeekerProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recruiterProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "moderatorProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "adminProfileId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "financeProfileId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CurrentUserResponse": {
+        "type": "object",
+        "properties": {
+          "userAccountId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "keycloakUserId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "registrationSource": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "profiles": {
+            "$ref": "#/components/schemas/CurrentUserProfilesResponse"
+          }
+        }
+      },
+      "ApiResponseListResumeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResumeResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseListPortfolioResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortfolioResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseListJobApplicationResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobApplicationResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseListAiInterviewSessionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiInterviewSessionResponse"
+            }
+          }
+        }
+      },
+      "ApiResponseVoid": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {}
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

@@ -25,20 +25,35 @@ import java.util.Map;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/jobs/public/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/public/**").permitAll()
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/v3/**").permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/auth/register"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/jobs/public/**",
+                                "/api/v1/public/**"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(
+                                jwtAuthenticationConverter()
+                        ))
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -48,20 +63,30 @@ public class SecurityConfig {
 
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        JwtAuthenticationConverter converter =
+                new JwtAuthenticationConverter();
 
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Collection<GrantedAuthority> authorities = new ArrayList<>();
 
-            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            Map<String, Object> realmAccess =
+                    jwt.getClaimAsMap("realm_access");
 
-            if (realmAccess != null && realmAccess.get("roles") instanceof Collection<?> roles) {
-                roles.forEach(role -> authorities.add(
-                        new SimpleGrantedAuthority("ROLE_" + role)
-                ));
+            if (realmAccess != null
+                    && realmAccess.get("roles") instanceof Collection<?> roles) {
+
+                roles.stream()
+                        .map(String::valueOf)
+                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                        .forEach(authorities::add);
             }
 
-            log.info("jwt: {}", jwt.getTokenValue());
+            log.debug(
+                    "Authenticated subject={}, username={}, authorities={}",
+                    jwt.getSubject(),
+                    jwt.getClaimAsString("preferred_username"),
+                    authorities
+            );
 
             return authorities;
         });
