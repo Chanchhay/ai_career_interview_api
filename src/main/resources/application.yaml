@@ -1,6 +1,12 @@
 server:
   port: ${PORT:8080}
 
+app:
+  security:
+    jwt:
+      connect-timeout: ${JWT_JWK_CONNECT_TIMEOUT:5s}
+      read-timeout: ${JWT_JWK_READ_TIMEOUT:30s}
+
 spring:
   security:
     oauth2:
