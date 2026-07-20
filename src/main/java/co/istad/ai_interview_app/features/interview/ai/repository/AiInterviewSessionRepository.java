@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 @Repository
 public interface AiInterviewSessionRepository extends JpaRepository<AiInterviewSession, Long> {
@@ -17,4 +18,11 @@ public interface AiInterviewSessionRepository extends JpaRepository<AiInterviewS
     Optional<AiInterviewSession> findWithQuestionsByIdAndJobSeeker_KeycloakUserId(Long id, String keycloakUserId);
 
     Optional<AiInterviewSession> findWithResultByIdAndJobSeeker_KeycloakUserId(Long id, String keycloakUserId);
+
+    boolean existsByApplication_IdAndStatusIn(Long applicationId, Collection<co.istad.ai_interview_app.shared.enums.interview.InterviewStatus> statuses);
+
+    Optional<AiInterviewSession> findFirstByApplication_IdAndStatusOrderByEndedAtDesc(
+            Long applicationId,
+            co.istad.ai_interview_app.shared.enums.interview.InterviewStatus status
+    );
 }

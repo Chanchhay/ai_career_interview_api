@@ -14,6 +14,8 @@ public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
 
     Optional<Portfolio> findByIdAndJobSeekerProfile_Id(Long id, Long jobSeekerProfileId);
 
+    List<Portfolio> findAllByJobSeekerProfile_IdOrderByCreatedAtDesc(Long jobSeekerProfileId);
+
     List<Portfolio> findAllByJobSeekerProfile_IdAndStatusAndVisibilityOrderByCreatedAtDesc(
             Long jobSeekerProfileId,
             ProfileStatus status,

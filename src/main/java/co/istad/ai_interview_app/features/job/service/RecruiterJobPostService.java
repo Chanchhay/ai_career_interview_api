@@ -19,5 +19,7 @@ public interface RecruiterJobPostService {
 
     JobPostResponse pauseMyJob(Long id);
 
+    JobPostResponse resumeMyJob(Long id);
+
     JobPostResponse closeMyJob(Long id);
 }

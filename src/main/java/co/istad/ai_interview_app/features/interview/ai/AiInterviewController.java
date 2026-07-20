@@ -33,6 +33,14 @@ public class AiInterviewController {
         return ApiResponse.success(aiInterviewService.createInterviewForJob(jobId));
     }
 
+    @PostMapping("/applications/{applicationId}/ai-interviews")
+    @PreAuthorize("hasRole('SEEKER')")
+    public ApiResponse<AiInterviewSessionResponse> createInterviewForApplication(
+            @PathVariable Long applicationId
+    ) {
+        return ApiResponse.success(aiInterviewService.createInterviewForApplication(applicationId));
+    }
+
     @GetMapping("/ai-interviews")
     @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<List<AiInterviewSessionResponse>> getMyInterviews() {

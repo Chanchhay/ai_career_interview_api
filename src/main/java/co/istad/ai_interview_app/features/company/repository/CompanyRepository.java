@@ -1,6 +1,9 @@
 package co.istad.ai_interview_app.features.company.repository;
 
 import co.istad.ai_interview_app.features.company.entity.Company;
+import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,4 +21,6 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     Optional<Company> findByRecruiterProfile_UserAccount_KeycloakUserId(String keycloakUserId);
 
     Optional<Company> findByIdAndRecruiterProfile_UserAccount_KeycloakUserId(Long id, String keycloakUserId);
+
+    Page<Company> findAllByVerificationStatus(VerificationStatus verificationStatus, Pageable pageable);
 }

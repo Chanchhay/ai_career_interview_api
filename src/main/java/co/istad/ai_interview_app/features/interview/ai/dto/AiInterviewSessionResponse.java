@@ -9,6 +9,7 @@ import java.util.List;
 
 public record AiInterviewSessionResponse(
         Long id,
+        Long applicationId,
         Long jobId,
         String jobTitle,
         InterviewStatus status,
