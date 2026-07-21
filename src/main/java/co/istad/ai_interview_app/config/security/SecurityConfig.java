@@ -1,11 +1,14 @@
 package co.istad.ai_interview_app.config.security;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -14,18 +17,25 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+
+import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 
 @Slf4j
 @Configuration
@@ -40,6 +50,10 @@ public class SecurityConfig {
     ) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler())
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health").permitAll()
 
@@ -78,18 +92,31 @@ public class SecurityConfig {
 
     @Bean
     JwtDecoder jwtDecoder(
-            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri,
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwkSetUri,
             @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
             @Value("${app.security.jwt.connect-timeout:PT5S}") Duration connectTimeout,
             @Value("${app.security.jwt.read-timeout:PT30S}") Duration readTimeout
     ) {
+        String resolvedJwkSetUri = hasText(jwkSetUri)
+                ? jwkSetUri
+                : issuerUri + "/protocol/openid-connect/certs";
+
+        log.info(
+                "Configuring JWT resource server with issuer={} jwkSetUri={}",
+                issuerUri,
+                resolvedJwkSetUri
+        );
+
         SimpleClientHttpRequestFactory requestFactory =
                 new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(connectTimeout);
         requestFactory.setReadTimeout(readTimeout);
 
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(resolvedJwkSetUri)
                 .restOperations(new RestTemplate(requestFactory))
+                .jwsAlgorithm(SignatureAlgorithm.RS256)
+                .jwsAlgorithm(SignatureAlgorithm.RS384)
+                .jwsAlgorithm(SignatureAlgorithm.RS512)
                 .build();
 
         OAuth2TokenValidator<Jwt> validator =
@@ -97,6 +124,55 @@ public class SecurityConfig {
         decoder.setJwtValidator(validator);
 
         return decoder;
+    }
+
+    @Bean
+    AuthenticationEntryPoint authenticationEntryPoint() {
+        BearerTokenAuthenticationEntryPoint delegate =
+                new BearerTokenAuthenticationEntryPoint();
+
+        return (request, response, authException) -> {
+            logAuthenticationFailure(request, authException);
+            delegate.commence(request, response, authException);
+        };
+    }
+
+    @Bean
+    AccessDeniedHandler accessDeniedHandler() {
+        BearerTokenAccessDeniedHandler delegate =
+                new BearerTokenAccessDeniedHandler();
+
+        return (request, response, accessDeniedException) -> {
+            logAccessDenied(request, accessDeniedException);
+            delegate.handle(request, response, accessDeniedException);
+        };
+    }
+
+    private void logAuthenticationFailure(
+            HttpServletRequest request,
+            AuthenticationException exception
+    ) {
+        log.warn(
+                "Authentication failed for {} {}: {} - {}; authorizationHeaderPresent={}",
+                request.getMethod(),
+                request.getRequestURI(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage(),
+                hasText(request.getHeader("Authorization"))
+        );
+    }
+
+    private void logAccessDenied(
+            HttpServletRequest request,
+            AccessDeniedException exception
+    ) {
+        log.warn(
+                "Access denied for {} {}: {} - {}",
+                request.getMethod(),
+                request.getRequestURI(),
+                exception.getClass().getSimpleName(),
+                exception.getMessage()
+        );
     }
 
     @Bean
