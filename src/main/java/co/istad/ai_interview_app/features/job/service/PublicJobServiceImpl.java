@@ -22,6 +22,8 @@ import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import co.istad.ai_interview_app.features.job.specification.JobPostSpecification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,22 +56,21 @@ public class PublicJobServiceImpl implements PublicJobService {
             Pageable pageable
     ) {
         List<Long> normalizedSkillIds = skillIds == null ? List.of() : skillIds.stream().distinct().toList();
-        List<Long> querySkillIds = normalizedSkillIds.isEmpty() ? List.of(-1L) : normalizedSkillIds;
 
-        return jobPostRepository.findPublicJobs(
-                        JobStatus.PUBLISHED,
-                        VerificationStatus.APPROVED,
-                        ProfileStatus.ACTIVE,
-                        Instant.now(),
-                        normalizeBlankToNull(keyword),
-                        normalizeBlankToNull(location),
-                        categoryId,
-                        querySkillIds,
-                        normalizedSkillIds.size(),
-                        normalizeBlankToNull(workMode),
-                        normalizeBlankToNull(jobType),
-                        pageable
-                )
+        Specification<JobPost> spec = JobPostSpecification.filterPublicJobs(
+                JobStatus.PUBLISHED,
+                VerificationStatus.APPROVED,
+                ProfileStatus.ACTIVE,
+                Instant.now(),
+                normalizeBlankToNull(keyword),
+                normalizeBlankToNull(location),
+                categoryId,
+                normalizedSkillIds,
+                normalizeBlankToNull(workMode),
+                normalizeBlankToNull(jobType)
+        );
+
+        return jobPostRepository.findAll(spec, pageable)
                 .map(this::toPublicResponse);
     }
 

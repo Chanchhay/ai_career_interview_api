@@ -5,6 +5,8 @@ import co.istad.ai_interview_app.features.recruiter.dto.RecruiterProfileUpdateRe
 
 public interface RecruiterProfileService {
 
+    RecruiterProfileResponse getMyProfile();
+
     RecruiterProfileResponse updateMyProfile(
             RecruiterProfileUpdateRequest request
     );

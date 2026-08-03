@@ -67,12 +67,15 @@ public class SecurityConfig {
                                 "/api/v1/jobs/public/**",
                                 "/api/v1/public/**"
                         ).permitAll()
+                        .requestMatchers("/api/v1/admin/**").permitAll()
 
+                        // Public endpoints
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
+                                "/v3/api-docs/**")
+                        .permitAll()
+                        .requestMatchers("/scalar/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

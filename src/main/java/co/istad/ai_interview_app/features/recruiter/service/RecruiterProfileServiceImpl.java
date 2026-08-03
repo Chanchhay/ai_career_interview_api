@@ -18,6 +18,13 @@ public class RecruiterProfileServiceImpl implements RecruiterProfileService {
     private final RecruiterProfileMapper recruiterProfileMapper;
 
     @Override
+    @Transactional(readOnly = true)
+    public RecruiterProfileResponse getMyProfile() {
+        RecruiterProfile recruiterProfile = recruiterProfileResolver.resolve();
+        return recruiterProfileMapper.toResponse(recruiterProfile);
+    }
+
+    @Override
     @Transactional
     public RecruiterProfileResponse updateMyProfile(
             RecruiterProfileUpdateRequest request

@@ -10,4 +10,8 @@ import java.util.List;
 public interface SkillRepository extends JpaRepository<Skill, Long> {
 
     List<Skill> findAllByOrderByNameAsc();
+
+    boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
 }
