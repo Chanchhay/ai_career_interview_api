@@ -1,6 +1,6 @@
 services:
   keycloak-db:
-    image: postgres:18
+    image: postgres:17
     container_name: ai-career-keycloak-db
     environment:
       POSTGRES_DB: keycloak
@@ -34,6 +34,7 @@ services:
       - keycloak-db
     volumes:
       - ./docker/keycloak/realm:/opt/keycloak/data/import
+      - ./docker/keycloak/providers:/opt/keycloak/providers
 
 volumes:
   keycloak_db_data:

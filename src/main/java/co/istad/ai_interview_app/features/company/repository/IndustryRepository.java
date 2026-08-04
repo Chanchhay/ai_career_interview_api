@@ -11,4 +11,10 @@ import java.util.List;
 public interface IndustryRepository extends JpaRepository<Industry, Long> {
 
     List<Industry> findAllByStatusOrderByNameAsc(ProfileStatus status);
+
+    List<Industry> findAllByOrderByNameAsc();
+
+    boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
 }

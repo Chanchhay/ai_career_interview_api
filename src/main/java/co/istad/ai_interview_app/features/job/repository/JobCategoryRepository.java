@@ -10,4 +10,8 @@ import java.util.List;
 public interface JobCategoryRepository extends JpaRepository<JobCategory, Long> {
 
     List<JobCategory> findAllByOrderByNameAsc();
+
+    boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
 }

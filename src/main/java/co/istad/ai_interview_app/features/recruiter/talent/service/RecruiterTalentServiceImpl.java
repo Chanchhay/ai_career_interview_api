@@ -21,6 +21,8 @@ import co.istad.ai_interview_app.shared.enums.visibility.VisibilityStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import co.istad.ai_interview_app.features.seeker.specification.JobSeekerProfileSpecification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,14 +49,15 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
             String availabilityStatus,
             Pageable pageable
     ) {
-        return jobSeekerProfileRepository.findPublicTalent(
-                        ProfileStatus.ACTIVE,
-                        VisibilityStatus.PUBLIC,
-                        normalizeBlankToNull(keyword),
-                        normalizeBlankToNull(preferredLocation),
-                        normalizeBlankToNull(availabilityStatus),
-                        pageable
-                )
+        Specification<JobSeekerProfile> spec = JobSeekerProfileSpecification.filterPublicTalent(
+                ProfileStatus.ACTIVE,
+                VisibilityStatus.PUBLIC,
+                normalizeBlankToNull(keyword),
+                normalizeBlankToNull(preferredLocation),
+                normalizeBlankToNull(availabilityStatus)
+        );
+
+        return jobSeekerProfileRepository.findAll(spec, pageable)
                 .map(this::toListItemResponse);
     }
 

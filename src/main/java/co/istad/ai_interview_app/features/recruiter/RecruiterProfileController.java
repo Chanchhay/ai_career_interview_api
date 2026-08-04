@@ -16,6 +16,14 @@ public class RecruiterProfileController {
 
     private final RecruiterProfileService recruiterProfileService;
 
+    @GetMapping
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<RecruiterProfileResponse> getMyProfile() {
+        return ApiResponse.success(
+                recruiterProfileService.getMyProfile()
+        );
+    }
+
     @PatchMapping
     @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<RecruiterProfileResponse> updateMyProfile(
