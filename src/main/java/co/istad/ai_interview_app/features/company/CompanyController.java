@@ -1,4 +1,4 @@
-package co.istad.ai_interview_app.features.company;
+package co.istad.ai_interview_app.features.company.controller;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
 import co.istad.ai_interview_app.features.company.dto.CompanyCreateRequest;
@@ -92,3 +92,4 @@ public class CompanyController {
         return ApiResponse.success(companyService.submitVerification(companyId));
     }
 }
+ 
