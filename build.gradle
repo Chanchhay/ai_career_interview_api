@@ -23,6 +23,9 @@ repositories {
 
 dependencies {
 
+    //minio
+    implementation 'io.minio:minio:9.0.3'
+
     //scalar
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-scalar:3.0.3'

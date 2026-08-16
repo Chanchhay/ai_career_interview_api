@@ -41,3 +41,5 @@ script/
 scripts/
 
 .env
+.env.*
+!.env.example
