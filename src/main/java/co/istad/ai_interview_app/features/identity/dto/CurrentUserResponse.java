@@ -14,6 +14,8 @@ public record CurrentUserResponse(
         String phoneNumber,
         String registrationSource,
         List<String> roles,
+        /** App-relative avatar URL from whichever profile this account owns; null if none set. */
+        String avatarUrl,
         CurrentUserProfilesResponse profiles
 ) {
 }

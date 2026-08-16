@@ -10,6 +10,7 @@ import java.time.Instant;
 
 public record JobSeekerProfileResponse(
         Long id,
+        String avatarUrl,
         String headline,
         String bio,
         String currentPosition,

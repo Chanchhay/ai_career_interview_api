@@ -126,6 +126,7 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
         return new PublicTalentListItemResponse(
                 profile.getId(),
                 profile.getPublicProfileSlug(),
+                profile.getAvatarUrl(),
                 profile.getHeadline(),
                 profile.getBio(),
                 profile.getCurrentPosition(),

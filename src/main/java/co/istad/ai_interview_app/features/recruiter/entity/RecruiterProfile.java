@@ -17,6 +17,10 @@ public class RecruiterProfile extends BaseEntity {
     @JoinColumn(name = "user_account_id", nullable = false, unique = true)
     private UserAccount userAccount;
 
+    /** App-relative URL of the avatar stored in MinIO. */
+    @Column(length = 500)
+    private String avatarUrl;
+
     @Column(length = 100)
     private String position;
 

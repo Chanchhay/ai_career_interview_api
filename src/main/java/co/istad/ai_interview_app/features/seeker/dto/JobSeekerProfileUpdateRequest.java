@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public record JobSeekerProfileUpdateRequest(
+        @Size(max = 500, message = "Avatar URL must be at most 500 characters")
+        String avatarUrl,
         @Size(max = 255, message = "Headline must be at most 255 characters")
         String headline,
         @Size(max = 5000, message = "Bio must be at most 5000 characters")

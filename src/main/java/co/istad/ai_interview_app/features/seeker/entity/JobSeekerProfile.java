@@ -23,6 +23,10 @@ public class JobSeekerProfile extends BaseEntity {
     @JoinColumn(name = "user_account_id", nullable = false, unique = true)
     private UserAccount userAccount;
 
+    /** App-relative URL of the avatar stored in MinIO, e.g. {@code /api/v1/public/files/public/2026/08/<uuid>.png}. */
+    @Column(length = 500)
+    private String avatarUrl;
+
     @Column(length = 255)
     private String headline;
 

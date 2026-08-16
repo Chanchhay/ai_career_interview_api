@@ -31,8 +31,17 @@ public class RecruiterProfileServiceImpl implements RecruiterProfileService {
     ) {
         RecruiterProfile recruiterProfile = recruiterProfileResolver.resolve();
 
-        recruiterProfile.setPosition(normalizeBlankToNull(request.position()));
-        recruiterProfile.setLinkedinUrl(normalizeBlankToNull(request.linkedinUrl()));
+        // Absent fields are left untouched; a blank value is how the client
+        // clears one. Matches JobSeekerProfileServiceImpl.
+        if (request.avatarUrl() != null) {
+            recruiterProfile.setAvatarUrl(normalizeBlankToNull(request.avatarUrl()));
+        }
+        if (request.position() != null) {
+            recruiterProfile.setPosition(normalizeBlankToNull(request.position()));
+        }
+        if (request.linkedinUrl() != null) {
+            recruiterProfile.setLinkedinUrl(normalizeBlankToNull(request.linkedinUrl()));
+        }
 
         return recruiterProfileMapper.toResponse(recruiterProfile);
     }

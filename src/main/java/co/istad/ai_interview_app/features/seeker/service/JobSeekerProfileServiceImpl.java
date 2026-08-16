@@ -28,6 +28,10 @@ public class JobSeekerProfileServiceImpl implements JobSeekerProfileService {
     public JobSeekerProfileResponse updateMyProfile(JobSeekerProfileUpdateRequest request) {
         JobSeekerProfile profile = profileResolver.resolve();
 
+        if (request.avatarUrl() != null) {
+            // A blank value is how the client removes the current photo.
+            profile.setAvatarUrl(normalizeBlankToNull(request.avatarUrl()));
+        }
         if (request.headline() != null) {
             profile.setHeadline(normalizeBlankToNull(request.headline()));
         }

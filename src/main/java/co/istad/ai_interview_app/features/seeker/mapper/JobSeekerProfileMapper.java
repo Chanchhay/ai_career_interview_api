@@ -10,6 +10,7 @@ public class JobSeekerProfileMapper {
     public JobSeekerProfileResponse toResponse(JobSeekerProfile profile) {
         return new JobSeekerProfileResponse(
                 profile.getId(),
+                profile.getAvatarUrl(),
                 profile.getHeadline(),
                 profile.getBio(),
                 profile.getCurrentPosition(),
