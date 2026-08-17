@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.interview.ai.service;
 
+import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewGenerationConfig;
 import co.istad.ai_interview_app.features.interview.ai.dto.GeneratedQuestionSet;
 
 import java.util.List;
@@ -10,6 +11,7 @@ public interface AiInterviewQuestionGenerator {
             String jobTitle,
             String jobDescription,
             String experienceLevel,
-            List<String> requiredSkills
+            List<String> requiredSkills,
+            AiInterviewGenerationConfig config
     );
 }

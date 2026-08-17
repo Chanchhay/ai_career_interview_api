@@ -34,4 +34,11 @@ public class AiInterviewAnswer extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String feedback;
+
+    /**
+     * What a strong answer would have said. Written when the interview is
+     * scored, so it stays null while the interview is still being taken.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String modelAnswer;
 }

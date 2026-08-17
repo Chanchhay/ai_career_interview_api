@@ -76,7 +76,8 @@ public class AiInterviewMapper {
                 answer.getId(),
                 answer.getAnswerText(),
                 answer.getScore(),
-                answer.getFeedback()
+                answer.getFeedback(),
+                answer.getModelAnswer()
         );
     }
 

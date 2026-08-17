@@ -64,11 +64,16 @@ public class AiInterviewTranscriptSegmenterImpl implements AiInterviewTranscript
                         - Speech recognition errors are expected. Keep the words as
                           transcribed rather than correcting them into something
                           the candidate may not have said.
-                        - If the candidate never addressed a question, set answered
-                          to false and leave answerText empty. Do not guess, and do
-                          not reuse another question's answer.
-                        - Set answered to false when the only speech for a question
-                          is filler such as "yes", "okay" or "let's go".
+                        - "I don't know", "I'm not sure", "I haven't used that" and
+                          any other admission or refusal IS an answer. Record it
+                          verbatim with answered set to true. It is the candidate's
+                          response and is theirs to be scored on; dropping it would
+                          silently reopen a question they already answered.
+                        - Set answered to false only when the candidate said nothing
+                          about the question at all — the interviewer never asked it,
+                          or the only speech was an acknowledgement of a different
+                          question such as "okay" or "let's go". Do not guess, and
+                          never reuse another question's answer.
                         """)
                 .user(user -> user
                         .text("""

@@ -5,6 +5,7 @@ import co.istad.ai_interview_app.features.interview.ai.dto.InterviewEvaluationRe
 import co.istad.ai_interview_app.features.interview.ai.dto.InterviewEvaluationResult;
 import co.istad.ai_interview_app.shared.exception.GeminiGenerationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
@@ -26,8 +28,8 @@ public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
                         You are a strict but fair technical interview evaluator.
 
                         Evaluate the candidate's text answers against the private
-                        rubrics. Return one score and feedback per question, plus
-                        overall feedback.
+                        rubrics. Return one score, feedback and model answer per
+                        question, plus overall feedback.
 
                         Requirements:
                         - Score each answer from 0 to that question's maxScore.
@@ -35,6 +37,19 @@ public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
                         - overallScore must be from 0 to 10.
                         - Use PASSED, FAILED, or NEEDS_REVIEW for result.
                         - Feedback must be concise, specific, and actionable.
+                        - modelAnswer is shown to the candidate after the
+                          interview so they can see what a strong answer sounds
+                          like and prepare better next time.
+                        - Write modelAnswer as the answer itself, in the first
+                          person, the way a strong candidate would say it. Do not
+                          describe what an answer should contain, and do not
+                          address the candidate.
+                        - Keep modelAnswer to roughly 3 to 6 sentences, concrete
+                          and specific to this job.
+                        - Cover what the rubric rewards, but never quote the
+                          rubric or mention that one exists.
+                        - Write a modelAnswer for every question, including any
+                          the candidate left unanswered.
                         """)
                 .user(user -> user
                         .text("""
@@ -119,6 +134,13 @@ public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
                 || answer.feedback() == null
                 || answer.feedback().isBlank()) {
             throw new GeminiGenerationException("Gemini generated an invalid answer evaluation");
+        }
+
+        // A missing model answer costs the candidate some coaching; throwing here
+        // would cost them the whole scored interview. Not worth the trade, so it
+        // is logged and the result simply omits that section.
+        if (isBlank(answer.modelAnswer())) {
+            log.warn("Gemini returned no model answer for questionId={}", answer.questionId());
         }
 
         validateScore(answer.score(), "answer score");
