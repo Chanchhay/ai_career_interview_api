@@ -10,7 +10,6 @@ import co.istad.ai_interview_app.features.seeker.dto.PortfolioUpdateRequest;
 import co.istad.ai_interview_app.features.seeker.service.JobSeekerPortfolioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,7 +29,6 @@ public class JobSeekerPortfolioController {
     private final JobSeekerPortfolioService portfolioService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PortfolioResponse> createPortfolio(
             @Valid @RequestBody PortfolioCreateRequest request
     ) {
@@ -38,19 +36,16 @@ public class JobSeekerPortfolioController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<List<PortfolioResponse>> getMyPortfolios() {
         return ApiResponse.success(portfolioService.getMyPortfolios());
     }
 
     @GetMapping("/{portfolioId}")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PortfolioResponse> getMyPortfolio(@PathVariable Long portfolioId) {
         return ApiResponse.success(portfolioService.getMyPortfolio(portfolioId));
     }
 
     @PatchMapping("/{portfolioId}")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PortfolioResponse> updatePortfolio(
             @PathVariable Long portfolioId,
             @Valid @RequestBody PortfolioUpdateRequest request
@@ -59,14 +54,12 @@ public class JobSeekerPortfolioController {
     }
 
     @DeleteMapping("/{portfolioId}")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<Void> deletePortfolio(@PathVariable Long portfolioId) {
         portfolioService.deletePortfolio(portfolioId);
         return ApiResponse.success(null);
     }
 
     @PostMapping("/{portfolioId}/projects")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PortfolioProjectResponse> createProject(
             @PathVariable Long portfolioId,
             @Valid @RequestBody PortfolioProjectRequest request
@@ -75,7 +68,6 @@ public class JobSeekerPortfolioController {
     }
 
     @PatchMapping("/{portfolioId}/projects/{projectId}")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PortfolioProjectResponse> updateProject(
             @PathVariable Long portfolioId,
             @PathVariable Long projectId,
@@ -85,7 +77,6 @@ public class JobSeekerPortfolioController {
     }
 
     @DeleteMapping("/{portfolioId}/projects/{projectId}")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<Void> deleteProject(
             @PathVariable Long portfolioId,
             @PathVariable Long projectId

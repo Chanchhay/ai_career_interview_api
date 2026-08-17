@@ -6,7 +6,6 @@ import co.istad.ai_interview_app.features.seeker.dto.JobSeekerProfileUpdateReque
 import co.istad.ai_interview_app.features.seeker.service.JobSeekerProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,13 +20,11 @@ public class JobSeekerProfileController {
     private final JobSeekerProfileService profileService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<JobSeekerProfileResponse> getMyProfile() {
         return ApiResponse.success(profileService.getMyProfile());
     }
 
     @PatchMapping
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<JobSeekerProfileResponse> updateMyProfile(
             @Valid @RequestBody JobSeekerProfileUpdateRequest request
     ) {

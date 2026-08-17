@@ -7,7 +7,6 @@ import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewSessionRes
 import co.istad.ai_interview_app.features.interview.ai.service.AiInterviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +25,6 @@ public class AiInterviewController {
     private final AiInterviewService aiInterviewService;
 
     @PostMapping("/jobs/{jobId}/ai-interviews")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<AiInterviewSessionResponse> createInterviewForJob(
             @PathVariable Long jobId
     ) {
@@ -34,7 +32,6 @@ public class AiInterviewController {
     }
 
     @PostMapping("/applications/{applicationId}/ai-interviews")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<AiInterviewSessionResponse> createInterviewForApplication(
             @PathVariable Long applicationId
     ) {
@@ -42,13 +39,11 @@ public class AiInterviewController {
     }
 
     @GetMapping("/ai-interviews")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<List<AiInterviewSessionResponse>> getMyInterviews() {
         return ApiResponse.success(aiInterviewService.getMyInterviews());
     }
 
     @GetMapping("/ai-interviews/{sessionId}")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<AiInterviewSessionResponse> getMyInterview(
             @PathVariable Long sessionId
     ) {
@@ -56,7 +51,6 @@ public class AiInterviewController {
     }
 
     @PostMapping("/ai-interviews/{sessionId}/start")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<AiInterviewSessionResponse> startInterview(
             @PathVariable Long sessionId
     ) {
@@ -64,7 +58,6 @@ public class AiInterviewController {
     }
 
     @PutMapping("/ai-interviews/{sessionId}/questions/{questionId}/answer")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<AiInterviewSessionResponse> submitAnswer(
             @PathVariable Long sessionId,
             @PathVariable Long questionId,
@@ -74,7 +67,6 @@ public class AiInterviewController {
     }
 
     @PostMapping("/ai-interviews/{sessionId}/complete")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<AiInterviewResultResponse> completeInterview(
             @PathVariable Long sessionId
     ) {
@@ -82,7 +74,6 @@ public class AiInterviewController {
     }
 
     @GetMapping("/ai-interviews/{sessionId}/result")
-    @PreAuthorize("hasRole('SEEKER')")
     public ApiResponse<AiInterviewResultResponse> getResult(
             @PathVariable Long sessionId
     ) {

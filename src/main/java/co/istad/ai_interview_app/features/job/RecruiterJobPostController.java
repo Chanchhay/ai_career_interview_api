@@ -6,7 +6,6 @@ import co.istad.ai_interview_app.features.job.dto.JobPostResponse;
 import co.istad.ai_interview_app.features.job.service.RecruiterJobPostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,7 +24,6 @@ public class RecruiterJobPostController {
     private final RecruiterJobPostService recruiterJobPostService;
 
     @PostMapping
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> createJobDraft(
             @Valid @RequestBody JobPostRequest request
     ) {
@@ -35,7 +33,6 @@ public class RecruiterJobPostController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<List<JobPostResponse>> getMyJobs() {
         return ApiResponse.success(
                 recruiterJobPostService.getMyJobs()
@@ -43,7 +40,6 @@ public class RecruiterJobPostController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> getMyJob(
             @PathVariable Long id
     ) {
@@ -53,7 +49,6 @@ public class RecruiterJobPostController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> updateMyJob(
             @PathVariable Long id,
             @Valid @RequestBody JobPostRequest request
@@ -64,7 +59,6 @@ public class RecruiterJobPostController {
     }
 
     @PostMapping("/{id}/publish")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> publishMyJob(
             @PathVariable Long id
     ) {
@@ -74,7 +68,6 @@ public class RecruiterJobPostController {
     }
 
     @PostMapping("/{id}/pause")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> pauseMyJob(
             @PathVariable Long id
     ) {
@@ -84,7 +77,6 @@ public class RecruiterJobPostController {
     }
 
     @PostMapping("/{id}/resume")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> resumeMyJob(
             @PathVariable Long id
     ) {
@@ -94,7 +86,6 @@ public class RecruiterJobPostController {
     }
 
     @PostMapping("/{id}/close")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobPostResponse> closeMyJob(
             @PathVariable Long id
     ) {

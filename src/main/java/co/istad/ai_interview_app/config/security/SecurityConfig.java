@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -37,11 +39,62 @@ import java.util.Map;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 
+/**
+ * Every authorization rule in the application lives here, expressed as URL
+ * patterns. Controllers carry no {@code @PreAuthorize}: one list that can be
+ * read top to bottom is easier to audit than sixty annotations spread across
+ * thirteen files, and it cannot drift from the paths it guards.
+ *
+ * <p>Roles come from the Keycloak realm and must be spelled exactly as they are
+ * there — the JWT converter below turns {@code realm_access.roles} into
+ * {@code ROLE_<name>} authorities, which is what {@code hasRole} matches.
+ */
 @Slf4j
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    /** Platform owner. Reaches every staff area through {@link #roleHierarchy()}. */
+    private static final String SUPER_ADMIN = "SUPER_ADMIN";
+
+    /** Verifies companies, reviews candidates, curates the shared taxonomy. */
+    private static final String MODERATOR = "MODERATOR";
+
+    /** Billing and revenue. No endpoints yet; the rule is here for when there are. */
+    private static final String FINANCE = "FINANCE";
+
+    private static final String SEEKER = "SEEKER";
+
+    /**
+     * Accepted alongside {@link #SEEKER} because accounts were issued under both
+     * spellings. Drop it once the realm has been reconciled on SEEKER.
+     */
+    private static final String SEEKER_LEGACY = "JOB_SEEKER";
+
+    private static final String RECRUITER = "RECRUITER";
+
+    /**
+     * The one place SUPER_ADMIN's reach is defined: it holds every staff role
+     * implicitly, so {@code hasRole(MODERATOR)} below admits it without naming
+     * it.
+     *
+     * <p>Deliberately not extended to SEEKER or RECRUITER. Those endpoints
+     * resolve the caller's own seeker or recruiter profile, so admitting an
+     * account that has neither would trade a clean 403 for a confusing 404 from
+     * deeper in the service. Both prefixes name SUPER_ADMIN explicitly instead,
+     * which keeps that decision visible at the rule.
+     *
+     * <p>Spring Security picks this bean up on its own: the authorize-requests
+     * configurer builds its authorization manager factory with whatever
+     * {@code RoleHierarchy} bean the context holds.
+     */
+    @Bean
+    static RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role(SUPER_ADMIN).implies(MODERATOR, FINANCE)
+                .build();
+    }
 
     @Bean
     SecurityFilterChain securityFilterChain(
@@ -55,6 +108,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler())
                 )
                 .authorizeHttpRequests(auth -> auth
+                        /* ---------------------------------------- open --- */
+
                         .requestMatchers("/actuator/health").permitAll()
 
                         .requestMatchers(
@@ -62,21 +117,55 @@ public class SecurityConfig {
                                 "/api/v1/auth/register"
                         ).permitAll()
 
+                        // Job discovery and published profiles: readable signed
+                        // out, which is what lets the marketing site work.
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/jobs/public/**",
                                 "/api/v1/public/**"
                         ).permitAll()
-                        .requestMatchers("/api/v1/admin/**").permitAll()
 
-                        // Public endpoints
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**")
-                        .permitAll()
-                        .requestMatchers("/scalar/**").permitAll()
+                                "/v3/api-docs/**",
+                                "/scalar/**"
+                        ).permitAll()
 
+                        /* ------------------------- any signed-in account --- */
+
+                        // Identity, and file upload plus private download. Which
+                        // file a given caller may read is the storage service's
+                        // decision, not a question a URL pattern can answer.
+                        .requestMatchers(
+                                "/api/v1/me",
+                                "/api/v1/files/**"
+                        ).authenticated()
+
+                        /* ------------------------------------ role areas --- */
+
+                        // SUPER_ADMIN is named here rather than inherited: see
+                        // the note on roleHierarchy().
+                        .requestMatchers("/api/v1/job-seeker/**")
+                        .hasAnyRole(SEEKER, SEEKER_LEGACY, SUPER_ADMIN)
+
+                        .requestMatchers("/api/v1/recruiter/**")
+                        .hasAnyRole(RECRUITER, SUPER_ADMIN)
+
+                        // The next three admit SUPER_ADMIN through the hierarchy.
+                        .requestMatchers("/api/v1/moderator/**").hasRole(MODERATOR)
+
+                        // Shared taxonomy — industries, job categories, skills.
+                        // Moderators curate it while reviewing, so it sits with
+                        // the moderator rules despite the /admin path.
+                        .requestMatchers("/api/v1/admin/**").hasRole(MODERATOR)
+
+                        .requestMatchers("/api/v1/finance/**").hasRole(FINANCE)
+
+                        /* --------------------------------------- default --- */
+
+                        // Anything not matched above still needs a token, so a
+                        // new controller fails closed rather than open.
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

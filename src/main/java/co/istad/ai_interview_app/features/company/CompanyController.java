@@ -10,7 +10,6 @@ import co.istad.ai_interview_app.features.company.service.CompanyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +28,6 @@ public class CompanyController {
     private final CompanyService companyService;
 
     @PostMapping
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<CompanyResponse> createCompany(
             @Valid @RequestBody CompanyCreateRequest request
     ) {
@@ -39,7 +37,6 @@ public class CompanyController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<CompanyResponse> getMyCompany() {
         return ApiResponse.success(
                 companyService.getMyCompany()
@@ -47,7 +44,6 @@ public class CompanyController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<CompanyResponse> updateCompany(
             @PathVariable Long id,
             @Valid @RequestBody CompanyUpdateRequest request
@@ -58,7 +54,6 @@ public class CompanyController {
     }
 
     @PostMapping("/{companyId}/documents")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<CompanyDocumentResponse> addDocument(
             @PathVariable Long companyId,
             @Valid @RequestBody CompanyDocumentRequest request
@@ -67,7 +62,6 @@ public class CompanyController {
     }
 
     @GetMapping("/{companyId}/documents")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<List<CompanyDocumentResponse>> getDocuments(
             @PathVariable Long companyId
     ) {
@@ -75,7 +69,6 @@ public class CompanyController {
     }
 
     @DeleteMapping("/{companyId}/documents/{documentId}")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<Void> deleteDocument(
             @PathVariable Long companyId,
             @PathVariable Long documentId
@@ -85,7 +78,6 @@ public class CompanyController {
     }
 
     @PostMapping("/{companyId}/submit-verification")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<CompanyResponse> submitVerification(
             @PathVariable Long companyId
     ) {

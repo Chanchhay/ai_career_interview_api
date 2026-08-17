@@ -11,7 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,7 +40,6 @@ public class RecruiterTalentController {
     private final RecruiterTalentService recruiterTalentService;
 
     @GetMapping
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<Page<PublicTalentListItemResponse>> findPublicTalent(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String preferredLocation,
@@ -59,7 +57,6 @@ public class RecruiterTalentController {
     }
 
     @GetMapping("/{publicProfileSlug}")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<PublicTalentDetailResponse> getPublicTalent(
             @PathVariable String publicProfileSlug
     ) {
@@ -67,7 +64,6 @@ public class RecruiterTalentController {
     }
 
     @GetMapping("/{publicProfileSlug}/resumes/{resumeId}/download")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<PublicResumeDownloadResponse> getPublicResumeDownload(
             @PathVariable String publicProfileSlug,
             @PathVariable Long resumeId

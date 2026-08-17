@@ -14,7 +14,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,7 +31,6 @@ public class ModeratorCandidateApplicationController {
     private final ModeratorCandidateApplicationService applicationService;
 
     @GetMapping("/candidate-applications")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<Page<CandidateApplicationListItemResponse>> getReviewQueue(
             @RequestParam(required = false) CandidateApplicationReviewStatus status,
             Pageable pageable
@@ -41,7 +39,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @GetMapping("/candidate-applications/{applicationId}")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<CandidateApplicationDetailResponse> getReviewDetail(
             @PathVariable Long applicationId
     ) {
@@ -49,7 +46,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @PostMapping("/candidate-applications/{applicationId}/human-interviews")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<HumanInterviewResponse> scheduleHumanInterview(
             @PathVariable Long applicationId,
             @Valid @RequestBody HumanInterviewRequest request
@@ -58,7 +54,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @PatchMapping("/human-interviews/{interviewId}/reschedule")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<HumanInterviewResponse> rescheduleHumanInterview(
             @PathVariable Long interviewId,
             @Valid @RequestBody HumanInterviewRequest request
@@ -67,7 +62,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @PostMapping("/human-interviews/{interviewId}/complete")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<HumanInterviewResponse> completeHumanInterview(
             @PathVariable Long interviewId,
             @Valid @RequestBody HumanInterviewCompleteRequest request
@@ -76,7 +70,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @PostMapping("/human-interviews/{interviewId}/cancel")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<HumanInterviewResponse> cancelHumanInterview(
             @PathVariable Long interviewId
     ) {
@@ -84,7 +77,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @PostMapping("/candidate-applications/{applicationId}/approve")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<CandidateApplicationReviewResponse> approve(
             @PathVariable Long applicationId,
             @Valid @RequestBody DecisionRequest request
@@ -93,7 +85,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @PostMapping("/candidate-applications/{applicationId}/reject")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<CandidateApplicationReviewResponse> reject(
             @PathVariable Long applicationId,
             @Valid @RequestBody DecisionRequest request
@@ -102,7 +93,6 @@ public class ModeratorCandidateApplicationController {
     }
 
     @PostMapping("/candidate-applications/{applicationId}/forward")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<CandidateApplicationReviewResponse> forward(
             @PathVariable Long applicationId
     ) {

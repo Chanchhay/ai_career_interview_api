@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,7 +27,6 @@ public class ModeratorCompanyVerificationController {
     private final ModeratorCompanyVerificationService companyVerificationService;
 
     @GetMapping
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<Page<ModeratorCompanyListItemResponse>> getCompanies(
             @RequestParam(required = false) VerificationStatus verificationStatus,
             Pageable pageable
@@ -37,7 +35,6 @@ public class ModeratorCompanyVerificationController {
     }
 
     @GetMapping("/{companyId}")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<ModeratorCompanyDetailResponse> getCompany(
             @PathVariable Long companyId
     ) {
@@ -45,7 +42,6 @@ public class ModeratorCompanyVerificationController {
     }
 
     @PostMapping("/{companyId}/approve")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<CompanyVerificationResponse> approve(
             @PathVariable Long companyId,
             @Valid @RequestBody DecisionRequest request
@@ -54,7 +50,6 @@ public class ModeratorCompanyVerificationController {
     }
 
     @PostMapping("/{companyId}/reject")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<CompanyVerificationResponse> reject(
             @PathVariable Long companyId,
             @Valid @RequestBody DecisionRequest request
@@ -63,7 +58,6 @@ public class ModeratorCompanyVerificationController {
     }
 
     @PostMapping("/{companyId}/request-revision")
-    @PreAuthorize("hasRole('MODERATOR')")
     public ApiResponse<CompanyVerificationResponse> requestRevision(
             @PathVariable Long companyId,
             @Valid @RequestBody DecisionRequest request
