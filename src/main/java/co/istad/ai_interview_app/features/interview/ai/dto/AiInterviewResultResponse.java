@@ -4,7 +4,11 @@ import java.util.List;
 
 public record AiInterviewResultResponse(
         AiInterviewSessionResponse session,
-        AiInterviewFeedbackResponse feedback,
-        List<AiInterviewQuestionResponse> questions
+        AiInterviewFeedbackResponse feedback
+//        List<AiInterviewQuestionResponse> questions
 ) {
+
+    public List<AiInterviewQuestionResponse> questions() {
+        return session == null ? List.of() : session.questions();
+    }
 }

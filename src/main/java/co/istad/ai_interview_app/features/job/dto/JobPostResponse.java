@@ -24,6 +24,7 @@ public record JobPostResponse(
         JobStatus status,
         Instant publishedAt,
         Instant expiredAt,
+        String sourceFileUrl,
         List<JobPostSectionResponse> sections,
         List<JobPostSkillResponse> skills
 ) {

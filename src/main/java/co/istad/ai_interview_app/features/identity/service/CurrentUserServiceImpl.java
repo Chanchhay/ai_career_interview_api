@@ -11,6 +11,8 @@ import co.istad.ai_interview_app.features.identity.repository.CurrentUserJobSeek
 import co.istad.ai_interview_app.features.identity.repository.CurrentUserModeratorProfileRepository;
 import co.istad.ai_interview_app.features.identity.repository.CurrentUserRecruiterProfileRepository;
 import co.istad.ai_interview_app.features.identity.repository.IdentityUserAccountRepository;
+import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
+import co.istad.ai_interview_app.features.seeker.entity.JobSeekerProfile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -49,6 +51,15 @@ public class CurrentUserServiceImpl implements CurrentUserService {
 
         Long userAccountId = userAccount.getId();
 
+        // Whichever profile the account owns supplies the avatar, so callers get
+        // one URL regardless of role rather than having to fetch a role-specific
+        // profile just to render a header.
+        String avatarUrl = jobSeekerProfileRepository.findByUserAccount_Id(userAccountId)
+                .map(JobSeekerProfile::getAvatarUrl)
+                .or(() -> recruiterProfileRepository.findByUserAccount_Id(userAccountId)
+                        .map(RecruiterProfile::getAvatarUrl))
+                .orElse(null);
+
         return new CurrentUserResponse(
                 userAccountId,
                 keycloakUserId,
@@ -61,6 +72,7 @@ public class CurrentUserServiceImpl implements CurrentUserService {
                 AuthUtils.claimAsString(jwt, "phone_number"),
                 AuthUtils.claimAsString(jwt, "registration_source"),
                 AuthUtils.resolveRoles(jwtAuthentication.getAuthorities()),
+                avatarUrl,
                 new CurrentUserProfilesResponse(
                         jobSeekerProfileRepository.findByUserAccount_Id(userAccountId)
                                 .map(BaseEntity::getId)

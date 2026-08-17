@@ -24,7 +24,7 @@ public class CompanyDocument extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String documentType;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String documentUrl;
 
     @Enumerated(EnumType.STRING)

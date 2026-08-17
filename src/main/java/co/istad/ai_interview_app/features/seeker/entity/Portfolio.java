@@ -6,8 +6,11 @@ import co.istad.ai_interview_app.shared.enums.visibility.VisibilityStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -27,6 +30,11 @@ public class Portfolio extends BaseEntity {
 
     @Column(unique = true)
     private String publicUrl;
+
+    /** Frontend-owned presentation settings: chosen template, accent color. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> portfolioData;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)

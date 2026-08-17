@@ -1,0 +1,10 @@
+.git
+.gradle
+.idea
+.vscode
+build
+out
+*.iml
+*.log
+src/main/java/co/istad/ai_interview_app/docker-compose.yml
+.env

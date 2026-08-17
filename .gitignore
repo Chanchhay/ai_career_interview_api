@@ -39,3 +39,7 @@ out/
 ### Script Folders ###
 script/
 scripts/
+
+.env
+.env.*
+!.env.example

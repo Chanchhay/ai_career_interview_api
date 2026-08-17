@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public record PublicTalentListItemResponse(
         Long profileId,
         String publicProfileSlug,
+        String avatarUrl,
         String headline,
         String bio,
         String currentPosition,

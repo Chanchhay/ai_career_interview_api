@@ -1,16 +1,38 @@
+server:
+  port: ${PORT:8080}
+
+  scalar:
+    url: ${SERVER_URL:localhost://8080}/v3/api-docs
+    path: /docs
+    enabled: true
+
+app:
+  security:
+    jwt:
+      connect-timeout: ${JWT_JWK_CONNECT_TIMEOUT:5s}
+      read-timeout: ${JWT_JWK_READ_TIMEOUT:30s}
+
 spring:
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI}
   application:
     name: ai_interview_backend_api
+  servlet:
+    multipart:
+      # Defaults are 1MB/10MB, which would reject the 5MB files the upload
+      # endpoint is meant to accept. Headroom left for the multipart envelope.
+      max-file-size: ${MULTIPART_MAX_FILE_SIZE:6MB}
+      max-request-size: ${MULTIPART_MAX_REQUEST_SIZE:8MB}
   datasource:
     driver-class-name: org.postgresql.Driver
     username: ${DB_USER}
     password: ${DB_PASS}
-    url: ${DB_URL}
+    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -31,6 +53,11 @@ spring:
           temperature: 0.2
           model: ${GEMINI_MODEL:gemini-3.5-flash}
 
+vapi:
+  # Shared secret Vapi presents on its webhook. Unset means the webhook rejects
+  # every call, so voice interviews simply fall back to browser-side saving.
+  webhook-secret: ${VAPI_WEBHOOK_SECRET:}
+
 keycloak:
   admin:
     server-url: ${KEYCLOAK_URL}
@@ -38,3 +65,12 @@ keycloak:
     realm: master
     target-realm: ai-career
     client-secret: ${KEYCLOAK_CLIENT_SECRET}
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: ${MINIO_BUCKET:ai-career}
+  # Ceiling enforced by FileStorageServiceImpl; keep in step with the multipart
+  # limits below, which reject oversized uploads before they reach the service.
+  max-file-size: ${MINIO_MAX_FILE_SIZE:5242880}
+  presigned-expiry-minutes: ${MINIO_PRESIGNED_EXPIRY_MINUTES:15}

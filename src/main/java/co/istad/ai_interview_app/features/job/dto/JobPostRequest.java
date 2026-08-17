@@ -41,6 +41,9 @@ public record JobPostRequest(
         @Future(message = "Expiration date must be in the future")
         Instant expiredAt,
 
+        @Size(max = 500, message = "Source file URL must be at most 500 characters")
+        String sourceFileUrl,
+
         @Valid
         List<JobPostSectionRequest> sections,
 

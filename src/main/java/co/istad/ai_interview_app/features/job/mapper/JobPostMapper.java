@@ -33,6 +33,7 @@ public class JobPostMapper {
                 jobPost.getStatus(),
                 jobPost.getPublishedAt(),
                 jobPost.getExpiredAt(),
+                jobPost.getSourceFileUrl(),
                 toSectionResponses(jobPost.getSections()),
                 toSkillResponses(jobPost.getSkills())
         );

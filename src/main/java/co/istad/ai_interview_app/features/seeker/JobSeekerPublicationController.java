@@ -6,7 +6,6 @@ import co.istad.ai_interview_app.features.seeker.dto.PublicationResponse;
 import co.istad.ai_interview_app.features.seeker.service.JobSeekerPublicationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,7 +20,6 @@ public class JobSeekerPublicationController {
     private final JobSeekerPublicationService jobSeekerPublicationService;
 
     @PatchMapping("/profile/publication")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PublicationResponse> updateProfilePublication(
             @Valid @RequestBody PublicationRequest request
     ) {
@@ -29,7 +27,6 @@ public class JobSeekerPublicationController {
     }
 
     @PatchMapping("/portfolios/{portfolioId}/publication")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PublicationResponse> updatePortfolioPublication(
             @PathVariable Long portfolioId,
             @Valid @RequestBody PublicationRequest request
@@ -38,7 +35,6 @@ public class JobSeekerPublicationController {
     }
 
     @PatchMapping("/resumes/{resumeId}/publication")
-    @PreAuthorize("hasAnyRole('SEEKER','JOB_SEEKER')")
     public ApiResponse<PublicationResponse> updateResumePublication(
             @PathVariable Long resumeId,
             @Valid @RequestBody PublicationRequest request

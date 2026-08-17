@@ -21,6 +21,8 @@ import co.istad.ai_interview_app.shared.enums.visibility.VisibilityStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import co.istad.ai_interview_app.features.seeker.specification.JobSeekerProfileSpecification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,14 +49,15 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
             String availabilityStatus,
             Pageable pageable
     ) {
-        return jobSeekerProfileRepository.findPublicTalent(
-                        ProfileStatus.ACTIVE,
-                        VisibilityStatus.PUBLIC,
-                        normalizeBlankToNull(keyword),
-                        normalizeBlankToNull(preferredLocation),
-                        normalizeBlankToNull(availabilityStatus),
-                        pageable
-                )
+        Specification<JobSeekerProfile> spec = JobSeekerProfileSpecification.filterPublicTalent(
+                ProfileStatus.ACTIVE,
+                VisibilityStatus.PUBLIC,
+                normalizeBlankToNull(keyword),
+                normalizeBlankToNull(preferredLocation),
+                normalizeBlankToNull(availabilityStatus)
+        );
+
+        return jobSeekerProfileRepository.findAll(spec, pageable)
                 .map(this::toListItemResponse);
     }
 
@@ -123,6 +126,7 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
         return new PublicTalentListItemResponse(
                 profile.getId(),
                 profile.getPublicProfileSlug(),
+                profile.getAvatarUrl(),
                 profile.getHeadline(),
                 profile.getBio(),
                 profile.getCurrentPosition(),
@@ -147,6 +151,7 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
                 portfolio.getTitle(),
                 portfolio.getSummary(),
                 portfolio.getPublicUrl(),
+                portfolio.getPortfolioData(),
                 portfolio.getPublishedAt(),
                 projects
         );
@@ -170,6 +175,8 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
                 resume.getId(),
                 resume.getTitle(),
                 resume.getIsDefault(),
+                resume.getResumeFileUrl(),
+                resume.getResumeData(),
                 resume.getPublishedAt()
         );
     }

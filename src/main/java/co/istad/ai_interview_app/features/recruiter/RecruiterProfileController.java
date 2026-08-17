@@ -6,7 +6,6 @@ import co.istad.ai_interview_app.features.recruiter.dto.RecruiterProfileUpdateRe
 import co.istad.ai_interview_app.features.recruiter.service.RecruiterProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,8 +15,14 @@ public class RecruiterProfileController {
 
     private final RecruiterProfileService recruiterProfileService;
 
+    @GetMapping
+    public ApiResponse<RecruiterProfileResponse> getMyProfile() {
+        return ApiResponse.success(
+                recruiterProfileService.getMyProfile()
+        );
+    }
+
     @PatchMapping
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<RecruiterProfileResponse> updateMyProfile(
             @Valid @RequestBody RecruiterProfileUpdateRequest request
     ) {
