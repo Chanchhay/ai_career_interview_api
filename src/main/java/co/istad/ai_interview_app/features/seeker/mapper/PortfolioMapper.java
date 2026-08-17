@@ -17,6 +17,7 @@ public class PortfolioMapper {
                 portfolio.getTitle(),
                 portfolio.getSummary(),
                 portfolio.getPublicUrl(),
+                portfolio.getPortfolioData(),
                 portfolio.getVisibility(),
                 portfolio.getPublishedAt(),
                 portfolio.getStatus(),

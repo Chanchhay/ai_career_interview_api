@@ -151,6 +151,7 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
                 portfolio.getTitle(),
                 portfolio.getSummary(),
                 portfolio.getPublicUrl(),
+                portfolio.getPortfolioData(),
                 portfolio.getPublishedAt(),
                 projects
         );
@@ -174,6 +175,8 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
                 resume.getId(),
                 resume.getTitle(),
                 resume.getIsDefault(),
+                resume.getResumeFileUrl(),
+                resume.getResumeData(),
                 resume.getPublishedAt()
         );
     }

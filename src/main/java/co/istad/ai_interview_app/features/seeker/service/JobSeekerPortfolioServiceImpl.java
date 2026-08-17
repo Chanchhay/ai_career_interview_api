@@ -44,6 +44,7 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
         portfolio.setTitle(normalizeRequiredText(request.title(), "Title is required"));
         portfolio.setSummary(normalizeBlankToNull(request.summary()));
         portfolio.setPublicUrl(normalizeBlankToNull(request.publicUrl()));
+        portfolio.setPortfolioData(request.portfolioData());
         portfolio.setVisibility(VisibilityStatus.PRIVATE);
         portfolio.setStatus(ProfileStatus.ACTIVE);
 
@@ -82,6 +83,9 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
         }
         if (request.publicUrl() != null) {
             portfolio.setPublicUrl(normalizeBlankToNull(request.publicUrl()));
+        }
+        if (request.portfolioData() != null) {
+            portfolio.setPortfolioData(request.portfolioData());
         }
 
         return toResponse(portfolio);

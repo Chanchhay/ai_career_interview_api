@@ -15,12 +15,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 
 @Service
 @RequiredArgsConstructor
 public class JobSeekerPublicationServiceImpl implements JobSeekerPublicationService {
+
+    /** Keys in `resumeData` that describe styling rather than resume content. */
+    private static final Set<String> PRESENTATION_KEYS = Set.of("templateId", "accent");
 
     private final AuthenticatedJobSeekerProfileResolver jobSeekerProfileResolver;
     private final PortfolioRepository portfolioRepository;
@@ -87,8 +93,15 @@ public class JobSeekerPublicationServiceImpl implements JobSeekerPublicationServ
                         "Resume was not found for authenticated job seeker"
                 ));
 
-        if (visibility == VisibilityStatus.PUBLIC && !hasText(resume.getResumeFileUrl())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Resume file is required before publishing");
+        // A resume is publishable once there is something for a recruiter to read:
+        // either an uploaded file, or content filled in with the in-app builder.
+        if (visibility == VisibilityStatus.PUBLIC
+                && !hasText(resume.getResumeFileUrl())
+                && !hasBuiltContent(resume.getResumeData())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Attach a resume file or fill in your resume details before publishing"
+            );
         }
 
         resume.setVisibility(visibility);
@@ -103,6 +116,30 @@ public class JobSeekerPublicationServiceImpl implements JobSeekerPublicationServ
                 profile.getPublicProfileSlug(),
                 resume.getPublishedAt()
         );
+    }
+
+    /**
+     * True when `resumeData` holds actual resume content. Presentation settings
+     * are ignored: the builder always writes a template and accent, so an empty
+     * draft would otherwise look publishable.
+     */
+    private boolean hasBuiltContent(Map<String, Object> resumeData) {
+        if (resumeData == null) {
+            return false;
+        }
+        return resumeData.entrySet().stream()
+                .filter(entry -> !PRESENTATION_KEYS.contains(entry.getKey()))
+                .anyMatch(entry -> isFilledIn(entry.getValue()));
+    }
+
+    private boolean isFilledIn(Object value) {
+        return switch (value) {
+            case null -> false;
+            case String text -> hasText(text);
+            case Collection<?> items -> !items.isEmpty();
+            case Map<?, ?> entries -> !entries.isEmpty();
+            default -> true;
+        };
     }
 
     private VisibilityStatus resolvePublicationVisibility(PublicationRequest request) {
