@@ -4,6 +4,7 @@ import co.istad.ai_interview_app.config.security.AuthUtils;
 import co.istad.ai_interview_app.features.application.entity.JobApplication;
 import co.istad.ai_interview_app.features.application.repository.JobApplicationRepository;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewAnswerRequest;
+import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewGenerationConfig;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewResultResponse;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewSessionResponse;
 import co.istad.ai_interview_app.features.interview.ai.dto.AnswerEvaluationInput;
@@ -66,9 +67,8 @@ import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNu
 @RequiredArgsConstructor
 public class AiInterviewServiceImpl implements AiInterviewService {
 
-    private static final int QUESTION_COUNT = 7;
-
     private final AiInterviewQuestionGenerator questionGenerator;
+    private final AiInterviewConfigService configService;
     private final AiInterviewEvaluator evaluator;
     private final JobPostRepository jobPostRepository;
     private final JobApplicationRepository applicationRepository;
@@ -96,40 +96,49 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     public AiInterviewSessionResponse createInterviewForJob(Long jobId) {
         GenerationContext context = transactionTemplate.execute(status -> createPreparingSession(jobId));
 
+        // Read once, so the interview that is generated and the interview that
+        // is validated are the same one even if an admin saves new settings
+        // while Gemini is still answering.
+        AiInterviewGenerationConfig config = configService.currentGenerationConfig();
+
         GeneratedQuestionSet generatedQuestions;
         try {
             generatedQuestions = questionGenerator.generateQuestions(
                     context.jobTitle(),
                     context.jobDescription(),
                     context.experienceLevel(),
-                    context.requiredSkills()
+                    context.requiredSkills(),
+                    config
             );
         } catch (RuntimeException ex) {
             transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
             throw ex;
         }
 
-        return transactionTemplate.execute(status -> persistGeneratedQuestions(context.sessionId(), generatedQuestions));
+        return transactionTemplate.execute(status -> persistGeneratedQuestions(context.sessionId(), generatedQuestions, config));
     }
 
     @Override
     public AiInterviewSessionResponse createInterviewForApplication(Long applicationId) {
         GenerationContext context = transactionTemplate.execute(status -> createPreparingApplicationSession(applicationId));
 
+        AiInterviewGenerationConfig config = configService.currentGenerationConfig();
+
         GeneratedQuestionSet generatedQuestions;
         try {
             generatedQuestions = questionGenerator.generateQuestions(
                     context.jobTitle(),
                     context.jobDescription(),
                     context.experienceLevel(),
-                    context.requiredSkills()
+                    context.requiredSkills(),
+                    config
             );
         } catch (RuntimeException ex) {
             transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
             throw ex;
         }
 
-        return transactionTemplate.execute(status -> persistGeneratedQuestions(context.sessionId(), generatedQuestions));
+        return transactionTemplate.execute(status -> persistGeneratedQuestions(context.sessionId(), generatedQuestions, config));
     }
 
     @Override
@@ -201,6 +210,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             answer.setAnswerText(normalizeBlankToNull(request.answerText()));
             answer.setScore(null);
             answer.setFeedback(null);
+            answer.setModelAnswer(null);
             answerRepository.save(answer);
 
             return mapper.toSessionResponse(resolveMySessionWithQuestions(sessionId));
@@ -478,14 +488,15 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             answer.setAnswerText(spoken);
             answer.setScore(null);
             answer.setFeedback(null);
+            answer.setModelAnswer(null);
             answerRepository.save(answer);
         });
 
-        if (session.getQuestions().size() != QUESTION_COUNT) {
-            log.warn(
-                    "Session={} has {} questions; expected {}",
-                    sessionId, session.getQuestions().size(), QUESTION_COUNT
-            );
+        // Sessions keep whatever length they were generated at, so this asks
+        // only that the session has questions — not that it matches the count
+        // an admin has configured since.
+        if (session.getQuestions().isEmpty()) {
+            log.warn("Session={} has no questions", sessionId);
             return null;
         }
 
@@ -586,9 +597,10 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     private AiInterviewSessionResponse persistGeneratedQuestions(
             Long sessionId,
-            GeneratedQuestionSet generatedQuestionSet
+            GeneratedQuestionSet generatedQuestionSet,
+            AiInterviewGenerationConfig config
     ) {
-        validateGeneratedQuestions(generatedQuestionSet);
+        validateGeneratedQuestions(generatedQuestionSet, config);
 
         AiInterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Interview session was not found"));
@@ -631,7 +643,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Interview must be in progress before it can be completed");
         }
 
-        if (session.getQuestions().size() != QUESTION_COUNT) {
+        if (session.getQuestions().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Interview questions are not ready");
         }
 
@@ -686,6 +698,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             EvaluatedAnswer evaluatedAnswer = evaluatedAnswersByQuestionId.get(question.getId());
             answer.setScore(evaluatedAnswer.score());
             answer.setFeedback(normalizeBlankToNull(evaluatedAnswer.feedback()));
+            answer.setModelAnswer(normalizeBlankToNull(evaluatedAnswer.modelAnswer()));
         });
 
         AiInterviewFeedback feedback = feedbackRepository.findBySession_Id(session.getId())
@@ -807,13 +820,19 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 .toList();
     }
 
-    private void validateGeneratedQuestions(GeneratedQuestionSet generatedQuestionSet) {
+    private void validateGeneratedQuestions(
+            GeneratedQuestionSet generatedQuestionSet,
+            AiInterviewGenerationConfig config
+    ) {
         if (generatedQuestionSet == null || generatedQuestionSet.questions() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI did not return questions");
         }
 
-        if (generatedQuestionSet.questions().size() != QUESTION_COUNT) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI did not return exactly 7 questions");
+        if (generatedQuestionSet.questions().size() != config.questionCount()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "AI did not return exactly " + config.questionCount() + " questions"
+            );
         }
 
         Set<Integer> orders = new HashSet<>();
@@ -825,7 +844,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                     || normalizeBlankToNull(question.question()) == null
                     || normalizeBlankToNull(question.rubric()) == null
                     || question.maxScore() == null
-                    || question.maxScore() != 10) {
+                    || question.maxScore() != config.maxScorePerQuestion()) {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI returned invalid questions");
             }
         }

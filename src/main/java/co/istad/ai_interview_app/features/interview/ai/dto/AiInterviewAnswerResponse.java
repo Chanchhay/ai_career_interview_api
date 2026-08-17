@@ -6,6 +6,8 @@ public record AiInterviewAnswerResponse(
         Long id,
         String answerText,
         BigDecimal score,
-        String feedback
+        String feedback,
+        /** Null until the interview is scored; never exposes the private rubric. */
+        String modelAnswer
 ) {
 }
