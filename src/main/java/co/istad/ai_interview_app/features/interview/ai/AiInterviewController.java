@@ -5,6 +5,8 @@ import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewAnswerRequ
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewResultResponse;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewSessionResponse;
 import co.istad.ai_interview_app.features.interview.ai.service.AiInterviewService;
+import co.istad.ai_interview_app.features.interview.vapi.dto.VapiCallBindingRequest;
+import co.istad.ai_interview_app.features.interview.vapi.dto.VoiceTranscriptRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,6 +66,30 @@ public class AiInterviewController {
             @Valid @RequestBody AiInterviewAnswerRequest request
     ) {
         return ApiResponse.success(aiInterviewService.submitAnswer(sessionId, questionId, request));
+    }
+
+    /** Attaches the Vapi call that is voicing this interview, so its webhook can find the session. */
+    @PutMapping("/ai-interviews/{sessionId}/vapi-call")
+    public ApiResponse<AiInterviewSessionResponse> bindVapiCall(
+            @PathVariable Long sessionId,
+            @Valid @RequestBody VapiCallBindingRequest request
+    ) {
+        return ApiResponse.success(aiInterviewService.bindVapiCall(sessionId, request));
+    }
+
+    /**
+     * Submits the transcript of a finished voice interview for scoring.
+     *
+     * <p>Runs the same work as Vapi's end-of-call webhook. Both exist because the
+     * webhook needs a publicly reachable server, which local development lacks,
+     * and the browser cannot report a call abandoned by closing the tab.
+     */
+    @PostMapping("/ai-interviews/{sessionId}/transcript")
+    public ApiResponse<AiInterviewSessionResponse> submitVoiceTranscript(
+            @PathVariable Long sessionId,
+            @Valid @RequestBody VoiceTranscriptRequest request
+    ) {
+        return ApiResponse.success(aiInterviewService.submitVoiceTranscript(sessionId, request));
     }
 
     @PostMapping("/ai-interviews/{sessionId}/complete")

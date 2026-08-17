@@ -21,6 +21,12 @@ import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewAns
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewFeedbackRepository;
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewQuestionRepository;
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewSessionRepository;
+import co.istad.ai_interview_app.features.interview.vapi.dto.TranscriptSegmentationRequest;
+import co.istad.ai_interview_app.features.interview.vapi.dto.TranscriptSegmentationResult;
+import co.istad.ai_interview_app.features.interview.vapi.dto.VapiCallBindingRequest;
+import co.istad.ai_interview_app.features.interview.vapi.dto.VapiTranscriptTurn;
+import co.istad.ai_interview_app.features.interview.vapi.dto.VoiceTranscriptRequest;
+import co.istad.ai_interview_app.features.interview.vapi.service.AiInterviewTranscriptSegmenter;
 import co.istad.ai_interview_app.features.job.entity.JobPost;
 import co.istad.ai_interview_app.features.job.entity.JobPostSection;
 import co.istad.ai_interview_app.features.job.repository.JobPostRepository;
@@ -33,6 +39,7 @@ import co.istad.ai_interview_app.shared.enums.interview.InterviewStatus;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -45,13 +52,16 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiInterviewServiceImpl implements AiInterviewService {
@@ -69,6 +79,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     private final AiInterviewAnswerRepository answerRepository;
     private final AiInterviewFeedbackRepository feedbackRepository;
     private final AiInterviewMapper mapper;
+    private final AiInterviewTranscriptSegmenter transcriptSegmenter;
     private final TransactionTemplate transactionTemplate;
 
     @Value("${spring.ai.google.genai.chat.model:gemini}")
@@ -230,6 +241,282 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         });
     }
 
+    @Override
+    public AiInterviewSessionResponse bindVapiCall(Long sessionId, VapiCallBindingRequest request) {
+        return transactionTemplate.execute(status -> {
+            AiInterviewSession session = resolveMySessionWithQuestions(sessionId);
+
+            if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Interview must be in progress before a voice call can be attached"
+                );
+            }
+
+            String callId = normalizeBlankToNull(request.callId());
+            if (callId == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vapi call id is required");
+            }
+
+            // The call id is what the webhook authenticates against, so it must
+            // never point at two interviews.
+            if (sessionRepository.existsByCallSessionIdAndIdNot(callId, sessionId)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "This voice call is already bound to another interview");
+            }
+
+            session.setCallSessionId(callId);
+
+            return mapper.toSessionResponse(session);
+        });
+    }
+
+    @Override
+    public void completeFromVapiTranscript(
+            String vapiCallId,
+            String transcript,
+            List<VapiTranscriptTurn> turns
+    ) {
+        Long sessionId = transactionTemplate.execute(status -> {
+            Optional<AiInterviewSession> found =
+                    sessionRepository.findWithQuestionsByCallSessionId(vapiCallId);
+
+            if (found.isEmpty()) {
+                log.warn("Vapi call={} does not match any interview session", vapiCallId);
+                return null;
+            }
+
+            return acceptTranscript(found.get(), transcript, turns);
+        });
+
+        if (sessionId == null) {
+            return;
+        }
+
+        // Errors are swallowed: rethrowing would 500 the webhook and earn a
+        // retry of an event that will fail the same way.
+        scoreFromTranscript(sessionId, false);
+    }
+
+    @Override
+    public AiInterviewSessionResponse submitVoiceTranscript(
+            Long sessionId,
+            VoiceTranscriptRequest request
+    ) {
+        List<VapiTranscriptTurn> turns = request.turns()
+                .stream()
+                .map(turn -> new VapiTranscriptTurn(
+                        VapiTranscriptTurn.normalizeRole(turn.role()),
+                        turn.text()
+                ))
+                .filter(turn -> turn.role() != null)
+                .toList();
+
+        Long readySessionId = transactionTemplate.execute(status -> acceptTranscript(
+                resolveMySessionWithQuestions(sessionId),
+                VapiTranscriptTurn.toTranscript(turns),
+                turns
+        ));
+
+        if (readySessionId != null) {
+            // The candidate is waiting on this response, so failures surface as
+            // an error rather than a silently unscored interview.
+            scoreFromTranscript(readySessionId, true);
+        }
+
+        return transactionTemplate.execute(status ->
+                mapper.toSessionResponse(resolveMySessionWithQuestions(sessionId)));
+    }
+
+    /**
+     * Stores a finished call's transcript against its session.
+     *
+     * <p>Deliberately does not touch the answers. Splitting the transcript is a
+     * Gemini call, which must not run inside this transaction.
+     *
+     * @return the session id when the interview is ready to be split and scored,
+     * or {@code null} when it is not — already scored, or not in progress.
+     */
+    private Long acceptTranscript(
+            AiInterviewSession session,
+            String transcript,
+            List<VapiTranscriptTurn> turns
+    ) {
+        if (hasText(transcript)) {
+            session.setTranscript(transcript);
+        } else if (!turns.isEmpty()) {
+            session.setTranscript(VapiTranscriptTurn.toTranscript(turns));
+        }
+
+        if (session.getStatus() == InterviewStatus.COMPLETED) {
+            // The webhook and the browser both report the same call ending, and
+            // Vapi retries. Whichever arrives second finds the work already done.
+            log.info("Transcript for session={} arrived after it was scored", session.getId());
+            return null;
+        }
+
+        if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
+            log.warn(
+                    "Transcript for session={} in status={}; not scoring",
+                    session.getId(), session.getStatus()
+            );
+            return null;
+        }
+
+        if (!hasText(session.getTranscript())) {
+            log.warn("Transcript for session={} was empty; not scoring", session.getId());
+            return null;
+        }
+
+        return session.getId();
+    }
+
+    /**
+     * Splits the stored transcript into answers, then scores the interview.
+     *
+     * <p>Two Gemini calls, each sandwiched between short transactions, because
+     * neither may hold one open while waiting on the network.
+     *
+     * @param propagateErrors whether a failure should reach the caller, or be
+     *                        logged and left for a later attempt
+     */
+    private void scoreFromTranscript(Long sessionId, boolean propagateErrors) {
+        try {
+            TranscriptSegmentationRequest segmentationRequest = transactionTemplate.execute(status ->
+                    buildSegmentationRequest(sessionId));
+
+            TranscriptSegmentationResult segmentation =
+                    transcriptSegmenter.segment(segmentationRequest);
+
+            List<Integer> unanswered = transactionTemplate.execute(status ->
+                    applySegmentedAnswers(sessionId, segmentation));
+
+            if (unanswered == null || !unanswered.isEmpty()) {
+                // Left IN_PROGRESS on purpose: the candidate can still answer the
+                // remaining questions by typing rather than being scored on an
+                // interview they did not finish.
+                log.warn(
+                        "Session={} transcript left questions {} unanswered; leaving the interview open",
+                        sessionId, unanswered
+                );
+                return;
+            }
+
+            EvaluationContext context = transactionTemplate.execute(status ->
+                    prepareEvaluation(requireSession(sessionId)));
+
+            if (context == null || context.alreadyCompleted()) {
+                return;
+            }
+
+            InterviewEvaluationResult evaluation = evaluator.evaluate(context.request());
+
+            transactionTemplate.executeWithoutResult(status ->
+                    persistEvaluation(requireSessionWithResult(sessionId), evaluation));
+
+            log.info("Scored interview session={} from its transcript", sessionId);
+        } catch (RuntimeException ex) {
+            log.error("Scoring session={} from its transcript failed", sessionId, ex);
+            transactionTemplate.executeWithoutResult(status -> markSessionFailed(sessionId));
+            if (propagateErrors) {
+                throw ex;
+            }
+        }
+    }
+
+    private TranscriptSegmentationRequest buildSegmentationRequest(Long sessionId) {
+        AiInterviewSession session = requireSession(sessionId);
+
+        List<TranscriptSegmentationRequest.TranscriptQuestion> questions = session.getQuestions()
+                .stream()
+                .sorted(Comparator.comparing(AiInterviewQuestion::getDisplayOrder))
+                .map(question -> new TranscriptSegmentationRequest.TranscriptQuestion(
+                        question.getId(),
+                        question.getDisplayOrder(),
+                        question.getQuestionText()
+                ))
+                .toList();
+
+        return new TranscriptSegmentationRequest(questions, session.getTranscript());
+    }
+
+    /**
+     * @return display orders of the questions the transcript did not answer,
+     * empty when the interview is complete enough to score
+     */
+    private List<Integer> applySegmentedAnswers(
+            Long sessionId,
+            TranscriptSegmentationResult segmentation
+    ) {
+        AiInterviewSession session = requireSession(sessionId);
+
+        Map<Long, String> answersByQuestionId = segmentation.answers()
+                .stream()
+                .filter(answer -> !Boolean.FALSE.equals(answer.answered()))
+                .filter(answer -> normalizeBlankToNull(answer.answerText()) != null)
+                .collect(Collectors.toMap(
+                        TranscriptSegmentationResult.SegmentedAnswer::questionId,
+                        answer -> normalizeBlankToNull(answer.answerText())
+                ));
+
+        // The transcript is the record of what was said, so it replaces anything
+        // already stored for a question it covered. A question it did not cover
+        // keeps whatever the candidate typed.
+        session.getQuestions().forEach(question -> {
+            String spoken = answersByQuestionId.get(question.getId());
+            if (spoken == null) {
+                return;
+            }
+
+            AiInterviewAnswer answer = answerRepository.findByQuestion_Id(question.getId())
+                    .orElseGet(() -> {
+                        AiInterviewAnswer newAnswer = new AiInterviewAnswer();
+                        newAnswer.setQuestion(question);
+                        question.getAnswers().add(newAnswer);
+                        return newAnswer;
+                    });
+
+            answer.setAnswerText(spoken);
+            answer.setScore(null);
+            answer.setFeedback(null);
+            answerRepository.save(answer);
+        });
+
+        if (session.getQuestions().size() != QUESTION_COUNT) {
+            log.warn(
+                    "Session={} has {} questions; expected {}",
+                    sessionId, session.getQuestions().size(), QUESTION_COUNT
+            );
+            return null;
+        }
+
+        return session.getQuestions()
+                .stream()
+                .sorted(Comparator.comparing(AiInterviewQuestion::getDisplayOrder))
+                .filter(question -> question.getAnswers()
+                        .stream()
+                        .findFirst()
+                        .map(answer -> normalizeBlankToNull(answer.getAnswerText()))
+                        .isEmpty())
+                .map(AiInterviewQuestion::getDisplayOrder)
+                .toList();
+    }
+
+    private AiInterviewSession requireSession(Long sessionId) {
+        return sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "AI interview session was not found"
+                ));
+    }
+
+    private AiInterviewSession requireSessionWithResult(Long sessionId) {
+        return sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "AI interview session was not found"
+                ));
+    }
+
     private GenerationContext createPreparingSession(Long jobId) {
         JobSeekerProfile jobSeekerProfile = resolveMyJobSeekerProfile();
         JobPost jobPost = jobPostRepository.findByIdAndStatus(jobId, JobStatus.PUBLISHED)
@@ -325,8 +612,17 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     private EvaluationContext prepareEvaluation(Long sessionId) {
-        AiInterviewSession session = resolveMySessionWithQuestions(sessionId);
+        return prepareEvaluation(resolveMySessionWithQuestions(sessionId));
+    }
 
+    /**
+     * Builds the Gemini request for a session that has already been resolved.
+     *
+     * <p>Split from the seeker-facing overload so the Vapi webhook, which has no
+     * authenticated caller to resolve by, scores interviews through exactly the
+     * same rules rather than a parallel copy of them.
+     */
+    private EvaluationContext prepareEvaluation(AiInterviewSession session) {
         if (session.getStatus() == InterviewStatus.COMPLETED) {
             return new EvaluationContext(null, true);
         }
@@ -361,7 +657,13 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             Long sessionId,
             InterviewEvaluationResult evaluation
     ) {
-        AiInterviewSession session = resolveMySessionWithResult(sessionId);
+        return persistEvaluation(resolveMySessionWithResult(sessionId), evaluation);
+    }
+
+    private AiInterviewResultResponse persistEvaluation(
+            AiInterviewSession session,
+            InterviewEvaluationResult evaluation
+    ) {
         if (session.getStatus() == InterviewStatus.COMPLETED) {
             return mapper.toResultResponse(session);
         }
@@ -386,7 +688,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             answer.setFeedback(normalizeBlankToNull(evaluatedAnswer.feedback()));
         });
 
-        AiInterviewFeedback feedback = feedbackRepository.findBySession_Id(sessionId)
+        AiInterviewFeedback feedback = feedbackRepository.findBySession_Id(session.getId())
                 .orElseGet(() -> {
                     AiInterviewFeedback newFeedback = new AiInterviewFeedback();
                     newFeedback.setSession(session);

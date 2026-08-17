@@ -15,6 +15,7 @@ import co.istad.ai_interview_app.features.job.entity.JobCategory;
 import co.istad.ai_interview_app.features.job.entity.Skill;
 import co.istad.ai_interview_app.features.job.repository.JobCategoryRepository;
 import co.istad.ai_interview_app.features.job.repository.SkillRepository;
+import co.istad.ai_interview_app.features.job.mapper.SkillMapper;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,7 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
     private final JobCategoryRepository jobCategoryRepository;
     private final SkillRepository skillRepository;
     private final IndustryRepository industryRepository;
+    private final SkillMapper skillMapper;
 
     // --- Job Category Operations ---
 
@@ -115,10 +117,9 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
     @Override
     @Transactional(readOnly = true)
     public List<SkillResponse> getAllSkills() {
-        return skillRepository.findAllByOrderByNameAsc()
-                .stream()
-                .map(this::toSkillResponse)
-                .toList();
+        // Batched: the response names the recruiter behind each skill they
+        // added, and one query beats one per row.
+        return skillMapper.toResponses(skillRepository.findAllByOrderByNameAsc());
     }
 
     @Override
@@ -231,13 +232,7 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
     }
 
     private SkillResponse toSkillResponse(Skill skill) {
-        return new SkillResponse(
-                skill.getId(),
-                skill.getName(),
-                skill.getSkillType(),
-                skill.getCreatedAt(),
-                skill.getUpdatedAt()
-        );
+        return skillMapper.toResponse(skill);
     }
 
     private IndustryResponse toIndustryResponse(Industry industry) {

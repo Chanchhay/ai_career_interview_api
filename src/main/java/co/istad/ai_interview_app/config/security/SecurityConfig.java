@@ -125,6 +125,19 @@ public class SecurityConfig {
                                 "/api/v1/public/**"
                         ).permitAll()
 
+                        // Vapi's voice-interview webhook. Open to the filter
+                        // chain because the caller is Vapi, which holds no
+                        // Keycloak token and must never be issued one. It is not
+                        // unauthenticated: the handler rejects any request whose
+                        // shared secret does not match before acting on the body,
+                        // and fails closed when no secret is configured. Kept off
+                        // /api/v1/job-seeker/** on purpose so this exception
+                        // cannot widen the seeker rules.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/integrations/vapi/webhook"
+                        ).permitAll()
+
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",

@@ -57,6 +57,14 @@ public class JobPost extends BaseEntity {
 
     private Instant expiredAt;
 
+    /**
+     * App-relative URL of the PDF job description this post was parsed from,
+     * when the recruiter created it by upload. Private: never mapped onto the
+     * public job responses.
+     */
+    @Column(length = 500)
+    private String sourceFileUrl;
+
     @OneToMany(
             mappedBy = "jobPost",
             cascade = CascadeType.ALL,

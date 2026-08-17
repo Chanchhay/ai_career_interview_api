@@ -164,6 +164,7 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
         jobPost.setSalaryMax(request.salaryMax());
         jobPost.setExperienceLevel(normalizeBlankToNull(request.experienceLevel()));
         jobPost.setExpiredAt(request.expiredAt());
+        jobPost.setSourceFileUrl(normalizeBlankToNull(request.sourceFileUrl()));
 
         replaceSections(jobPost, request.sections());
         replaceSkills(jobPost, request.skills());
