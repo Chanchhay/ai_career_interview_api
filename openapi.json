@@ -3423,6 +3423,10 @@
             "type": "string",
             "maxLength": 500,
             "minLength": 0
+          },
+          "portfolioData": {
+            "type": "object",
+            "additionalProperties": {}
           }
         },
         "required": [
@@ -3497,6 +3501,10 @@
           },
           "publicUrl": {
             "type": "string"
+          },
+          "portfolioData": {
+            "type": "object",
+            "additionalProperties": {}
           },
           "visibility": {
             "type": "string",
@@ -4123,6 +4131,10 @@
             "type": "string",
             "maxLength": 500,
             "minLength": 0
+          },
+          "portfolioData": {
+            "type": "object",
+            "additionalProperties": {}
           }
         }
       },
@@ -4391,6 +4403,10 @@
           "publicUrl": {
             "type": "string"
           },
+          "portfolioData": {
+            "type": "object",
+            "additionalProperties": {}
+          },
           "publishedAt": {
             "type": "string",
             "format": "date-time"
@@ -4415,6 +4431,13 @@
           },
           "isDefault": {
             "type": "boolean"
+          },
+          "resumeFileUrl": {
+            "type": "string"
+          },
+          "resumeData": {
+            "type": "object",
+            "additionalProperties": {}
           },
           "publishedAt": {
             "type": "string",

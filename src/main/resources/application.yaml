@@ -53,6 +53,11 @@ spring:
           temperature: 0.2
           model: ${GEMINI_MODEL:gemini-3.5-flash}
 
+vapi:
+  # Shared secret Vapi presents on its webhook. Unset means the webhook rejects
+  # every call, so voice interviews simply fall back to browser-side saving.
+  webhook-secret: ${VAPI_WEBHOOK_SECRET:}
+
 keycloak:
   admin:
     server-url: ${KEYCLOAK_URL}
