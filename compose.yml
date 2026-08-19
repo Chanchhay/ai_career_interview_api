@@ -1,0 +1,100 @@
+name: ai-career
+
+services:
+
+  db:
+    image: postgres:18
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${PGDATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - internal
+
+
+  api:
+    image: ${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/ai-career-api:${API_IMAGE_TAG:-latest}
+
+    restart: unless-stopped
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    env_file:
+      - .env
+
+    environment:
+      SERVER_PORT: 8080
+      PGHOST: db
+      PGPORT: 5432
+
+    networks:
+      - internal
+
+
+  gateway:
+    image: ${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/ai-career-gateway:${GATEWAY_IMAGE_TAG:-latest}
+
+    restart: unless-stopped
+
+    depends_on:
+      - api
+
+    env_file:
+      - .env
+
+    environment:
+      SERVER_PORT: 8090
+
+      BACKEND_URI: http://api:8080
+
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+
+      # Keep this if your application explicitly reads it.
+      SESSION_COOKIE_SECURE: "true"
+
+    networks:
+      - internal
+      - proxy
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+
+      - "traefik.http.routers.ai-career-gw.rule=Host(`YOUR_AI_CAREER_DOMAIN`)"
+      - "traefik.http.routers.ai-career-gw.entrypoints=websecure"
+      - "traefik.http.routers.ai-career-gw.tls=true"
+      - "traefik.http.routers.ai-career-gw.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.ai-career-gw.service=ai-career-gw"
+
+      - "traefik.http.services.ai-career-gw.loadbalancer.server.port=8090"
+
+
+networks:
+
+  internal:
+    driver: bridge
+
+  proxy:
+    external: true
+
+
+volumes:
+  pgdata:
