@@ -41,6 +41,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -122,6 +123,10 @@ class AiInterviewServiceImplTest {
                     assertThat(question.answer()).isNotNull();
                     assertThat(question.answer().score()).isEqualByComparingTo("8.00");
                     assertThat(question.answer().feedback()).isNotBlank();
+                    // The candidate's takeaway from the whole exercise: what a
+                    // strong answer would have sounded like.
+                    assertThat(question.answer().modelAnswer())
+                            .isEqualTo("Model answer for question " + question.displayOrder());
                 });
 
         AiInterviewResultResponse completedAgain = aiInterviewService.completeInterview(started.id());
@@ -198,15 +203,29 @@ class AiInterviewServiceImplTest {
         @Bean
         @Primary
         AiInterviewQuestionGenerator fakeQuestionGenerator() {
-            return (jobTitle, jobDescription, experienceLevel, requiredSkills) -> new GeneratedQuestionSet(List.of(
-                    question(1, InterviewQuestionType.TECHNICAL),
-                    question(2, InterviewQuestionType.TECHNICAL),
-                    question(3, InterviewQuestionType.TECHNICAL),
-                    question(4, InterviewQuestionType.TECHNICAL),
-                    question(5, InterviewQuestionType.BEHAVIORAL),
-                    question(6, InterviewQuestionType.BEHAVIORAL),
-                    question(7, InterviewQuestionType.SITUATIONAL)
-            ));
+            // Answers the configured shape rather than a fixed seven questions,
+            // the way the real generator is asked to: a fake that ignored the
+            // config would pass whatever the service did with it.
+            return (jobTitle, jobDescription, experienceLevel, requiredSkills, config) -> {
+                List<InterviewQuestionType> types = new ArrayList<>();
+                config.typeDistribution().forEach((type, count) -> {
+                    for (int i = 0; i < count; i++) types.add(type);
+                });
+                while (types.size() < config.questionCount()) {
+                    types.add(InterviewQuestionType.GENERAL);
+                }
+
+                List<GeneratedQuestion> questions = new ArrayList<>();
+                for (int order = 1; order <= config.questionCount(); order++) {
+                    questions.add(question(
+                            order,
+                            types.get(order - 1),
+                            config.maxScorePerQuestion()
+                    ));
+                }
+
+                return new GeneratedQuestionSet(questions);
+            };
         }
 
         @Bean
@@ -218,7 +237,8 @@ class AiInterviewServiceImplTest {
                             .map(answer -> new EvaluatedAnswer(
                                     answer.questionId(),
                                     new BigDecimal("8.00"),
-                                    "Good answer for question " + answer.order()
+                                    "Good answer for question " + answer.order(),
+                                    "Model answer for question " + answer.order()
                             ))
                             .toList(),
                     new BigDecimal("8.00"),
@@ -233,13 +253,17 @@ class AiInterviewServiceImplTest {
             );
         }
 
-        private static GeneratedQuestion question(int order, InterviewQuestionType type) {
+        private static GeneratedQuestion question(
+                int order,
+                InterviewQuestionType type,
+                int maxScore
+        ) {
             return new GeneratedQuestion(
                     order,
                     type,
                     "Question " + order,
                     "Rubric " + order,
-                    10
+                    maxScore
             );
         }
     }
