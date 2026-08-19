@@ -115,7 +115,10 @@ pipeline {
 
         stage('Docker Build') {
             when {
-                branch 'master'
+                anyOf {
+                    branch 'chanchhay-dev-two'
+                    branch 'master'
+                }
             }
 
             steps {
@@ -132,7 +135,10 @@ pipeline {
 
         stage('Push Image') {
             when {
-                branch 'master'
+                anyOf {
+                    branch 'chanchhay-dev-two'
+                    branch 'master'
+                }
             }
 
             steps {
@@ -146,7 +152,7 @@ pipeline {
 
         stage('Deploy') {
             when {
-                branch 'master'
+                branch 'chanchhay-dev-two'
             }
 
             steps {
