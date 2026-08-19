@@ -381,7 +381,7 @@ class PrivateApplicationWorkflowIntegrationTest {
         @Bean
         @Primary
         AiInterviewQuestionGenerator fakeApplicationQuestionGenerator() {
-            return (jobTitle, jobDescription, experienceLevel, requiredSkills) -> new GeneratedQuestionSet(List.of(
+            return (jobTitle, jobDescription, experienceLevel, requiredSkills, config) -> new GeneratedQuestionSet(List.of(
                     question(1, InterviewQuestionType.TECHNICAL),
                     question(2, InterviewQuestionType.TECHNICAL),
                     question(3, InterviewQuestionType.TECHNICAL),
@@ -401,7 +401,8 @@ class PrivateApplicationWorkflowIntegrationTest {
                             .map(answer -> new EvaluatedAnswer(
                                     answer.questionId(),
                                     new BigDecimal("8.00"),
-                                    "Good answer for question " + answer.order()
+                                    "Good answer for question " + answer.order(),
+                                    "Model answer for question " + answer.order()
                             ))
                             .toList(),
                     new BigDecimal("8.00"),

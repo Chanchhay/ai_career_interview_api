@@ -8,3 +8,11 @@ out
 *.log
 src/main/java/co/istad/ai_interview_app/docker-compose.yml
 .env
+.env.*
+compose.yml
+Jenkinsfile
+docs
+context
+*
+!Dockerfile.ci
+!app.jar
