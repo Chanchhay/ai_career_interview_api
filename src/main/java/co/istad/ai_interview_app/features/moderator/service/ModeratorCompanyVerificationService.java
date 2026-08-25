@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.moderator.service;
 
+import co.istad.ai_interview_app.features.moderator.dto.CompanyIdentityVisibilityRequest;
 import co.istad.ai_interview_app.features.moderator.dto.DecisionRequest;
 import co.istad.ai_interview_app.features.moderator.dto.ModeratorCompanyDetailResponse;
 import co.istad.ai_interview_app.features.moderator.dto.ModeratorCompanyListItemResponse;
@@ -16,6 +17,12 @@ public interface ModeratorCompanyVerificationService {
     );
 
     ModeratorCompanyDetailResponse getCompany(Long companyId);
+
+    /** Masks or unmasks the company for candidates. */
+    ModeratorCompanyDetailResponse setIdentityVisibility(
+            Long companyId,
+            CompanyIdentityVisibilityRequest request
+    );
 
     CompanyVerificationResponse approve(Long companyId, DecisionRequest request);
 

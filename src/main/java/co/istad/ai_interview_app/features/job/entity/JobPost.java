@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.job.entity;
 import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
+import co.istad.ai_interview_app.shared.enums.interview.ManualQuestionMode;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -52,6 +53,29 @@ public class JobPost extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private JobStatus status = JobStatus.DRAFT;
+
+    /**
+     * What this job's hand-written interview questions do to AI generation.
+     *
+     * <p>Ignored entirely while the job has no written questions, so the default
+     * only starts to matter once somebody writes one — and then it keeps the
+     * interview its usual length rather than shrinking it to what was written.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(
+            nullable = false,
+            length = 50,
+            /*
+             * The database default is spelled out so that adding this column to
+             * a table that already holds rows works. Without it, ddl-auto emits
+             * ADD COLUMN ... NOT NULL with nothing to put in the existing rows,
+             * and the server will not start. Flyway's V21 does the same thing
+             * properly; this is what keeps a boot that ran before V21 — or
+             * without Flyway at all — from failing.
+             */
+            columnDefinition = "varchar(50) default 'MANUAL_PLUS_AI'"
+    )
+    private ManualQuestionMode manualQuestionMode = ManualQuestionMode.MANUAL_PLUS_AI;
 
     private Instant publishedAt;
 

@@ -1,10 +1,11 @@
 package co.istad.ai_interview_app.features.interview.vapi.service;
 
+import co.istad.ai_interview_app.config.ai.AiChatClientFactory;
+import co.istad.ai_interview_app.shared.enums.admin.AiTask;
 import co.istad.ai_interview_app.features.interview.vapi.dto.TranscriptSegmentationRequest;
 import co.istad.ai_interview_app.features.interview.vapi.dto.TranscriptSegmentationResult;
 import co.istad.ai_interview_app.shared.exception.GeminiGenerationException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AiInterviewTranscriptSegmenterImpl implements AiInterviewTranscriptSegmenter {
 
-    private final ChatClient geminiChatClient;
+    private final AiChatClientFactory chatClients;
 
     @Override
     public TranscriptSegmentationResult segment(TranscriptSegmentationRequest request) {
@@ -41,7 +42,7 @@ public class AiInterviewTranscriptSegmenterImpl implements AiInterviewTranscript
                 ))
                 .collect(Collectors.joining("\n"));
 
-        TranscriptSegmentationResult result = geminiChatClient
+        TranscriptSegmentationResult result = chatClients.forTask(AiTask.TRANSCRIPT_SEGMENTATION)
                 .prompt()
                 .system("""
                         You reconstruct a spoken job interview from its transcript.

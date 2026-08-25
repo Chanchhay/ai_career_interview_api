@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.seeker.service;
 
+import co.istad.ai_interview_app.features.company.service.CompanyIdentity;
 import co.istad.ai_interview_app.features.job.entity.JobPost;
 import co.istad.ai_interview_app.features.job.repository.JobPostRepository;
 import co.istad.ai_interview_app.features.seeker.dto.FavoriteJobResponse;
@@ -105,8 +106,8 @@ public class JobSeekerFavoriteJobServiceImpl implements JobSeekerFavoriteJobServ
                 favoriteJob.getCreatedAt(),
                 jobPost.getId(),
                 jobPost.getTitle(),
-                jobPost.getCompany().getId(),
-                jobPost.getCompany().getName(),
+                CompanyIdentity.displayId(jobPost.getCompany()),
+                CompanyIdentity.displayName(jobPost.getCompany()),
                 jobPost.getLocation(),
                 jobPost.getJobType(),
                 jobPost.getWorkMode(),

@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.job.specification;
 import co.istad.ai_interview_app.features.job.entity.JobPost;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.shared.enums.visibility.CompanyIdentityVisibility;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -57,7 +58,19 @@ public class JobPostSpecification {
                 String likePattern = "%" + keyword.toLowerCase() + "%";
                 Predicate titleLike = cb.like(cb.lower(root.get("title")), likePattern);
                 Predicate descLike = cb.like(cb.lower(root.get("description")), likePattern);
-                Predicate companyNameLike = cb.like(cb.lower(company.get("name")), likePattern);
+                /*
+                 * A masked company's name is not searchable. Matching on it
+                 * would hand the name straight back: type "Acme", get Acme's
+                 * confidential postings, and the mask on the listing itself
+                 * stops meaning anything.
+                 */
+                Predicate companyNameLike = cb.and(
+                        cb.equal(
+                                company.get("identityVisibility"),
+                                CompanyIdentityVisibility.VISIBLE
+                        ),
+                        cb.like(cb.lower(company.get("name")), likePattern)
+                );
                 predicates.add(cb.or(titleLike, descLike, companyNameLike));
             }
 

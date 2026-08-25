@@ -1,5 +1,7 @@
 package co.istad.ai_interview_app.features.interview.ai.service;
 
+import co.istad.ai_interview_app.config.ai.AiChatClientFactory;
+import co.istad.ai_interview_app.shared.enums.admin.AiTask;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewGenerationConfig;
 import co.istad.ai_interview_app.features.interview.ai.dto.GeneratedQuestion;
 import co.istad.ai_interview_app.features.interview.ai.dto.GeneratedQuestionSet;
@@ -7,7 +9,6 @@ import co.istad.ai_interview_app.shared.enums.interview.InterviewQuestionType;
 import co.istad.ai_interview_app.shared.exception.GeminiGenerationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -34,7 +35,7 @@ import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 public class AiInterviewQuestionGeneratorImpl
         implements AiInterviewQuestionGenerator {
 
-    private final ChatClient geminiChatClient;
+    private final AiChatClientFactory chatClients;
 
     @Override
     public GeneratedQuestionSet generateQuestions(
@@ -44,7 +45,7 @@ public class AiInterviewQuestionGeneratorImpl
             List<String> requiredSkills,
             AiInterviewGenerationConfig config
     ) {
-        GeneratedQuestionSet result = geminiChatClient
+        GeneratedQuestionSet result = chatClients.forTask(AiTask.QUESTION_GENERATION)
                 .prompt()
                 .system(buildSystemPrompt(config))
                 .user(user -> user

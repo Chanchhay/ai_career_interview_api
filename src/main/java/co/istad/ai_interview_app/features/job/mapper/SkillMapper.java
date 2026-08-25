@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.job.mapper;
 
 import co.istad.ai_interview_app.features.company.entity.Company;
+import co.istad.ai_interview_app.features.company.service.CompanyIdentity;
 import co.istad.ai_interview_app.features.company.repository.CompanyRepository;
 import co.istad.ai_interview_app.features.job.dto.SkillResponse;
 import co.istad.ai_interview_app.features.job.entity.Skill;
@@ -33,7 +34,10 @@ public class SkillMapper {
         String companyName = recruiterProfileId == null
                 ? null
                 : companyRepository.findFirstByRecruiterProfile_Id(recruiterProfileId)
-                        .map(Company::getName)
+                        // Masked here too: /public/skills is open to anyone, and
+                        // "who added this skill" would otherwise name a company
+                        // that every job listing is careful not to.
+                        .map(CompanyIdentity::displayName)
                         .orElse(null);
 
         return toResponse(skill, recruiterProfileId, companyName);
@@ -57,7 +61,7 @@ public class SkillMapper {
             for (Company company : companyRepository.findAllByRecruiterProfile_IdIn(recruiterProfileIds)) {
                 companyNamesByProfileId.putIfAbsent(
                         company.getRecruiterProfile().getId(),
-                        company.getName()
+                        CompanyIdentity.displayName(company)
                 );
             }
         }
