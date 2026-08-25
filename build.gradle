@@ -29,6 +29,12 @@ dependencies {
     //pdf text extraction for job description parsing
     implementation 'org.apache.pdfbox:pdfbox:3.0.5'
 
+    // HTML/CSS to PDF for generated resumes. This is the PDF-BOX 3 build of
+    // openhtmltopdf, which matters: the 'com.openhtmltopdf' coordinates target
+    // PDFBox 2 and would clash with the version above at runtime.
+    implementation 'io.github.openhtmltopdf:openhtmltopdf-core:1.1.22'
+    implementation 'io.github.openhtmltopdf:openhtmltopdf-pdfbox:1.1.22'
+
     //scalar
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-scalar:3.0.3'
@@ -45,6 +51,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // Spring Boot 4 ships each auto-configuration in its own module. Without
+    // spring-boot-flyway there is no FlywayAutoConfiguration, so flyway-core
+    // sits on the classpath doing nothing and every spring.flyway.* property is
+    // silently ignored — which is exactly what happened here: no migration had
+    // ever run, and ddl-auto was quietly maintaining the whole schema.
+    implementation 'org.springframework.boot:spring-boot-flyway'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
 

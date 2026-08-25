@@ -49,10 +49,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -163,18 +165,19 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .param("status", "PENDING")
                         .with(jwtFor("moderator-workflow", "MODERATOR")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.content.length()").value(1))
+                /*
+                 * At least one, not exactly one. These tests share a database
+                 * with no rollback between them, and every submitted
+                 * application now opens a review row — so a global count here
+                 * would assert on whatever else has run first rather than on
+                 * anything this test did.
+                 */
+                .andExpect(jsonPath("$.data.content.length()").value(greaterThanOrEqualTo(1)))
                 .andExpect(content().string(not(containsString("Rubric"))))
                 .andExpect(content().string(not(containsString("test-model"))));
 
         mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/forward", applicationId)
                         .with(jwtFor("moderator-workflow", "MODERATOR")))
-                .andExpect(status().isBadRequest());
-
-        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
-                        .with(jwtFor("moderator-workflow", "MODERATOR"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"decisionNote\":\"ready\"}"))
                 .andExpect(status().isBadRequest());
 
         String scheduleResponse = mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/human-interviews", applicationId)
@@ -190,6 +193,15 @@ class PrivateApplicationWorkflowIntegrationTest {
                 .getContentAsString();
 
         Long interviewId = extractId(scheduleResponse);
+
+        // Booking an interview and then approving before holding it contradicts
+        // the act of booking, so approval is refused for as long as it is
+        // outstanding. Completing or cancelling settles it.
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-workflow", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"ready\"}"))
+                .andExpect(status().isBadRequest());
 
         mockMvc.perform(post("/api/v1/moderator/human-interviews/{interviewId}/complete", interviewId)
                         .with(jwtFor("moderator-workflow", "MODERATOR"))
@@ -222,6 +234,351 @@ class PrivateApplicationWorkflowIntegrationTest {
                 .andExpect(content().string(not(containsString("internal moderator note"))))
                 .andExpect(content().string(not(containsString("Rubric"))))
                 .andExpect(content().string(not(containsString("test-model"))));
+    }
+
+    /**
+     * The ordinary path: the candidate passed the AI interview and nobody asked
+     * them to a human one.
+     *
+     * <p>This used to be impossible. Approval demanded a completed human
+     * interview unconditionally, and nothing schedules one automatically, so a
+     * moderator who wanted to approve on the AI result alone had no way to do
+     * it — the only escape was to book an interview purely to close it again.
+     */
+    @Test
+    void approvesOnTheAiInterviewAloneWhenNoHumanInterviewWasScheduled() throws Exception {
+        Fixture fixture = createFixture("ai-only", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-ai-only");
+
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isOk());
+
+        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        completeApplicationAiInterview(fixture.seekerKeycloakId, applicationId);
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-ai-only", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"AI result is enough\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviewStatus").value("APPROVED"));
+    }
+
+    /** A cancelled interview is settled, so it must stop blocking the decision. */
+    @Test
+    void approvesAfterAScheduledHumanInterviewIsCancelled() throws Exception {
+        Fixture fixture = createFixture("cancelled-hi", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-cancelled-hi");
+
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isOk());
+
+        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        completeApplicationAiInterview(fixture.seekerKeycloakId, applicationId);
+
+        String scheduled = mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/human-interviews", applicationId)
+                        .with(jwtFor("moderator-cancelled-hi", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"scheduledAt":"%s","meetingUrl":"https://meet.example/cancelled"}
+                                """.formatted(Instant.now().plus(1, ChronoUnit.DAYS))))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-cancelled-hi", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"too early\"}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/moderator/human-interviews/{interviewId}/cancel", extractId(scheduled))
+                        .with(jwtFor("moderator-cancelled-hi", "MODERATOR")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-cancelled-hi", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"went ahead without it\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviewStatus").value("APPROVED"));
+    }
+
+    /**
+     * A candidate the AI marked FAILED cannot be approved.
+     *
+     * <p>Approval used to check only that a session had finished, so a failing
+     * score was recorded and then ignored by the one decision it should have
+     * informed.
+     *
+     * <p>NEEDS_REVIEW is deliberately not covered here as a blocker: it means
+     * the machine could not decide, which is precisely when a moderator should
+     * be able to.
+     */
+    @Test
+    void refusesApprovalWhenTheAiInterviewFailed() throws Exception {
+        Fixture fixture = createFixture("ai-failed", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-ai-failed");
+
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isOk());
+
+        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        completeApplicationAiInterview(fixture.seekerKeycloakId, applicationId);
+
+        // The stubbed evaluator does not fail anyone, so the verdict is forced
+        // here rather than coaxed out of it.
+        transactionTemplate.executeWithoutResult(status -> entityManager
+                .createQuery("""
+                        update AiInterviewSession session
+                        set session.result = :result
+                        where session.application.id = :applicationId
+                        """)
+                .setParameter("result", InterviewResult.FAILED)
+                .setParameter("applicationId", applicationId)
+                .executeUpdate());
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-ai-failed", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"overriding the machine\"}"))
+                .andExpect(status().isBadRequest());
+
+        // Rejecting stays available: a failed candidate still needs closing out.
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/reject", applicationId)
+                        .with(jwtFor("moderator-ai-failed", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"did not pass\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviewStatus").value("REJECTED"));
+    }
+
+    /**
+     * The candidate sat the interview from the job page rather than from their
+     * application, which is what the public "Start AI interview" button does.
+     *
+     * <p>That session used to be created with a null application, so it was
+     * invisible to the approval check and the moderator was told no AI
+     * interview existed — for a candidate who had just completed one.
+     */
+    @Test
+    void approvesWhenTheAiInterviewWasStartedFromTheJobRatherThanTheApplication() throws Exception {
+        Fixture fixture = createFixture("job-started-ai", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-job-started");
+
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isOk());
+
+        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+
+        // The job route, not the application route.
+        setSecurity(fixture.seekerKeycloakId, "SEEKER");
+        AiInterviewSessionResponse session = aiInterviewService.createInterviewForJob(fixture.jobId);
+        AiInterviewSessionResponse started = aiInterviewService.startInterview(session.id());
+        for (var question : started.questions()) {
+            aiInterviewService.submitAnswer(
+                    session.id(),
+                    question.id(),
+                    new AiInterviewAnswerRequest("Answer " + question.displayOrder())
+            );
+        }
+        aiInterviewService.completeInterview(session.id());
+        SecurityContextHolder.clearContext();
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-job-started", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"interview counted\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviewStatus").value("APPROVED"));
+    }
+
+    /**
+     * A rejected candidate can apply to the same job again, and the rejection
+     * stays on record.
+     *
+     * <p>Applying used to be permanently one-shot per job: a plain unique
+     * constraint on (job, candidate) meant a rejection closed the door for
+     * good, even after the recruiter reposted the role. The rule is now one
+     * *live* application at a time.
+     */
+    @Test
+    void allowsReapplyingAfterRejectionWhileKeepingTheClosedAttempt() throws Exception {
+        Fixture fixture = createFixture("reapply", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-reapply");
+
+        applyTo(fixture);
+
+        Long firstApplicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+
+        // A second attempt while the first is still open is still refused.
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/reject", firstApplicationId)
+                        .with(jwtFor("moderator-reapply", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"not this time\"}"))
+                .andExpect(status().isOk());
+
+        applyTo(fixture);
+
+        // Two rows now: the rejection is kept rather than overwritten.
+        transactionTemplate.executeWithoutResult(status -> {
+            Long total = entityManager.createQuery("""
+                            select count(application)
+                            from JobApplication application
+                            where application.jobPost.id = :jobId
+                              and application.jobSeekerProfile.id = :profileId
+                            """, Long.class)
+                    .setParameter("jobId", fixture.jobId)
+                    .setParameter("profileId", fixture.seekerProfileId)
+                    .getSingleResult();
+
+            assertThat(total).isEqualTo(2);
+            assertThat(entityManager.find(JobApplication.class, firstApplicationId).getStatus())
+                    .isEqualTo(ApplicationStatus.REJECTED);
+        });
+    }
+
+    /** Withdrawing frees the slot the same way a rejection does. */
+    @Test
+    void allowsReapplyingAfterWithdrawing() throws Exception {
+        Fixture fixture = createFixture("reapply-withdraw", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+
+        applyTo(fixture);
+        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+
+        mockMvc.perform(post("/api/v1/job-seeker/applications/{applicationId}/withdraw", applicationId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER")))
+                .andExpect(status().isOk());
+
+        applyTo(fixture);
+    }
+
+    /** Submits an application for the fixture's seeker and expects it to succeed. */
+    /**
+     * The re-apply cooldown, and that an administrator controls it.
+     *
+     * <p>Restores the setting in a finally block: it is a single global row, and
+     * these tests share one database with no rollback, so leaving it raised
+     * would silently fail whichever re-apply test happens to run next.
+     */
+    @Test
+    void enforcesTheAdminConfiguredReapplyCooldown() throws Exception {
+        Fixture fixture = createFixture("cooldown", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-cooldown");
+
+        try {
+            setReapplyCooldownDays(7);
+
+            applyTo(fixture);
+            Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+
+            mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/reject", applicationId)
+                            .with(jwtFor("moderator-cooldown", "MODERATOR"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"decisionNote\":\"not now\"}"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                            .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"resumeId":%d}
+                                    """.formatted(fixture.privateResumeId)))
+                    .andExpect(status().isConflict());
+
+            // Move the rejection back beyond the window rather than waiting.
+            transactionTemplate.executeWithoutResult(status -> entityManager
+                    .createQuery("""
+                            update JobApplication application
+                            set application.closedAt = :closedAt
+                            where application.id = :applicationId
+                            """)
+                    .setParameter("closedAt", Instant.now().minus(8, ChronoUnit.DAYS))
+                    .setParameter("applicationId", applicationId)
+                    .executeUpdate());
+
+            applyTo(fixture);
+        } finally {
+            setReapplyCooldownDays(0);
+        }
+    }
+
+    /**
+     * Withdrawing is the candidate's own decision, so it is not held back —
+     * only a rejection starts the clock.
+     */
+    @Test
+    void doesNotApplyTheCooldownToAWithdrawnApplication() throws Exception {
+        Fixture fixture = createFixture("cooldown-withdraw", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+
+        try {
+            setReapplyCooldownDays(30);
+
+            applyTo(fixture);
+            Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+
+            mockMvc.perform(post("/api/v1/job-seeker/applications/{applicationId}/withdraw", applicationId)
+                            .with(jwtFor(fixture.seekerKeycloakId, "SEEKER")))
+                    .andExpect(status().isOk());
+
+            applyTo(fixture);
+        } finally {
+            setReapplyCooldownDays(0);
+        }
+    }
+
+    /**
+     * No local moderator row is created here on purpose. The settings endpoint
+     * only records who changed it when the account happens to exist, so a JWT
+     * is enough — and creating one per call would collide with itself the
+     * second time this helper runs.
+     */
+    private void setReapplyCooldownDays(int days) throws Exception {
+        mockMvc.perform(put("/api/v1/admin/application-settings")
+                        .with(jwtFor("admin-cooldown-setter", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reapplyCooldownDays\":%d}".formatted(days)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reapplyCooldownDays").value(days));
+    }
+
+    private void applyTo(Fixture fixture) throws Exception {
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isOk());
     }
 
     private void completeApplicationAiInterview(String seekerKeycloakId, Long applicationId) {
@@ -323,6 +680,13 @@ class PrivateApplicationWorkflowIntegrationTest {
         });
     }
 
+    /**
+     * The candidate's current application for a job.
+     *
+     * <p>Newest first rather than a single result: a candidate may now hold
+     * several attempts at one job once earlier ones are closed, and callers
+     * always mean the one they just created.
+     */
     private Long findApplicationId(Long jobId, Long seekerProfileId) {
         return transactionTemplate.execute(status -> entityManager
                 .createQuery("""
@@ -330,9 +694,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         from JobApplication a
                         where a.jobPost.id = :jobId
                           and a.jobSeekerProfile.id = :seekerProfileId
+                        order by a.id desc
                         """, Long.class)
                 .setParameter("jobId", jobId)
                 .setParameter("seekerProfileId", seekerProfileId)
+                .setMaxResults(1)
                 .getSingleResult());
     }
 
