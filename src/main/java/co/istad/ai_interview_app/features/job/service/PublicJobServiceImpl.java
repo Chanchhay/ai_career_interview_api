@@ -16,6 +16,8 @@ import co.istad.ai_interview_app.features.job.entity.Skill;
 import co.istad.ai_interview_app.features.job.repository.JobCategoryRepository;
 import co.istad.ai_interview_app.features.job.repository.JobPostRepository;
 import co.istad.ai_interview_app.features.job.repository.SkillRepository;
+import co.istad.ai_interview_app.features.seeker.repository.FavoriteJobRepository;
+import co.istad.ai_interview_app.config.security.AuthUtils;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
@@ -32,6 +34,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
 
@@ -43,6 +47,7 @@ public class PublicJobServiceImpl implements PublicJobService {
     private final JobCategoryRepository jobCategoryRepository;
     private final SkillRepository skillRepository;
     private final IndustryRepository industryRepository;
+    private final FavoriteJobRepository favoriteJobRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -70,8 +75,10 @@ public class PublicJobServiceImpl implements PublicJobService {
                 normalizeBlankToNull(jobType)
         );
 
-        return jobPostRepository.findAll(spec, pageable)
-                .map(this::toPublicResponse);
+        Page<JobPost> page = jobPostRepository.findAll(spec, pageable);
+        Set<Long> savedJobIds = resolveSavedJobIds(page.map(JobPost::getId).getContent());
+
+        return page.map(jobPost -> toPublicResponse(jobPost, savedJobIds));
     }
 
     @Override
@@ -84,7 +91,7 @@ public class PublicJobServiceImpl implements PublicJobService {
                         ProfileStatus.ACTIVE,
                         Instant.now()
                 )
-                .map(this::toPublicResponse)
+                .map(jobPost -> toPublicResponse(jobPost, resolveSavedJobIds(List.of(jobPost.getId()))))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Public job was not found"));
     }
 
@@ -115,7 +122,31 @@ public class PublicJobServiceImpl implements PublicJobService {
                 .toList();
     }
 
-    private PublicJobResponse toPublicResponse(JobPost jobPost) {
+    /**
+     * Which of {@code jobPostIds} the caller has bookmarked, as one query for
+     * the whole page rather than one per row.
+     *
+     * <p>Returns {@code null} — not an empty set — when nobody is signed in, so
+     * {@link #toPublicResponse} can tell "not saved" apart from "no answer to
+     * give". These endpoints are {@code permitAll}, so a token is optional
+     * here; a recruiter or admin holds one but owns no favorites and matches
+     * nothing.
+     */
+    private Set<Long> resolveSavedJobIds(List<Long> jobPostIds) {
+        Optional<String> keycloakUserId = AuthUtils.extractUserIdIfAuthenticated();
+
+        if (keycloakUserId.isEmpty()) {
+            return null;
+        }
+
+        if (jobPostIds.isEmpty()) {
+            return Set.of();
+        }
+
+        return Set.copyOf(favoriteJobRepository.findSavedJobPostIds(keycloakUserId.get(), jobPostIds));
+    }
+
+    private PublicJobResponse toPublicResponse(JobPost jobPost, Set<Long> savedJobIds) {
         return new PublicJobResponse(
                 jobPost.getId(),
                 jobPost.getCompany().getId(),
@@ -133,7 +164,8 @@ public class PublicJobServiceImpl implements PublicJobService {
                 jobPost.getPublishedAt(),
                 jobPost.getExpiredAt(),
                 toSectionResponses(jobPost.getSections()),
-                toSkillResponses(jobPost.getSkills())
+                toSkillResponses(jobPost.getSkills()),
+                savedJobIds == null ? null : savedJobIds.contains(jobPost.getId())
         );
     }
 

@@ -5,6 +5,8 @@ import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.features.application.entity.JobApplication;
 import co.istad.ai_interview_app.features.seeker.entity.JobSeekerProfile;
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
+import co.istad.ai_interview_app.features.identity.entity.UserAccount;
+import co.istad.ai_interview_app.shared.enums.finance.HiringRecordStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -53,4 +55,27 @@ public class HiringRecord extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String note;
+
+    /**
+     * Review state. A record exists from the moment the recruiter reports the
+     * hire, so the claim is on file even if it is later rejected — but only
+     * CONFIRMED produces a commission.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private HiringRecordStatus status = HiringRecordStatus.REPORTED;
+
+    @ManyToOne
+    @JoinColumn(name = "reported_by_user_account_id")
+    private UserAccount reportedByUserAccount;
+
+    @ManyToOne
+    @JoinColumn(name = "reviewed_by_user_account_id")
+    private UserAccount reviewedByUserAccount;
+
+    private Instant reviewedAt;
+
+    /** Why a report was rejected, or any note the moderator left on confirming. */
+    @Column(columnDefinition = "TEXT")
+    private String reviewNote;
 }

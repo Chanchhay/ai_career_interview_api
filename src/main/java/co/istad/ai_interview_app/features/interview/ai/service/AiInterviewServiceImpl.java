@@ -39,6 +39,8 @@ import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.interview.InterviewStatus;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,6 +83,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     private final AiInterviewMapper mapper;
     private final AiInterviewTranscriptSegmenter transcriptSegmenter;
     private final TransactionTemplate transactionTemplate;
+    private final ApplicationEventPublisher events;
 
     @Value("${spring.ai.google.genai.chat.model:gemini}")
     private String aiModel;
@@ -733,6 +736,13 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                         return reviewRepository.save(review);
                     });
         }
+
+        /*
+         * Published here rather than at either call site: this is the one place
+         * a session becomes COMPLETED with a score, and it is reached from the
+         * manual completion path and both Vapi transcript paths alike.
+         */
+        events.publishEvent(new NotificationEvents.AiInterviewCompleted(session.getId()));
 
         return mapper.toResultResponse(session);
     }

@@ -14,6 +14,11 @@ import co.istad.ai_interview_app.features.seeker.repository.ResumeRepository;
 import co.istad.ai_interview_app.features.seeker.service.AuthenticatedJobSeekerProfileResolver;
 import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
+import co.istad.ai_interview_app.features.moderator.entity.CandidateApplicationReview;
+import co.istad.ai_interview_app.features.moderator.repository.CandidateApplicationReviewRepository;
+import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -35,6 +40,8 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
     private final ResumeRepository resumeRepository;
     private final JobApplicationRepository applicationRepository;
     private final JobApplicationMapper applicationMapper;
+    private final CandidateApplicationReviewRepository reviewRepository;
+    private final ApplicationEventPublisher events;
 
     @Override
     @Transactional
@@ -57,7 +64,23 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
         application.setAppliedAt(Instant.now());
 
         try {
-            return applicationMapper.toResponse(applicationRepository.saveAndFlush(application));
+            JobApplication saved = applicationRepository.saveAndFlush(application);
+
+            /*
+             * The moderator queue is built from review rows, not from
+             * applications. Creating one here is what puts a new application in
+             * front of a moderator at all — before this, a row only appeared
+             * once the candidate had finished and scored an AI interview, so
+             * anyone who simply applied was invisible.
+             *
+             * In the same transaction as the application on purpose: an
+             * application without its review row is one nobody will ever see.
+             */
+            createPendingReview(saved);
+
+            events.publishEvent(new NotificationEvents.JobApplicationSubmitted(saved.getId()));
+
+            return applicationMapper.toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already applied to this job");
         }
@@ -91,6 +114,22 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
 
         application.setStatus(ApplicationStatus.WITHDRAWN);
         return applicationMapper.toResponse(application);
+    }
+
+    /**
+     * Opens the moderator review for a freshly submitted application.
+     *
+     * <p>Idempotent by lookup rather than by constraint: the AI interview code
+     * creates the same row if it finds none, and that path still runs for
+     * practice interviews that were never tied to an application.
+     */
+    private void createPendingReview(JobApplication application) {
+        if (reviewRepository.findByApplication_Id(application.getId()).isPresent()) return;
+
+        CandidateApplicationReview review = new CandidateApplicationReview();
+        review.setApplication(application);
+        review.setReviewStatus(CandidateApplicationReviewStatus.PENDING);
+        reviewRepository.save(review);
     }
 
     private JobApplication resolveMyApplication(Long applicationId) {

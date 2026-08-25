@@ -23,6 +23,8 @@ import co.istad.ai_interview_app.features.project.repository.ProjectAssignmentRe
 import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.interview.InterviewStatus;
 import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +49,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
     private final AuthenticatedModeratorProfileResolver moderatorProfileResolver;
     private final CandidateApplicationMapper mapper;
     private final AiInterviewMapper aiInterviewMapper;
+    private final ApplicationEventPublisher events;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,6 +112,10 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
         review.setReviewStatus(CandidateApplicationReviewStatus.HUMAN_INTERVIEW_SCHEDULED);
         application.setStatus(ApplicationStatus.HUMAN_INTERVIEW_SCHEDULED);
 
+        // Only the interview event: it names the date and the meeting, which is
+        // strictly more than a bare status change would tell the candidate.
+        events.publishEvent(new NotificationEvents.HumanInterviewScheduled(interview.getId()));
+
         return mapper.toHumanInterviewResponse(interview);
     }
 
@@ -120,8 +127,13 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Completed or cancelled interviews cannot be rescheduled");
         }
 
+        Instant previousScheduledAt = interview.getScheduledAt();
         interview.setScheduledAt(request.scheduledAt());
         interview.setMeetingUrl(normalizeBlankToNull(request.meetingUrl()));
+
+        events.publishEvent(new NotificationEvents.HumanInterviewRescheduled(
+                interview.getId(), previousScheduledAt));
+
         return mapper.toHumanInterviewResponse(interview);
     }
 
@@ -160,6 +172,11 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
         interview.setStatus(InterviewStatus.CANCELLED);
         interview.setCancelledAt(Instant.now());
+
+        // Below the early return above, so cancelling an already-cancelled
+        // interview stays silent rather than telling the candidate twice.
+        events.publishEvent(new NotificationEvents.HumanInterviewCancelled(interview.getId()));
+
         return mapper.toHumanInterviewResponse(interview);
     }
 
@@ -188,7 +205,11 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
         review.setDecisionNote(normalizeBlankToNull(request.decisionNote()));
         review.setReviewedAt(Instant.now());
         review.setApprovedAt(Instant.now());
+        ApplicationStatus previousStatus = application.getStatus();
         application.setStatus(ApplicationStatus.SHORTLISTED);
+
+        events.publishEvent(new NotificationEvents.JobApplicationStatusChanged(
+                application.getId(), previousStatus, ApplicationStatus.SHORTLISTED));
 
         return mapper.toReviewResponse(review);
     }
@@ -207,7 +228,11 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
         review.setReviewStatus(CandidateApplicationReviewStatus.REJECTED);
         review.setDecisionNote(normalizeBlankToNull(request.decisionNote()));
         review.setReviewedAt(Instant.now());
+        ApplicationStatus previousStatus = application.getStatus();
         application.setStatus(ApplicationStatus.REJECTED);
+
+        events.publishEvent(new NotificationEvents.JobApplicationStatusChanged(
+                application.getId(), previousStatus, ApplicationStatus.REJECTED));
 
         return mapper.toReviewResponse(review);
     }
@@ -229,6 +254,8 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
         review.setReviewStatus(CandidateApplicationReviewStatus.FORWARDED);
         review.setForwardedAt(Instant.now());
+
+        events.publishEvent(new NotificationEvents.CandidateForwarded(review.getApplication().getId()));
 
         return mapper.toReviewResponse(review);
     }
