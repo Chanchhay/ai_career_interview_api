@@ -27,6 +27,7 @@ import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewS
 import org.springframework.context.ApplicationEventPublisher;
 import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -35,12 +36,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.List;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandidateApplicationService {
@@ -200,11 +203,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
         if (review.getReviewStatus() == CandidateApplicationReviewStatus.REJECTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejected applications cannot be approved");
         }
-        AiInterviewSession aiInterview = latestCompletedAiInterview(applicationId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Approval requires a completed AI interview"
-                ));
+        AiInterviewSession aiInterview = requireCompletedAiInterview(application);
 
         /*
          * A failed AI interview blocks approval outright.
@@ -339,6 +338,68 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
     private Optional<AiInterviewSession> latestCompletedAiInterview(Long applicationId) {
         return aiInterviewSessionRepository
                 .findFirstByApplication_IdAndStatusOrderByEndedAtDesc(applicationId, InterviewStatus.COMPLETED);
+    }
+
+    /**
+     * The completed AI interview approval is gated on, or a refusal that says
+     * which of several very different situations the reviewer is actually in.
+     *
+     * <p>One message for all of them — "Approval requires a completed AI
+     * interview" — is what made this expensive to diagnose: a candidate who
+     * never started, one who is halfway through, and one whose finished
+     * interview simply was not attached to their application all read the same,
+     * and only the last is a defect.
+     *
+     * <p>That last case is repaired rather than reported. A finished interview
+     * for this job by this candidate already counts towards this application —
+     * that is the rule {@code adoptPracticeInterviews} applies when they apply.
+     * Refusing here only because the interview happened at an awkward moment
+     * would contradict it.
+     */
+    private AiInterviewSession requireCompletedAiInterview(JobApplication application) {
+        Optional<AiInterviewSession> attached = latestCompletedAiInterview(application.getId());
+        if (attached.isPresent()) return attached.get();
+
+        Optional<AiInterviewSession> orphan = aiInterviewSessionRepository
+                .findAllByJobPost_IdAndJobSeeker_IdAndApplicationIsNull(
+                        application.getJobPost().getId(),
+                        application.getJobSeekerProfile().getUserAccount().getId()
+                )
+                .stream()
+                .filter(session -> session.getStatus() == InterviewStatus.COMPLETED)
+                .max(Comparator.comparing(
+                        AiInterviewSession::getEndedAt,
+                        Comparator.nullsFirst(Comparator.naturalOrder())
+                ));
+
+        if (orphan.isPresent()) {
+            AiInterviewSession session = orphan.get();
+            log.info(
+                    "Attaching AI interview session {} to application {} during approval — "
+                            + "it was completed for this job but never linked",
+                    session.getId(),
+                    application.getId()
+            );
+            session.setApplication(application);
+
+            return session;
+        }
+
+        List<AiInterviewSession> unfinished = aiInterviewSessionRepository
+                .findAllByApplication_Id(application.getId());
+
+        if (!unfinished.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "This candidate's AI interview has not finished yet, so there is "
+                            + "no result to approve on."
+            );
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "This candidate has not taken the AI interview for this job yet."
+        );
     }
 
     private void validateApplicationOpenForModeratorAction(JobApplication application) {
