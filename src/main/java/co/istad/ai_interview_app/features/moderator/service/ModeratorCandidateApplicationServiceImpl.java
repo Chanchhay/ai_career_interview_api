@@ -21,6 +21,7 @@ import co.istad.ai_interview_app.features.moderator.mapper.CandidateApplicationM
 import co.istad.ai_interview_app.features.moderator.repository.CandidateApplicationReviewRepository;
 import co.istad.ai_interview_app.features.project.repository.ProjectAssignmentRepository;
 import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
+import co.istad.ai_interview_app.shared.enums.interview.InterviewResult;
 import co.istad.ai_interview_app.shared.enums.interview.InterviewStatus;
 import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.Optional;
+import java.util.Set;
 import java.util.List;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
@@ -50,6 +53,10 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
     private final CandidateApplicationMapper mapper;
     private final AiInterviewMapper aiInterviewMapper;
     private final ApplicationEventPublisher events;
+
+    /** Human-interview states that mean "booked, not yet held". */
+    private static final Set<InterviewStatus> OUTSTANDING_INTERVIEWS =
+            Set.of(InterviewStatus.PENDING, InterviewStatus.IN_PROGRESS);
 
     @Override
     @Transactional(readOnly = true)
@@ -193,11 +200,46 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
         if (review.getReviewStatus() == CandidateApplicationReviewStatus.REJECTED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejected applications cannot be approved");
         }
-        if (!hasCompletedAiInterview(applicationId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Approval requires a completed AI interview");
+        AiInterviewSession aiInterview = latestCompletedAiInterview(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Approval requires a completed AI interview"
+                ));
+
+        /*
+         * A failed AI interview blocks approval outright.
+         *
+         * <p>NEEDS_REVIEW deliberately does not. That result exists to say the
+         * machine could not decide and a person should — refusing it would
+         * strand exactly the candidates moderator review is for. Only an
+         * explicit FAILED is treated as a decision.
+         *
+         * <p>A completed session with no result at all is an anomaly rather
+         * than a verdict, so it is not read as a failure either.
+         */
+        if (aiInterview.getResult() == InterviewResult.FAILED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "This candidate did not pass the AI interview and cannot be approved"
+            );
         }
-        if (!humanInterviewRepository.existsByApplication_IdAndStatus(applicationId, InterviewStatus.COMPLETED)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Approval requires a completed human interview");
+        /*
+         * A human interview gates approval only once one has been booked.
+         *
+         * <p>Requiring one unconditionally made approval impossible for the
+         * ordinary case — a candidate who passed the AI interview and was never
+         * asked to a human one had no path forward at all, because nothing
+         * schedules an interview automatically.
+         *
+         * <p>What is still refused is deciding while an interview the moderator
+         * booked has not happened: approving in that window contradicts the act
+         * of booking it. Completed and cancelled are both settled.
+         */
+        if (humanInterviewRepository.existsByApplication_IdAndStatusIn(applicationId, OUTSTANDING_INTERVIEWS)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Complete or cancel the scheduled human interview before approving"
+            );
         }
 
         review.setModerator(moderator);
@@ -230,6 +272,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
         review.setReviewedAt(Instant.now());
         ApplicationStatus previousStatus = application.getStatus();
         application.setStatus(ApplicationStatus.REJECTED);
+        application.setClosedAt(Instant.now());
 
         events.publishEvent(new NotificationEvents.JobApplicationStatusChanged(
                 application.getId(), previousStatus, ApplicationStatus.REJECTED));
@@ -286,10 +329,16 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
                 ));
     }
 
-    private boolean hasCompletedAiInterview(Long applicationId) {
+    /**
+     * The candidate's most recent completed AI interview.
+     *
+     * <p>Most recent rather than any: a candidate who sat the interview twice
+     * should be judged on the attempt that stands, not on whichever row the
+     * database returned first.
+     */
+    private Optional<AiInterviewSession> latestCompletedAiInterview(Long applicationId) {
         return aiInterviewSessionRepository
-                .findFirstByApplication_IdAndStatusOrderByEndedAtDesc(applicationId, InterviewStatus.COMPLETED)
-                .isPresent();
+                .findFirstByApplication_IdAndStatusOrderByEndedAtDesc(applicationId, InterviewStatus.COMPLETED);
     }
 
     private void validateApplicationOpenForModeratorAction(JobApplication application) {

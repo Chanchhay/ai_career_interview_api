@@ -1,6 +1,6 @@
 package co.istad.ai_interview_app.features.recruiter.talent.service;
 
-import co.istad.ai_interview_app.features.recruiter.talent.dto.PublicResumeDownloadResponse;
+import co.istad.ai_interview_app.features.file.dto.DownloadedFile;
 import co.istad.ai_interview_app.features.recruiter.talent.dto.PublicTalentDetailResponse;
 import co.istad.ai_interview_app.features.recruiter.talent.dto.PublicTalentListItemResponse;
 import org.springframework.data.domain.Page;
@@ -17,5 +17,5 @@ public interface RecruiterTalentService {
 
     PublicTalentDetailResponse getPublicTalent(String publicProfileSlug);
 
-    PublicResumeDownloadResponse getPublicResumeDownload(String publicProfileSlug, Long resumeId);
+    DownloadedFile getPublicResumeDownload(String publicProfileSlug, Long resumeId);
 }

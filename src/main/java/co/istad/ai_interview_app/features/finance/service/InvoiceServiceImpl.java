@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.finance.service;
 import co.istad.ai_interview_app.config.security.AuthUtils;
 import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.features.company.repository.CompanyRepository;
+import co.istad.ai_interview_app.features.finance.dto.BillableCompanyResponse;
 import co.istad.ai_interview_app.features.finance.dto.CommissionRecordResponse;
 import co.istad.ai_interview_app.features.finance.dto.CreateInvoiceRequest;
 import co.istad.ai_interview_app.features.finance.dto.InvoiceResponse;
@@ -17,6 +18,8 @@ import co.istad.ai_interview_app.features.finance.repository.FinanceProfileRepos
 import co.istad.ai_interview_app.features.finance.repository.InvoiceItemRepository;
 import co.istad.ai_interview_app.features.finance.repository.InvoicePaymentRepository;
 import co.istad.ai_interview_app.features.finance.repository.InvoiceRepository;
+import co.istad.ai_interview_app.features.identity.entity.UserAccount;
+import co.istad.ai_interview_app.features.identity.repository.IdentityUserAccountRepository;
 import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import co.istad.ai_interview_app.shared.enums.finance.InvoiceStatus;
 import co.istad.ai_interview_app.shared.enums.finance.PaymentStatus;
@@ -57,6 +60,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final CommissionRecordRepository commissionRecordRepository;
     private final CompanyRepository companyRepository;
     private final FinanceProfileRepository financeProfileRepository;
+    private final IdentityUserAccountRepository userAccountRepository;
     private final FinanceSettingsService financeSettingsService;
     private final FinanceResponseMapper mapper;
     private final ApplicationEventPublisher events;
@@ -89,6 +93,12 @@ public class InvoiceServiceImpl implements InvoiceService {
         return commissionRecordRepository.findUnbilledByCompany(companyId).stream()
                 .map(mapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BillableCompanyResponse> findBillableCompanies() {
+        return commissionRecordRepository.findBillableCompanies();
     }
 
     /* --------------------------------------------------------- invoices --- */
@@ -388,13 +398,35 @@ public class InvoiceServiceImpl implements InvoiceService {
                 ));
     }
 
+    /**
+     * The finance profile an invoice is attributed to, created if the caller
+     * has none.
+     *
+     * <p>Same reasoning as the moderator resolver: SecurityConfig has already
+     * decided this caller may run the finance desk, so a missing profile row is
+     * a provisioning gap rather than a permission answer. Without this, an
+     * administrator — who holds an AdminProfile and reaches these endpoints
+     * through the role hierarchy — could read every finance screen and then get
+     * a bare 404 on the one action that matters.
+     */
     private FinanceProfile currentFinanceProfile() {
+        String keycloakUserId = AuthUtils.extractUserId();
+
         return financeProfileRepository
-                .findByUserAccount_KeycloakUserId(AuthUtils.extractUserId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "No finance profile was found for authenticated user"
-                ));
+                .findByUserAccount_KeycloakUserId(keycloakUserId)
+                .orElseGet(() -> {
+                    UserAccount account = userAccountRepository
+                            .findByKeycloakUserId(keycloakUserId)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND,
+                                    "User account was not found for authenticated user"
+                            ));
+
+                    FinanceProfile profile = new FinanceProfile();
+                    profile.setUserAccount(account);
+
+                    return financeProfileRepository.save(profile);
+                });
     }
 
     /** Unique and obviously temporary, replaced as soon as the row has an id. */

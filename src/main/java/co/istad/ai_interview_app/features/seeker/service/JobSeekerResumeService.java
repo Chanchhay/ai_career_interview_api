@@ -4,6 +4,9 @@ import co.istad.ai_interview_app.features.seeker.dto.ResumeCreateRequest;
 import co.istad.ai_interview_app.features.seeker.dto.ResumeResponse;
 import co.istad.ai_interview_app.features.seeker.dto.ResumeUpdateRequest;
 
+import co.istad.ai_interview_app.features.file.dto.DownloadedFile;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 public interface JobSeekerResumeService {
@@ -19,4 +22,13 @@ public interface JobSeekerResumeService {
     void delete(Long resumeId);
 
     ResumeResponse setDefault(Long resumeId);
+
+    /** Renders the resume's structured data to a PDF and stores it. */
+    ResumeResponse generate(Long resumeId);
+
+    /** Creates a resume from a PDF or DOCX the job seeker supplies. */
+    ResumeResponse uploadOwnResume(String title, MultipartFile file);
+
+    /** The stored file's bytes plus a filename, for the download endpoint. */
+    DownloadedFile download(Long resumeId);
 }

@@ -5,8 +5,12 @@ import co.istad.ai_interview_app.shared.enums.finance.InvoiceStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -24,4 +28,22 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
      * bill by guessing.
      */
     Optional<Invoice> findByIdAndCompany_Id(Long id, Long companyId);
+
+    /**
+     * Issued or part-paid invoices whose due date has passed.
+     *
+     * <p>Both statuses count: a company that paid half and then stopped is as
+     * overdue as one that paid nothing.
+     */
+    @Query("""
+            select invoice
+            from Invoice invoice
+            where invoice.status in (
+                co.istad.ai_interview_app.shared.enums.finance.InvoiceStatus.ISSUED,
+                co.istad.ai_interview_app.shared.enums.finance.InvoiceStatus.PARTIALLY_PAID
+            )
+              and invoice.dueAt is not null
+              and invoice.dueAt < :now
+            """)
+    List<Invoice> findOverdue(@Param("now") Instant now);
 }

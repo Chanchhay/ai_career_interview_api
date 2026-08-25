@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.finance.service;
 
+import co.istad.ai_interview_app.features.finance.dto.BillableCompanyResponse;
 import co.istad.ai_interview_app.features.finance.dto.CommissionRecordResponse;
 import co.istad.ai_interview_app.features.finance.dto.CreateInvoiceRequest;
 import co.istad.ai_interview_app.features.finance.dto.InvoiceResponse;
@@ -18,6 +19,9 @@ public interface InvoiceService {
     Page<CommissionRecordResponse> findCommissions(Long companyId, PaymentStatus status, Pageable pageable);
 
     List<CommissionRecordResponse> findUnbilledCommissions(Long companyId);
+
+    /** Every company with something billable, newest debt last. */
+    List<BillableCompanyResponse> findBillableCompanies();
 
     Page<InvoiceResponse> findInvoices(Long companyId, InvoiceStatus status, Pageable pageable);
 

@@ -537,7 +537,22 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Published job was not found"));
 
         AiInterviewSession session = new AiInterviewSession();
-        session.setApplication(null);
+        /*
+         * Attached to the seeker's application for this job when they have one.
+         *
+         * <p>This entry point exists for practising against a job nobody has
+         * applied to, and it used to hard-code a null application. But the same
+         * button is reachable after applying, and an interview that is not
+         * attached is invisible to the moderator queue and cannot satisfy the
+         * approval check — so a candidate who practised, applied, and sat the
+         * interview from the job page could never be approved. Which button was
+         * pressed should not decide that.
+         */
+        session.setApplication(
+                applicationRepository
+                        .findLiveApplication(jobPost.getId(), jobSeekerProfile.getId())
+                        .orElse(null)
+        );
         session.setJobPost(jobPost);
         session.setJobSeeker(jobSeekerProfile.getUserAccount());
         session.setProvider("GEMINI");
@@ -568,10 +583,40 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 || application.getStatus() == ApplicationStatus.HIRED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This application cannot start an AI interview");
         }
-        if (application.getStatus() == ApplicationStatus.MODERATOR_REVIEW_PENDING
-                || application.getStatus() == ApplicationStatus.SHORTLISTED
+        /*
+         * Whether an interview already happened is a question about sessions,
+         * not about the application's status.
+         *
+         * <p>This used to infer it from the status alone, which let the two
+         * checks disagree: an application sitting at MODERATOR_REVIEW_PENDING
+         * with no completed session attached refused a new interview on the
+         * grounds that one existed, while approval refused on the grounds that
+         * none did. The candidate could neither interview nor be approved, and
+         * both messages were true only of the other check's view of the world.
+         *
+         * <p>Reading the session makes the two agree by construction, and lets
+         * an application whose status drifted recover by simply interviewing.
+         */
+        if (sessionRepository
+                .findFirstByApplication_IdAndStatusOrderByEndedAtDesc(
+                        application.getId(),
+                        InterviewStatus.COMPLETED
+                )
+                .isPresent()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This application already has a completed AI interview"
+            );
+        }
+
+        // Past the interview stage entirely. Distinct from the check above so
+        // the refusal says what is actually true of the application.
+        if (application.getStatus() == ApplicationStatus.SHORTLISTED
                 || application.getStatus() == ApplicationStatus.HUMAN_INTERVIEW_SCHEDULED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This application already has a completed AI interview");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This application has already moved past the AI interview stage"
+            );
         }
         if (sessionRepository.existsByApplication_IdAndStatusIn(application.getId(), ACTIVE_APPLICATION_INTERVIEW_STATUSES)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This application already has an active AI interview");

@@ -4,6 +4,7 @@ import co.istad.ai_interview_app.features.application.entity.JobApplication;
 import co.istad.ai_interview_app.features.application.repository.JobApplicationRepository;
 import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.features.communication.entity.Conversation;
+import co.istad.ai_interview_app.features.communication.entity.ConversationParticipant;
 import co.istad.ai_interview_app.features.communication.entity.Message;
 import co.istad.ai_interview_app.features.communication.repository.ConversationParticipantRepository;
 import co.istad.ai_interview_app.features.communication.repository.MessageRepository;
@@ -17,9 +18,11 @@ import co.istad.ai_interview_app.features.interview.human.repository.HumanInterv
 import co.istad.ai_interview_app.features.identity.repository.CurrentUserAdminProfileRepository;
 import co.istad.ai_interview_app.features.identity.service.UserAccountRoleResolver;
 import co.istad.ai_interview_app.features.moderator.repository.ModeratorProfileRepository;
+import co.istad.ai_interview_app.features.notification.dto.MessageStreamEvent;
 import co.istad.ai_interview_app.features.notification.dto.NewNotification;
 import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import co.istad.ai_interview_app.features.notification.service.NotificationService;
+import co.istad.ai_interview_app.features.notification.service.NotificationStreamService;
 import co.istad.ai_interview_app.shared.enums.admin.NotificationEventType;
 import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
@@ -62,6 +65,7 @@ public class NotificationEventListener {
             DateTimeFormatter.ofPattern("d MMM yyyy 'at' HH:mm 'UTC'").withZone(ZoneOffset.UTC);
 
     private final NotificationService notificationService;
+    private final NotificationStreamService notificationStreamService;
     private final CompanyRepository companyRepository;
     private final JobApplicationRepository jobApplicationRepository;
     private final AiInterviewSessionRepository aiInterviewSessionRepository;
@@ -352,9 +356,28 @@ public class NotificationEventListener {
             Conversation conversation = message.getConversation();
             Long senderId = message.getSenderUserAccount().getId();
 
-            List<NewNotification> notifications = participantRepository
-                    .findRecipients(conversation.getId(), senderId)
-                    .stream()
+            List<ConversationParticipant> recipients =
+                    participantRepository.findRecipients(conversation.getId(), senderId);
+
+            /*
+             * Every recipient is told the transcript changed, muted or not — an
+             * open chat has to fill in while you are looking at it, and muting
+             * only asks not to be interrupted. Sent before the notifications so
+             * a slow notification write cannot delay what is on screen.
+             */
+            MessageStreamEvent streamEvent = new MessageStreamEvent(
+                    conversation.getId(),
+                    message.getId(),
+                    senderId,
+                    message.getSentAt()
+            );
+
+            recipients.forEach(participant -> notificationStreamService.pushMessage(
+                    participant.getUserAccount().getId(),
+                    streamEvent
+            ));
+
+            List<NewNotification> notifications = recipients.stream()
                     // A muted thread still delivers the message; it just stops
                     // announcing it. Muting is about interruption, not access.
                     .filter(participant -> !Boolean.TRUE.equals(participant.getMuted()))

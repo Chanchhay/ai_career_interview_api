@@ -321,6 +321,7 @@ public class SecurityConfig {
             if (realmAccess != null
                     && realmAccess.get("roles") instanceof Collection<?> roles) {
 
+
                 roles.stream()
                         .map(String::valueOf)
                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
