@@ -24,7 +24,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import co.istad.ai_interview_app.features.identity.repository.IdentityUserAccountRepository;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -99,7 +101,8 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtDecoder jwtDecoder
+            JwtDecoder jwtDecoder,
+            IdentityUserAccountRepository userAccountRepository
     ) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -147,12 +150,23 @@ public class SecurityConfig {
 
                         /* ------------------------- any signed-in account --- */
 
-                        // Identity, and file upload plus private download. Which
-                        // file a given caller may read is the storage service's
-                        // decision, not a question a URL pattern can answer.
+                        // Which file a given caller may read is the storage
+                        // service's decision, not a question a URL pattern can
+                        // answer.
+                        // Identity, file upload plus private download, and a
+                        // person's own notification inbox. Notifications are
+                        // not role-scoped: every signed-in account has one, and
+                        // the service filters every query to the caller.
+                        // Conversations are membership-scoped, not role-scoped:
+                        // a thread's two sides hold different roles and both
+                        // need the same reads and replies, so the service checks
+                        // participation instead. Opening a thread is not here —
+                        // that lives under /api/v1/moderator/conversations.
                         .requestMatchers(
                                 "/api/v1/me",
-                                "/api/v1/files/**"
+                                "/api/v1/files/**",
+                                "/api/v1/notifications/**",
+                                "/api/v1/conversations/**"
                         ).authenticated()
 
                         /* ------------------------------------ role areas --- */
@@ -167,6 +181,12 @@ public class SecurityConfig {
 
                         // The next three admit SUPER_ADMIN through the hierarchy.
                         .requestMatchers("/api/v1/moderator/**").hasRole(MODERATOR)
+
+                        // Ahead of the line below on purpose. Account
+                        // management grants roles and suspends people, so it is
+                        // SUPER_ADMIN's alone — a moderator who reached it could
+                        // grant themselves SUPER_ADMIN.
+                        .requestMatchers("/api/v1/admin/users/**").hasRole(SUPER_ADMIN)
 
                         // Shared taxonomy — industries, job categories, skills.
                         // Moderators curate it while reviewing, so it sits with
@@ -191,6 +211,13 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                // Straight after the token is turned into an Authentication, so
+                // a suspended account is stopped before any authorization rule
+                // above gets to admit it.
+                .addFilterAfter(
+                        new AccountStatusFilter(userAccountRepository),
+                        BearerTokenAuthenticationFilter.class
                 )
                 .build();
     }

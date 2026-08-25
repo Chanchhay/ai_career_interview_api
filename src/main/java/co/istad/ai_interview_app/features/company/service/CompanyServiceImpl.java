@@ -17,6 +17,8 @@ import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
 import co.istad.ai_interview_app.features.recruiter.service.AuthenticatedRecruiterProfileResolver;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ public class CompanyServiceImpl implements CompanyService {
     private final IndustryRepository industryRepository;
     private final AuthenticatedRecruiterProfileResolver recruiterProfileResolver;
     private final CompanyMapper companyMapper;
+    private final ApplicationEventPublisher events;
 
     @Override
     @Transactional
@@ -169,6 +172,8 @@ public class CompanyServiceImpl implements CompanyService {
 
         company.setVerificationStatus(VerificationStatus.PENDING_VERIFICATION);
         company.setStatus(ProfileStatus.PENDING);
+
+        events.publishEvent(new NotificationEvents.CompanyVerificationSubmitted(company.getId()));
 
         return companyMapper.toResponse(company);
     }

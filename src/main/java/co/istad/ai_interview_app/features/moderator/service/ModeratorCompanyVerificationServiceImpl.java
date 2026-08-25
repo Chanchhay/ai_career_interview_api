@@ -17,6 +17,8 @@ import co.istad.ai_interview_app.features.moderator.repository.CompanyVerificati
 import co.istad.ai_interview_app.shared.enums.moderation.ModerationDecision;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
+import org.springframework.context.ApplicationEventPublisher;
+import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +42,7 @@ public class ModeratorCompanyVerificationServiceImpl implements ModeratorCompany
     private final CompanyVerificationRepository companyVerificationRepository;
     private final AuthenticatedModeratorProfileResolver moderatorProfileResolver;
     private final CompanyMapper companyMapper;
+    private final ApplicationEventPublisher events;
 
     @Override
     @Transactional(readOnly = true)
@@ -86,6 +89,9 @@ public class ModeratorCompanyVerificationServiceImpl implements ModeratorCompany
         company.setVerificationStatus(VerificationStatus.APPROVED);
         company.setStatus(ProfileStatus.ACTIVE);
 
+        events.publishEvent(new NotificationEvents.CompanyVerificationDecided(
+                company.getId(), ModerationDecision.APPROVED, request.decisionNote()));
+
         return toVerificationResponse(verification);
     }
 
@@ -99,6 +105,9 @@ public class ModeratorCompanyVerificationServiceImpl implements ModeratorCompany
         company.setVerificationStatus(VerificationStatus.REJECTED);
         company.setStatus(ProfileStatus.PENDING);
 
+        events.publishEvent(new NotificationEvents.CompanyVerificationDecided(
+                company.getId(), ModerationDecision.REJECTED, note));
+
         return toVerificationResponse(verification);
     }
 
@@ -111,6 +120,9 @@ public class ModeratorCompanyVerificationServiceImpl implements ModeratorCompany
 
         company.setVerificationStatus(VerificationStatus.PENDING_VERIFICATION);
         company.setStatus(ProfileStatus.PENDING);
+
+        events.publishEvent(new NotificationEvents.CompanyVerificationDecided(
+                company.getId(), ModerationDecision.NEEDS_REVISION, note));
 
         return toVerificationResponse(verification);
     }
