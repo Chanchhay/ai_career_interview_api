@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.file.service;
 import co.istad.ai_interview_app.features.file.FileVisibility;
 import co.istad.ai_interview_app.features.file.dto.FileUploadResponse;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.Http;
 import io.minio.MakeBucketArgs;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -125,6 +127,66 @@ public class FileStorageServiceImpl implements FileStorageService {
                 file.getSize(),
                 contentType
         );
+    }
+
+    @Override
+    public FileUploadResponse store(
+            byte[] content,
+            String extension,
+            String contentType,
+            FileVisibility visibility
+    ) {
+        if (content == null || content.length == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nothing to store");
+        }
+
+        if (content.length > maxFileSize) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONTENT_TOO_LARGE,
+                    "Files must be %d MB or smaller".formatted(maxFileSize / (1024 * 1024))
+            );
+        }
+
+        String key = "%s/%s/%s.%s".formatted(
+                visibility.prefix(),
+                LocalDate.now().format(KEY_DATE),
+                UUID.randomUUID(),
+                extension
+        );
+
+        try (InputStream stream = new ByteArrayInputStream(content)) {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(key)
+                            .stream(stream, (long) content.length, null)
+                            .contentType(contentType)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("MinIO store failed for key '{}'", key, e);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Unable to store the file");
+        }
+
+        return new FileUploadResponse(
+                key,
+                readUrl(key, visibility),
+                null,
+                (long) content.length,
+                contentType
+        );
+    }
+
+    @Override
+    public byte[] read(String key) {
+        try (InputStream stream = minioClient.getObject(
+                GetObjectArgs.builder().bucket(bucket).object(key).build()
+        )) {
+            return stream.readAllBytes();
+        } catch (Exception e) {
+            log.error("Could not read key '{}'", key, e);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Unable to read the file");
+        }
     }
 
     @Override

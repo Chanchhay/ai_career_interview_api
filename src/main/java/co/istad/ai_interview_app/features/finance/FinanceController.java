@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.finance;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
+import co.istad.ai_interview_app.features.finance.dto.BillableCompanyResponse;
 import co.istad.ai_interview_app.features.finance.dto.CommissionRecordResponse;
 import co.istad.ai_interview_app.features.finance.dto.CreateInvoiceRequest;
 import co.istad.ai_interview_app.features.finance.dto.FinanceSettingsRequest;
@@ -52,6 +53,18 @@ public class FinanceController {
             @PageableDefault(size = 20) Pageable pageable
     ) {
         return ApiResponse.success(invoiceService.findCommissions(companyId, status, pageable));
+    }
+
+    /**
+     * Who there is to bill right now.
+     *
+     * <p>The finance desk opens on this. Without it the only way to find a
+     * company that owes something was to open companies one by one and see
+     * whether a panel appeared.
+     */
+    @GetMapping("/billable-companies")
+    public ApiResponse<List<BillableCompanyResponse>> findBillableCompanies() {
+        return ApiResponse.success(invoiceService.findBillableCompanies());
     }
 
     /** What could go on this company's next invoice. */

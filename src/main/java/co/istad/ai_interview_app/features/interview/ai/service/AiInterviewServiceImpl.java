@@ -21,6 +21,9 @@ import co.istad.ai_interview_app.features.interview.ai.mapper.AiInterviewMapper;
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewAnswerRepository;
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewFeedbackRepository;
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewQuestionRepository;
+import co.istad.ai_interview_app.features.interview.question.repository.JobInterviewQuestionRepository;
+import co.istad.ai_interview_app.shared.enums.interview.InterviewQuestionType;
+import co.istad.ai_interview_app.shared.enums.interview.ManualQuestionMode;
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewSessionRepository;
 import co.istad.ai_interview_app.features.interview.vapi.dto.TranscriptSegmentationRequest;
 import co.istad.ai_interview_app.features.interview.vapi.dto.TranscriptSegmentationResult;
@@ -51,8 +54,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -78,6 +83,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     private final AiInterviewSessionRepository sessionRepository;
     private final CandidateApplicationReviewRepository reviewRepository;
     private final AiInterviewQuestionRepository questionRepository;
+    private final JobInterviewQuestionRepository writtenQuestionRepository;
     private final AiInterviewAnswerRepository answerRepository;
     private final AiInterviewFeedbackRepository feedbackRepository;
     private final AiInterviewMapper mapper;
@@ -97,51 +103,206 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewSessionResponse createInterviewForJob(Long jobId) {
-        GenerationContext context = transactionTemplate.execute(status -> createPreparingSession(jobId));
+        return fillSession(transactionTemplate.execute(status -> createPreparingSession(jobId)));
+    }
 
+    @Override
+    public AiInterviewSessionResponse createInterviewForApplication(Long applicationId) {
+        return fillSession(transactionTemplate.execute(status -> createPreparingApplicationSession(applicationId)));
+    }
+
+    /**
+     * Turns a PREPARING session into a READY one by giving it its questions.
+     *
+     * <p>Shared by the practice and application entry points so a candidate is
+     * asked the same thing either way — the two used to hold identical copies of
+     * this, which is exactly how they would come to differ.
+     */
+    private AiInterviewSessionResponse fillSession(GenerationContext context) {
         // Read once, so the interview that is generated and the interview that
         // is validated are the same one even if an admin saves new settings
         // while Gemini is still answering.
         AiInterviewGenerationConfig config = configService.currentGenerationConfig();
 
-        GeneratedQuestionSet generatedQuestions;
+        List<GeneratedQuestion> questions;
         try {
-            generatedQuestions = questionGenerator.generateQuestions(
-                    context.jobTitle(),
-                    context.jobDescription(),
-                    context.experienceLevel(),
-                    context.requiredSkills(),
-                    config
-            );
+            questions = composeQuestions(context, config);
         } catch (RuntimeException ex) {
             transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
             throw ex;
         }
 
-        return transactionTemplate.execute(status -> persistGeneratedQuestions(context.sessionId(), generatedQuestions, config));
+        return transactionTemplate.execute(status -> persistQuestions(context.sessionId(), questions));
     }
 
-    @Override
-    public AiInterviewSessionResponse createInterviewForApplication(Long applicationId) {
-        GenerationContext context = transactionTemplate.execute(status -> createPreparingApplicationSession(applicationId));
+    /**
+     * The questions this session will ask: what an administrator wrote for the
+     * job, then whatever the AI is still asked to add.
+     *
+     * <p>Written questions always come first and keep their authored order — an
+     * author who put a screening question at the top meant it to be asked first.
+     */
+    private List<GeneratedQuestion> composeQuestions(
+            GenerationContext context,
+            AiInterviewGenerationConfig config
+    ) {
+        List<GeneratedQuestion> written = context.writtenQuestions();
 
-        AiInterviewGenerationConfig config = configService.currentGenerationConfig();
+        int generatedCount = written.isEmpty()
+                ? config.questionCount()
+                : context.manualQuestionMode() == ManualQuestionMode.MANUAL_ONLY
+                        ? 0
+                        : Math.max(0, config.questionCount() - written.size());
 
-        GeneratedQuestionSet generatedQuestions;
-        try {
-            generatedQuestions = questionGenerator.generateQuestions(
-                    context.jobTitle(),
-                    context.jobDescription(),
-                    context.experienceLevel(),
-                    context.requiredSkills(),
-                    config
-            );
-        } catch (RuntimeException ex) {
-            transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
-            throw ex;
+        // Nothing left for the AI: MANUAL_ONLY, or the written set already fills
+        // the interview. Either way it is not called at all.
+        if (generatedCount == 0) return renumber(written);
+
+        AiInterviewGenerationConfig generationConfig = written.isEmpty()
+                ? config
+                : topUpConfig(config, written, generatedCount);
+
+        GeneratedQuestionSet generated = questionGenerator.generateQuestions(
+                context.jobTitle(),
+                context.jobDescription(),
+                context.experienceLevel(),
+                context.requiredSkills(),
+                generationConfig
+        );
+
+        validateGeneratedQuestions(generated, generationConfig);
+
+        List<GeneratedQuestion> composed = new ArrayList<>(written);
+        composed.addAll(generated.questions());
+
+        return renumber(composed);
+    }
+
+    /**
+     * The generation settings for the part the AI still has to write.
+     *
+     * <p>Each written question is taken off its own type's allocation first, so
+     * a job with two hand-written behavioural questions gets two fewer generated
+     * ones of that type rather than a lopsided interview. What that leaves is
+     * then nudged up or down to land exactly on the number still needed, because
+     * the validator refuses a set that does not match its own distribution.
+     */
+    private AiInterviewGenerationConfig topUpConfig(
+            AiInterviewGenerationConfig config,
+            List<GeneratedQuestion> written,
+            int generatedCount
+    ) {
+        Map<InterviewQuestionType, Integer> distribution = new LinkedHashMap<>(config.typeDistribution());
+
+        for (GeneratedQuestion question : written) {
+            distribution.computeIfPresent(question.type(), (type, count) -> Math.max(0, count - 1));
         }
 
-        return transactionTemplate.execute(status -> persistGeneratedQuestions(context.sessionId(), generatedQuestions, config));
+        /*
+         * Every allocation can be used up while questions are still owed — a job
+         * with more written questions of one type than the mix allows. Falling
+         * back to the mix's first type keeps a valid request rather than asking
+         * for zero questions of everything.
+         */
+        if (distribution.values().stream().mapToInt(Integer::intValue).sum() == 0) {
+            InterviewQuestionType fallback = config.typeDistribution().keySet().stream()
+                    .findFirst()
+                    .orElse(InterviewQuestionType.GENERAL);
+            distribution = new LinkedHashMap<>(Map.of(fallback, generatedCount));
+        }
+
+        balance(distribution, generatedCount);
+
+        return new AiInterviewGenerationConfig(
+                generatedCount,
+                config.maxScorePerQuestion(),
+                distribution,
+                appendWrittenQuestions(config.additionalInstructions(), written)
+        );
+    }
+
+    /** Adds or removes one at a time until the allocations total {@code target}. */
+    private void balance(Map<InterviewQuestionType, Integer> distribution, int target) {
+        int allocated = distribution.values().stream().mapToInt(Integer::intValue).sum();
+
+        while (allocated != target) {
+            InterviewQuestionType type = allocated < target
+                    ? largest(distribution)
+                    : largestAbove(distribution);
+
+            distribution.merge(type, allocated < target ? 1 : -1, Integer::sum);
+            allocated += allocated < target ? 1 : -1;
+        }
+    }
+
+    private InterviewQuestionType largest(Map<InterviewQuestionType, Integer> distribution) {
+        return distribution.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(InterviewQuestionType.GENERAL);
+    }
+
+    private InterviewQuestionType largestAbove(Map<InterviewQuestionType, Integer> distribution) {
+        return distribution.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(InterviewQuestionType.GENERAL);
+    }
+
+    /**
+     * Tells the model what a human already asked, so it writes around it.
+     *
+     * <p>Without this the generated half happily repeats a written question in
+     * different words, and the candidate answers the same thing twice.
+     */
+    private String appendWrittenQuestions(String instructions, List<GeneratedQuestion> written) {
+        StringBuilder text = new StringBuilder();
+
+        if (normalizeBlankToNull(instructions) != null) {
+            text.append(instructions.trim()).append("\n\n");
+        }
+
+        text.append("These questions are already being asked by a human interviewer. ")
+                .append("Do not repeat them or ask a reworded version of them:\n");
+
+        for (GeneratedQuestion question : written) {
+            text.append("- ").append(question.question()).append('\n');
+        }
+
+        return text.toString();
+    }
+
+    /** Renumbers a composed list so the session's order is 1..n and contiguous. */
+    private List<GeneratedQuestion> renumber(List<GeneratedQuestion> questions) {
+        List<GeneratedQuestion> ordered = new ArrayList<>(questions.size());
+        int order = 1;
+
+        for (GeneratedQuestion question : questions) {
+            ordered.add(new GeneratedQuestion(
+                    order++,
+                    question.type(),
+                    question.question(),
+                    question.rubric(),
+                    question.maxScore()
+            ));
+        }
+
+        return ordered;
+    }
+
+    /** A job's hand-written questions, in the shape the session builder uses. */
+    private List<GeneratedQuestion> writtenQuestions(Long jobPostId) {
+        return writtenQuestionRepository.findAllByJobPost_IdOrderByDisplayOrderAsc(jobPostId)
+                .stream()
+                .map(question -> new GeneratedQuestion(
+                        question.getDisplayOrder(),
+                        question.getQuestionType(),
+                        question.getQuestionText(),
+                        question.getExpectedAnswer(),
+                        question.getMaxScore()
+                ))
+                .toList();
     }
 
     @Override
@@ -537,7 +698,22 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Published job was not found"));
 
         AiInterviewSession session = new AiInterviewSession();
-        session.setApplication(null);
+        /*
+         * Attached to the seeker's application for this job when they have one.
+         *
+         * <p>This entry point exists for practising against a job nobody has
+         * applied to, and it used to hard-code a null application. But the same
+         * button is reachable after applying, and an interview that is not
+         * attached is invisible to the moderator queue and cannot satisfy the
+         * approval check — so a candidate who practised, applied, and sat the
+         * interview from the job page could never be approved. Which button was
+         * pressed should not decide that.
+         */
+        session.setApplication(
+                applicationRepository
+                        .findLiveApplication(jobPost.getId(), jobSeekerProfile.getId())
+                        .orElse(null)
+        );
         session.setJobPost(jobPost);
         session.setJobSeeker(jobSeekerProfile.getUserAccount());
         session.setProvider("GEMINI");
@@ -551,7 +727,9 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 jobPost.getTitle(),
                 buildJobDescription(jobPost),
                 jobPost.getExperienceLevel(),
-                requiredSkills(jobPost)
+                requiredSkills(jobPost),
+                jobPost.getManualQuestionMode(),
+                writtenQuestions(jobPost.getId())
         );
     }
 
@@ -568,10 +746,40 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 || application.getStatus() == ApplicationStatus.HIRED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This application cannot start an AI interview");
         }
-        if (application.getStatus() == ApplicationStatus.MODERATOR_REVIEW_PENDING
-                || application.getStatus() == ApplicationStatus.SHORTLISTED
+        /*
+         * Whether an interview already happened is a question about sessions,
+         * not about the application's status.
+         *
+         * <p>This used to infer it from the status alone, which let the two
+         * checks disagree: an application sitting at MODERATOR_REVIEW_PENDING
+         * with no completed session attached refused a new interview on the
+         * grounds that one existed, while approval refused on the grounds that
+         * none did. The candidate could neither interview nor be approved, and
+         * both messages were true only of the other check's view of the world.
+         *
+         * <p>Reading the session makes the two agree by construction, and lets
+         * an application whose status drifted recover by simply interviewing.
+         */
+        if (sessionRepository
+                .findFirstByApplication_IdAndStatusOrderByEndedAtDesc(
+                        application.getId(),
+                        InterviewStatus.COMPLETED
+                )
+                .isPresent()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This application already has a completed AI interview"
+            );
+        }
+
+        // Past the interview stage entirely. Distinct from the check above so
+        // the refusal says what is actually true of the application.
+        if (application.getStatus() == ApplicationStatus.SHORTLISTED
                 || application.getStatus() == ApplicationStatus.HUMAN_INTERVIEW_SCHEDULED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This application already has a completed AI interview");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This application has already moved past the AI interview stage"
+            );
         }
         if (sessionRepository.existsByApplication_IdAndStatusIn(application.getId(), ACTIVE_APPLICATION_INTERVIEW_STATUSES)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This application already has an active AI interview");
@@ -594,22 +802,28 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 jobPost.getTitle(),
                 buildJobDescription(jobPost),
                 jobPost.getExperienceLevel(),
-                requiredSkills(jobPost)
+                requiredSkills(jobPost),
+                jobPost.getManualQuestionMode(),
+                writtenQuestions(jobPost.getId())
         );
     }
 
-    private AiInterviewSessionResponse persistGeneratedQuestions(
+    /**
+     * Writes the composed questions onto the session and opens it.
+     *
+     * <p>Takes an already-checked list rather than a raw AI response: the set
+     * may be part hand-written, and only the generated part is the AI's word to
+     * doubt. It is validated where it is generated.
+     */
+    private AiInterviewSessionResponse persistQuestions(
             Long sessionId,
-            GeneratedQuestionSet generatedQuestionSet,
-            AiInterviewGenerationConfig config
+            List<GeneratedQuestion> questions
     ) {
-        validateGeneratedQuestions(generatedQuestionSet, config);
-
         AiInterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Interview session was not found"));
 
         session.getQuestions().clear();
-        for (GeneratedQuestion generatedQuestion : generatedQuestionSet.questions()) {
+        for (GeneratedQuestion generatedQuestion : questions) {
             AiInterviewQuestion question = new AiInterviewQuestion();
             question.setSession(session);
             question.setDisplayOrder(generatedQuestion.order());
@@ -906,12 +1120,23 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         }
     }
 
+    /**
+     * Everything the generation step needs, read inside the transaction that
+     * created the session.
+     *
+     * <p>The written questions ride along rather than being fetched later: the
+     * AI call happens outside any transaction, and reading a job's question bank
+     * out there would either lazy-load on a closed session or race an
+     * administrator saving new questions mid-generation.
+     */
     private record GenerationContext(
             Long sessionId,
             String jobTitle,
             String jobDescription,
             String experienceLevel,
-            List<String> requiredSkills
+            List<String> requiredSkills,
+            ManualQuestionMode manualQuestionMode,
+            List<GeneratedQuestion> writtenQuestions
     ) {
     }
 

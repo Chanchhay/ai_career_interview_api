@@ -16,10 +16,13 @@ import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import org.springframework.context.ApplicationEventPublisher;
 import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
+import co.istad.ai_interview_app.features.interview.ai.entity.AiInterviewSession;
+import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewSessionRepository;
 import co.istad.ai_interview_app.features.moderator.entity.CandidateApplicationReview;
 import co.istad.ai_interview_app.features.moderator.repository.CandidateApplicationReviewRepository;
 import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,10 +30,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationService {
@@ -41,6 +48,8 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
     private final JobApplicationRepository applicationRepository;
     private final JobApplicationMapper applicationMapper;
     private final CandidateApplicationReviewRepository reviewRepository;
+    private final AiInterviewSessionRepository aiInterviewSessionRepository;
+    private final ApplicationSettingsService applicationSettingsService;
     private final ApplicationEventPublisher events;
 
     @Override
@@ -51,9 +60,20 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job post was not found"));
         validateJobAcceptsApplications(jobPost);
 
-        if (applicationRepository.existsByJobPost_IdAndJobSeekerProfile_Id(jobPost.getId(), seekerProfile.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already applied to this job");
+        /*
+         * Only a live application blocks a new one. A candidate whose earlier
+         * attempt was rejected — or who withdrew — may apply again, and the
+         * closed attempt stays on record rather than being overwritten, so the
+         * history of who was rejected and why survives the second try.
+         */
+        if (applicationRepository.existsLiveApplication(jobPost.getId(), seekerProfile.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "You already have an open application for this job"
+            );
         }
+
+        enforceReapplyCooldown(jobPost.getId(), seekerProfile.getId());
 
         JobApplication application = new JobApplication();
         application.setJobPost(jobPost);
@@ -77,12 +97,37 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
              * application without its review row is one nobody will ever see.
              */
             createPendingReview(saved);
+            adoptPracticeInterviews(saved);
 
             events.publishEvent(new NotificationEvents.JobApplicationSubmitted(saved.getId()));
 
             return applicationMapper.toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already applied to this job");
+            /*
+             * A database constraint refused the row after the checks above
+             * passed. Two very different causes, and they used to share the
+             * message the live-application check gives — which made a schema
+             * problem read as a normal "you already applied", and cost a long
+             * time to tell apart.
+             *
+             * Normally this is a concurrent second submission caught by the
+             * partial unique index. But if V19 has not been applied, the old
+             * blanket unique constraint is still present and refuses *every*
+             * re-application, no matter how long ago the first one closed.
+             */
+            log.warn(
+                    "Application insert refused by a database constraint for job {} — "
+                            + "if this is not a concurrent submission, check that "
+                            + "uk_job_applications_job_profile has been dropped by V19",
+                    jobPost.getId(),
+                    ex
+            );
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Could not submit this application. If you were rejected before, "
+                            + "the platform may not be accepting re-applications yet."
+            );
         }
     }
 
@@ -113,6 +158,8 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
         }
 
         application.setStatus(ApplicationStatus.WITHDRAWN);
+        application.setClosedAt(Instant.now());
+
         return applicationMapper.toResponse(application);
     }
 
@@ -123,6 +170,43 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
      * creates the same row if it finds none, and that path still runs for
      * practice interviews that were never tied to an application.
      */
+    /**
+     * Holds a rejected candidate back for the administrator-configured period.
+     *
+     * <p>Reads the setting on every attempt rather than caching it, so raising
+     * or clearing the cooldown takes effect immediately instead of at the next
+     * restart. Zero disables it, which is the default.
+     *
+     * <p>A rejection with no {@code closedAt} predates that column and cannot
+     * be timed, so it does not hold anyone back — refusing on an unknown date
+     * would be an indefinite ban rather than a cooldown.
+     */
+    private void enforceReapplyCooldown(Long jobPostId, Long jobSeekerProfileId) {
+        int cooldownDays = applicationSettingsService.reapplyCooldownDays();
+
+        if (cooldownDays <= 0) return;
+
+        applicationRepository
+                .findRejectedApplicationsNewestFirst(jobPostId, jobSeekerProfileId)
+                .stream()
+                .findFirst()
+                .map(JobApplication::getClosedAt)
+                .ifPresent(closedAt -> {
+                    Instant availableFrom = closedAt.plus(cooldownDays, ChronoUnit.DAYS);
+
+                    if (Instant.now().isBefore(availableFrom)) {
+                        throw new ResponseStatusException(
+                                HttpStatus.CONFLICT,
+                                "You can apply to this job again on %s".formatted(
+                                        DateTimeFormatter.ofPattern("d MMM yyyy")
+                                                .withZone(ZoneOffset.UTC)
+                                                .format(availableFrom)
+                                )
+                        );
+                    }
+                });
+    }
+
     private void createPendingReview(JobApplication application) {
         if (reviewRepository.findByApplication_Id(application.getId()).isPresent()) return;
 
@@ -130,6 +214,24 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
         review.setApplication(application);
         review.setReviewStatus(CandidateApplicationReviewStatus.PENDING);
         reviewRepository.save(review);
+    }
+
+    /**
+     * Attaches AI interviews the seeker already ran against this job.
+     *
+     * <p>Practising first and applying second is a normal order, and the
+     * interview is the same one either way. Without this the earlier session
+     * stays unattached, invisible to the moderator queue and unable to satisfy
+     * the approval check — so the candidate would have to sit it again.
+     */
+    private void adoptPracticeInterviews(JobApplication application) {
+        List<AiInterviewSession> practiceSessions = aiInterviewSessionRepository
+                .findAllByJobPost_IdAndJobSeeker_IdAndApplicationIsNull(
+                        application.getJobPost().getId(),
+                        application.getJobSeekerProfile().getUserAccount().getId()
+                );
+
+        practiceSessions.forEach(session -> session.setApplication(application));
     }
 
     private JobApplication resolveMyApplication(Long applicationId) {

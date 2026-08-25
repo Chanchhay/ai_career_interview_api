@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.company.entity;
 import co.istad.ai_interview_app.features.common.audit.BaseEntity;
 import co.istad.ai_interview_app.features.recruiter.entity.RecruiterProfile;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.shared.enums.visibility.CompanyIdentityVisibility;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -49,4 +50,19 @@ public class Company extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private ProfileStatus status = ProfileStatus.PENDING;
+
+    /**
+     * Whether candidates are told who this company is.
+     *
+     * <p>The database default is spelled out so this column can be added to a
+     * table that already holds companies: without it, ddl-auto would emit ADD
+     * COLUMN ... NOT NULL with nothing to put in the existing rows.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(
+            nullable = false,
+            length = 50,
+            columnDefinition = "varchar(50) default 'VISIBLE'"
+    )
+    private CompanyIdentityVisibility identityVisibility = CompanyIdentityVisibility.VISIBLE;
 }

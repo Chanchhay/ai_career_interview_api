@@ -35,6 +35,19 @@ public interface AiInterviewSessionRepository extends JpaRepository<AiInterviewS
 
     boolean existsByApplication_IdAndStatusIn(Long applicationId, Collection<co.istad.ai_interview_app.shared.enums.interview.InterviewStatus> statuses);
 
+    /**
+     * Sessions this seeker ran against this job that are not attached to an
+     * application yet.
+     *
+     * <p>Used to adopt practice interviews once the candidate applies: the
+     * interview they sat is the same interview either way, and which button
+     * they happened to press should not decide whether a moderator can see it.
+     */
+    List<AiInterviewSession> findAllByJobPost_IdAndJobSeeker_IdAndApplicationIsNull(
+            Long jobPostId,
+            Long jobSeekerUserAccountId
+    );
+
     Optional<AiInterviewSession> findFirstByApplication_IdAndStatusOrderByEndedAtDesc(
             Long applicationId,
             co.istad.ai_interview_app.shared.enums.interview.InterviewStatus status

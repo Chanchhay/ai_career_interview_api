@@ -188,9 +188,17 @@ public class SecurityConfig {
                         // grant themselves SUPER_ADMIN.
                         .requestMatchers("/api/v1/admin/users/**").hasRole(SUPER_ADMIN)
 
-                        // Shared taxonomy — industries, job categories, skills.
-                        // Moderators curate it while reviewing, so it sits with
-                        // the moderator rules despite the /admin path.
+                        // The AI engine: model, provider API key, tuning. Held
+                        // to SUPER_ADMIN rather than the MODERATOR rule below,
+                        // because the key stored there spends real money and a
+                        // wrong model takes every AI feature down at once.
+                        .requestMatchers("/api/v1/admin/ai-provider-config/**")
+                        .hasRole(SUPER_ADMIN)
+
+                        // Shared taxonomy — industries, job categories, skills —
+                        // and the AI interview question mix. Moderators curate it
+                        // while reviewing, so it sits with the moderator rules
+                        // despite the /admin path.
                         .requestMatchers("/api/v1/admin/**").hasRole(MODERATOR)
 
                         .requestMatchers("/api/v1/finance/**").hasRole(FINANCE)
@@ -320,6 +328,7 @@ public class SecurityConfig {
 
             if (realmAccess != null
                     && realmAccess.get("roles") instanceof Collection<?> roles) {
+
 
                 roles.stream()
                         .map(String::valueOf)

@@ -17,7 +17,11 @@ public class ResumeMapper {
                 resume.getVisibility(),
                 resume.getPublishedAt(),
                 resume.getCreatedAt(),
-                resume.getUpdatedAt()
+                resume.getUpdatedAt(),
+                resume.getSourceType(),
+                resume.getGeneratedAt(),
+                resume.getFileVersion(),
+                resume.getResumeFileUrl() != null && !resume.getResumeFileUrl().isBlank()
         );
     }
 }

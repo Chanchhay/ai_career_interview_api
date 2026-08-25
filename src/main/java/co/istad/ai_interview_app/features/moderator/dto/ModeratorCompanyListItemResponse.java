@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.moderator.dto;
 
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.shared.enums.visibility.CompanyIdentityVisibility;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 
 public record ModeratorCompanyListItemResponse(
@@ -13,6 +14,7 @@ public record ModeratorCompanyListItemResponse(
         String contactEmail,
         String businessRegistrationNo,
         VerificationStatus verificationStatus,
-        ProfileStatus status
+        ProfileStatus status,
+        CompanyIdentityVisibility identityVisibility
 ) {
 }

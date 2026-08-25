@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.finance.repository;
 
+import co.istad.ai_interview_app.features.finance.dto.BillableCompanyResponse;
 import co.istad.ai_interview_app.features.finance.entity.CommissionRecord;
 import co.istad.ai_interview_app.shared.enums.finance.PaymentStatus;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,40 @@ public interface CommissionRecordRepository extends JpaRepository<CommissionReco
             order by commission.createdAt asc
             """)
     List<CommissionRecord> findUnbilledByCompany(@Param("companyId") Long companyId);
+
+    /**
+     * Every company holding unbilled commissions, with what they add up to.
+     *
+     * <p>Uses the same definition of "unbilled" as {@link #findUnbilledByCompany}
+     * — no invoice item points at the commission from a non-cancelled invoice —
+     * so the two screens can never disagree about what is still billable.
+     *
+     * <p>Aggregated in the database rather than by loading every commission and
+     * grouping in memory: this list is read on every visit to the finance desk,
+     * and it grows with every hire the platform ever confirms.
+     */
+    @Query("""
+            select new co.istad.ai_interview_app.features.finance.dto.BillableCompanyResponse(
+                company.id,
+                company.name,
+                count(commission),
+                sum(commission.commissionAmount),
+                commission.currency,
+                min(commission.dueAt)
+            )
+            from CommissionRecord commission
+            join commission.company company
+            where commission.status = co.istad.ai_interview_app.shared.enums.finance.PaymentStatus.PENDING
+              and not exists (
+                  select item
+                  from InvoiceItem item
+                  where item.commissionRecord.id = commission.id
+                    and item.invoice.status <> co.istad.ai_interview_app.shared.enums.finance.InvoiceStatus.CANCELLED
+              )
+            group by company.id, company.name, commission.currency
+            order by min(commission.dueAt) asc
+            """)
+    List<BillableCompanyResponse> findBillableCompanies();
 
     @Query("""
             select commission

@@ -1,7 +1,11 @@
 package co.istad.ai_interview_app.features.recruiter.talent.controller;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
-import co.istad.ai_interview_app.features.recruiter.talent.dto.PublicResumeDownloadResponse;
+import co.istad.ai_interview_app.features.file.dto.DownloadedFile;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import co.istad.ai_interview_app.features.recruiter.talent.dto.PublicTalentDetailResponse;
 import co.istad.ai_interview_app.features.recruiter.talent.dto.PublicTalentListItemResponse;
 import co.istad.ai_interview_app.features.recruiter.talent.service.RecruiterTalentService;
@@ -64,11 +68,25 @@ public class RecruiterTalentController {
     }
 
     @GetMapping("/{publicProfileSlug}/resumes/{resumeId}/download")
-    public ApiResponse<PublicResumeDownloadResponse> getPublicResumeDownload(
+    public ResponseEntity<byte[]> getPublicResumeDownload(
             @PathVariable String publicProfileSlug,
             @PathVariable Long resumeId
     ) {
-        return ApiResponse.success(recruiterTalentService.getPublicResumeDownload(publicProfileSlug, resumeId));
+        DownloadedFile file = recruiterTalentService.getPublicResumeDownload(publicProfileSlug, resumeId);
+
+        if (file.isRedirect()) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, file.redirectUrl())
+                    .build();
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(file.filename()).build().toString()
+                )
+                .body(file.content());
     }
 
     private void validateTalentPageable(Pageable pageable) {

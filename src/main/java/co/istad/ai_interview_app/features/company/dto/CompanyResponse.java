@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.company.dto;
 
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.shared.enums.visibility.CompanyIdentityVisibility;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 
 public record CompanyResponse(
@@ -17,6 +18,12 @@ public record CompanyResponse(
         String logoUrl,
         String businessRegistrationNo,
         VerificationStatus verificationStatus,
-        ProfileStatus status
+        ProfileStatus status,
+        /**
+         * Whether candidates are told who this company is. Readable by the
+         * recruiter — being masked is not a secret from the company itself —
+         * but only an administrator can change it.
+         */
+        CompanyIdentityVisibility identityVisibility
 ) {
 }

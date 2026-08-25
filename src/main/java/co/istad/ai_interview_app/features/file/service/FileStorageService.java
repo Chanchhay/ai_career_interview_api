@@ -14,6 +14,31 @@ public interface FileStorageService {
     FileUploadResponse upload(MultipartFile file, FileVisibility visibility);
 
     /**
+     * Stores bytes the application produced itself.
+     *
+     * <p>Separate from {@link #upload} because a generated PDF has no
+     * {@code MultipartFile} behind it, and because the caller has already
+     * decided what the content is — there is no client-supplied type to
+     * validate against an allow-list here.
+     *
+     * @param extension file extension without the dot, used for the object key
+     */
+    FileUploadResponse store(
+            byte[] content,
+            String extension,
+            String contentType,
+            FileVisibility visibility
+    );
+
+    /**
+     * Reads an object back into memory.
+     *
+     * <p>For the cases that must not hand out a presigned URL at all — where the
+     * backend streams the bytes itself after checking ownership.
+     */
+    byte[] read(String key);
+
+    /**
      * Builds a short-lived presigned GET URL for an object.
      *
      * @param key object key, without a leading slash

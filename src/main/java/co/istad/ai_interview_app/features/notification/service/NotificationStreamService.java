@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.notification.service;
 
+import co.istad.ai_interview_app.features.notification.dto.MessageStreamEvent;
 import co.istad.ai_interview_app.features.notification.dto.NotificationResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -42,8 +43,17 @@ public class NotificationStreamService {
     private final Map<Long, List<SseEmitter>> emittersByUserAccountId = new ConcurrentHashMap<>();
 
     public SseEmitter subscribe(Long userAccountId) {
-        SseEmitter emitter = new SseEmitter(TIMEOUT_MILLIS);
+        return register(userAccountId, new SseEmitter(TIMEOUT_MILLIS));
+    }
 
+    /**
+     * Registers an emitter against an account and opens it.
+     *
+     * <p>Split out of {@link #subscribe} so a test can hand in an emitter it can
+     * observe — a real one needs an HTTP response behind it before it will
+     * accept a single event.
+     */
+    SseEmitter register(Long userAccountId, SseEmitter emitter) {
         emittersByUserAccountId
                 .computeIfAbsent(userAccountId, key -> new CopyOnWriteArrayList<>())
                 .add(emitter);
@@ -63,12 +73,27 @@ public class NotificationStreamService {
     }
 
     public void push(Long userAccountId, NotificationResponse notification) {
+        pushEvent(userAccountId, "notification", notification);
+    }
+
+    /**
+     * Tells a recipient that a conversation gained a message.
+     *
+     * <p>A separate event name from {@code notification} so the client can act
+     * on it without decoding a notification payload, and so a muted thread still
+     * updates on screen while staying quiet in the bell.
+     */
+    public void pushMessage(Long userAccountId, MessageStreamEvent event) {
+        pushEvent(userAccountId, "message", event);
+    }
+
+    private void pushEvent(Long userAccountId, String eventName, Object payload) {
         List<SseEmitter> emitters = emittersByUserAccountId.get(userAccountId);
 
         if (emitters == null || emitters.isEmpty()) return;
 
         for (SseEmitter emitter : emitters) {
-            if (!send(emitter, "notification", notification)) {
+            if (!send(emitter, eventName, payload)) {
                 remove(userAccountId, emitter);
             }
         }

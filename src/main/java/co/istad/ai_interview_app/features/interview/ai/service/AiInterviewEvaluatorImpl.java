@@ -1,12 +1,13 @@
 package co.istad.ai_interview_app.features.interview.ai.service;
 
+import co.istad.ai_interview_app.config.ai.AiChatClientFactory;
+import co.istad.ai_interview_app.shared.enums.admin.AiTask;
 import co.istad.ai_interview_app.features.interview.ai.dto.EvaluatedAnswer;
 import co.istad.ai_interview_app.features.interview.ai.dto.InterviewEvaluationRequest;
 import co.istad.ai_interview_app.features.interview.ai.dto.InterviewEvaluationResult;
 import co.istad.ai_interview_app.shared.exception.GeminiGenerationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -18,11 +19,11 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
 
-    private final ChatClient geminiChatClient;
+    private final AiChatClientFactory chatClients;
 
     @Override
     public InterviewEvaluationResult evaluate(InterviewEvaluationRequest request) {
-        InterviewEvaluationResult result = geminiChatClient
+        InterviewEvaluationResult result = chatClients.forTask(AiTask.ANSWER_EVALUATION)
                 .prompt()
                 .system("""
                         You are a strict but fair technical interview evaluator.

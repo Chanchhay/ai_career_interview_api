@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.moderator;
 
 import co.istad.ai_interview_app.features.common.response.ApiResponse;
+import co.istad.ai_interview_app.features.moderator.dto.CompanyIdentityVisibilityRequest;
 import co.istad.ai_interview_app.features.moderator.dto.CompanyVerificationResponse;
 import co.istad.ai_interview_app.features.moderator.dto.DecisionRequest;
 import co.istad.ai_interview_app.features.moderator.dto.ModeratorCompanyDetailResponse;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,6 +41,21 @@ public class ModeratorCompanyVerificationController {
             @PathVariable Long companyId
     ) {
         return ApiResponse.success(companyVerificationService.getCompany(companyId));
+    }
+
+    /**
+     * Shows or hides this company's identity from candidates.
+     *
+     * <p>Separate from the verification decisions below: masking is not a
+     * judgement about the company, and an approved company can be masked just
+     * as easily as a new one.
+     */
+    @PatchMapping("/{companyId}/identity-visibility")
+    public ApiResponse<ModeratorCompanyDetailResponse> setIdentityVisibility(
+            @PathVariable Long companyId,
+            @Valid @RequestBody CompanyIdentityVisibilityRequest request
+    ) {
+        return ApiResponse.success(companyVerificationService.setIdentityVisibility(companyId, request));
     }
 
     @PostMapping("/{companyId}/approve")

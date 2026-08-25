@@ -1,9 +1,10 @@
 package co.istad.ai_interview_app.features.job.parsing.service;
 
+import co.istad.ai_interview_app.config.ai.AiChatClientFactory;
+import co.istad.ai_interview_app.shared.enums.admin.AiTask;
 import co.istad.ai_interview_app.features.job.parsing.dto.ExtractedJobDocument;
 import co.istad.ai_interview_app.shared.exception.GeminiGenerationException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,14 +15,14 @@ import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 @RequiredArgsConstructor
 public class JobDocumentExtractorImpl implements JobDocumentExtractor {
 
-    private final ChatClient geminiChatClient;
+    private final AiChatClientFactory chatClients;
 
     @Override
     public ExtractedJobDocument extract(
             String documentText,
             List<String> categoryNames
     ) {
-        ExtractedJobDocument result = geminiChatClient
+        ExtractedJobDocument result = chatClients.forTask(AiTask.JOB_DOCUMENT_EXTRACTION)
                 .prompt()
                 .system("""
                         You extract structured job posting data from the raw

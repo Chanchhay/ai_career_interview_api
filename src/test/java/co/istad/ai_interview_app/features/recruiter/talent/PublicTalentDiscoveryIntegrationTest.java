@@ -38,6 +38,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -156,11 +157,14 @@ class PublicTalentDiscoveryIntegrationTest {
         Fixture fixture = createTalentFixture("download", VisibilityStatus.PUBLIC, ProfileStatus.ACTIVE, true);
         Long privateResumeId = createResume(fixture.profileId, "Private Resume", "https://files.example/private.pdf", VisibilityStatus.PRIVATE);
 
+        // This fixture's resume points outside the platform's object storage, so
+        // the browser is redirected rather than served bytes the backend does
+        // not have. A resume generated or uploaded here streams instead — see
+        // DownloadedFile for why the two cases differ.
         mockMvc.perform(get("/api/v1/recruiter/talent/{slug}/resumes/{resumeId}/download", fixture.slug, fixture.resumeId)
                         .with(jwtFor("recruiter-download", "RECRUITER")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.resumeId").value(fixture.resumeId))
-                .andExpect(jsonPath("$.data.downloadUrl").value("https://files.example/" + fixture.slug + ".pdf"));
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", "https://files.example/" + fixture.slug + ".pdf"));
 
         mockMvc.perform(get("/api/v1/recruiter/talent/{slug}/resumes/{resumeId}/download", fixture.slug, privateResumeId)
                         .with(jwtFor("recruiter-download", "RECRUITER")))

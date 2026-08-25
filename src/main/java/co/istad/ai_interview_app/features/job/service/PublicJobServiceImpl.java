@@ -6,6 +6,7 @@ import co.istad.ai_interview_app.features.job.dto.JobPostSectionResponse;
 import co.istad.ai_interview_app.features.job.dto.JobPostSkillResponse;
 import co.istad.ai_interview_app.features.job.dto.PublicIndustryResponse;
 import co.istad.ai_interview_app.features.job.dto.PublicJobCategoryResponse;
+import co.istad.ai_interview_app.features.company.service.CompanyIdentity;
 import co.istad.ai_interview_app.features.job.dto.PublicJobResponse;
 import co.istad.ai_interview_app.features.job.dto.PublicSkillResponse;
 import co.istad.ai_interview_app.features.job.entity.JobCategory;
@@ -149,8 +150,8 @@ public class PublicJobServiceImpl implements PublicJobService {
     private PublicJobResponse toPublicResponse(JobPost jobPost, Set<Long> savedJobIds) {
         return new PublicJobResponse(
                 jobPost.getId(),
-                jobPost.getCompany().getId(),
-                jobPost.getCompany().getName(),
+                CompanyIdentity.displayId(jobPost.getCompany()),
+                CompanyIdentity.displayName(jobPost.getCompany()),
                 jobPost.getCategory() == null ? null : jobPost.getCategory().getId(),
                 jobPost.getCategory() == null ? null : jobPost.getCategory().getName(),
                 jobPost.getTitle(),

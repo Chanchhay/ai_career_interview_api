@@ -11,8 +11,22 @@ app:
     jwt:
       connect-timeout: ${JWT_JWK_CONNECT_TIMEOUT:5s}
       read-timeout: ${JWT_JWK_READ_TIMEOUT:30s}
+    # Base64-encoded 32-byte AES key that encrypts secrets saved from the admin
+    # console. Without it the console cannot store an API key at all, and says
+    # so, rather than writing one in the clear. Generate with:
+    #   openssl rand -base64 32
+    settings-encryption-key: ${AI_SETTINGS_ENCRYPTION_KEY:}
 
 spring:
+  autoconfigure:
+    # The starter builds a Gemini client at startup from these properties and
+    # refuses a blank key. Nothing injects that client any more — every AI call
+    # goes through AiChatClientFactory, which builds one from the settings that
+    # are live at the time — and excluding it is what lets the server start with
+    # no key at all so an administrator can set one from the console.
+    exclude:
+      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
+
   security:
     oauth2:
       resourceserver:
@@ -35,19 +49,32 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      # Flyway owns the schema; this is the safety net, not the plan. Set
+      # DDL_AUTO=validate on a deployed server once a boot has succeeded: the
+      # server then refuses to start on a schema the migrations did not produce,
+      # instead of quietly issuing DDL of its own and failing halfway through
+      # against real data.
+      ddl-auto: ${DDL_AUTO:update}
     show-sql: true
     properties:
       hibernate:
         format_sql: true
   flyway:
+    # An existing database that predates Flyway is stamped as version 1 rather
+    # than being rebuilt, so migrations from V2 on apply to what is already
+    # there. Every migration is written to be safe against a schema ddl-auto
+    # built, because for a long time that is the only thing that built it.
     baseline-on-migrate: true
     baseline-version: 1
     locations: classpath:db/migration
   ai:
     google:
       genai:
-        api-key: ${GEMINI_API_KEY}
+        # Bootstrap values only. The admin console can override the model, the
+        # key and the tuning at runtime (stored in system_settings); these are
+        # what the platform falls back to when it has not. Blank is allowed so a
+        # deployment can hold its key in the console instead of the environment.
+        api-key: ${GEMINI_API_KEY:}
         chat:
           max-output-tokens: 4096
           temperature: 0.2

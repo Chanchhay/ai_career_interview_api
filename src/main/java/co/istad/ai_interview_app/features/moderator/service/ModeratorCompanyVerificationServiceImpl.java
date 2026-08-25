@@ -8,6 +8,7 @@ import co.istad.ai_interview_app.features.company.mapper.CompanyMapper;
 import co.istad.ai_interview_app.features.company.repository.CompanyDocumentRepository;
 import co.istad.ai_interview_app.features.company.repository.CompanyRepository;
 import co.istad.ai_interview_app.features.moderator.dto.CompanyVerificationResponse;
+import co.istad.ai_interview_app.features.moderator.dto.CompanyIdentityVisibilityRequest;
 import co.istad.ai_interview_app.features.moderator.dto.DecisionRequest;
 import co.istad.ai_interview_app.features.moderator.dto.ModeratorCompanyDetailResponse;
 import co.istad.ai_interview_app.features.moderator.dto.ModeratorCompanyListItemResponse;
@@ -74,6 +75,26 @@ public class ModeratorCompanyVerificationServiceImpl implements ModeratorCompany
                 .toList();
 
         return new ModeratorCompanyDetailResponse(companyResponse, documents, verificationHistory);
+    }
+
+    /**
+     * Masks or unmasks a company for candidates.
+     *
+     * <p>Takes effect on the next read of every candidate-facing endpoint;
+     * nothing is copied onto the job posts, so there is no half-masked state
+     * where some listings caught up and others did not.
+     */
+    @Override
+    @Transactional
+    public ModeratorCompanyDetailResponse setIdentityVisibility(
+            Long companyId,
+            CompanyIdentityVisibilityRequest request
+    ) {
+        Company company = resolveCompany(companyId);
+        company.setIdentityVisibility(request.visibility());
+        companyRepository.save(company);
+
+        return getCompany(companyId);
     }
 
     @Override
@@ -168,7 +189,8 @@ public class ModeratorCompanyVerificationServiceImpl implements ModeratorCompany
                 company.getContactEmail(),
                 company.getBusinessRegistrationNo(),
                 company.getVerificationStatus(),
-                company.getStatus()
+                company.getStatus(),
+                company.getIdentityVisibility()
         );
     }
 
