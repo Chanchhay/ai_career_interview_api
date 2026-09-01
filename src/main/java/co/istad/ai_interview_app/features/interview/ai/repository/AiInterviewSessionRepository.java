@@ -48,6 +48,9 @@ public interface AiInterviewSessionRepository extends JpaRepository<AiInterviewS
             Long jobSeekerUserAccountId
     );
 
+    /** Every session on an application, whatever state it reached. */
+    List<AiInterviewSession> findAllByApplication_Id(Long applicationId);
+
     Optional<AiInterviewSession> findFirstByApplication_IdAndStatusOrderByEndedAtDesc(
             Long applicationId,
             co.istad.ai_interview_app.shared.enums.interview.InterviewStatus status

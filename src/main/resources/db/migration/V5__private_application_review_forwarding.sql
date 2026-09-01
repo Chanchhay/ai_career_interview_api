@@ -1,3 +1,12 @@
+-- "One application per candidate per job, ever." V19 later replaces this with
+-- the rule the product actually wants -- one *live* application, so a closed
+-- attempt can be re-applied to -- and drops this constraint on the way past.
+--
+-- A database that already holds a closed attempt beside a live one is legal
+-- under that later rule but not under this one, so adding the constraint here
+-- would fail the whole migration on data V19 is about to bless. Skip it in
+-- that case: it is a stepping stone, not the final rule, and every database
+-- ends up at the same place once V19 runs.
 DO $$
 BEGIN
     IF to_regclass('job_applications') IS NOT NULL THEN
@@ -6,6 +15,11 @@ BEGIN
             FROM pg_constraint
             WHERE conrelid = 'job_applications'::regclass
               AND conname = 'uk_job_applications_job_profile'
+        ) AND NOT EXISTS (
+            SELECT 1
+            FROM job_applications
+            GROUP BY job_post_id, job_seeker_profile_id
+            HAVING count(*) > 1
         ) THEN
             ALTER TABLE job_applications
                 ADD CONSTRAINT uk_job_applications_job_profile

@@ -415,6 +415,112 @@ class PrivateApplicationWorkflowIntegrationTest {
     }
 
     /**
+     * The three ways approval can lack an AI interview say three different
+     * things, because only one of them is a defect and the reviewer cannot act
+     * on any of them without knowing which they are looking at.
+     */
+    @Test
+    void refusalsDistinguishNotStartedFromUnfinished() throws Exception {
+        Fixture fixture = createFixture("ai-gate-messages", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-gate-messages");
+
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isOk());
+
+        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-gate-messages", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"too early\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("This candidate has not taken the AI interview for this job yet."));
+
+        // Started but not finished is a different answer: wait, do not chase.
+        setSecurity(fixture.seekerKeycloakId, "SEEKER");
+        AiInterviewSessionResponse session = aiInterviewService.createInterviewForApplication(applicationId);
+        aiInterviewService.startInterview(session.id());
+        SecurityContextHolder.clearContext();
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-gate-messages", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"still early\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("This candidate's AI interview has not finished yet, so there is no result to approve on."));
+    }
+
+    /**
+     * A finished interview for this job that was never attached to the
+     * application is adopted at approval rather than refused.
+     *
+     * <p>This is the shape the live server hit: the candidate had completed the
+     * interview, and approval still insisted none existed. Applying already
+     * counts a practice interview for the same job, so refusing here only
+     * because the link was missing contradicted a rule the platform had already
+     * made.
+     */
+    @Test
+    void approvesByAdoptingACompletedInterviewThatWasNeverLinked() throws Exception {
+        Fixture fixture = createFixture("orphan-ai", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
+        createModerator("moderator-orphan-ai");
+
+        mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
+                        .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"resumeId":%d}
+                                """.formatted(fixture.privateResumeId)))
+                .andExpect(status().isOk());
+
+        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+
+        setSecurity(fixture.seekerKeycloakId, "SEEKER");
+        AiInterviewSessionResponse session = aiInterviewService.createInterviewForJob(fixture.jobId);
+        AiInterviewSessionResponse started = aiInterviewService.startInterview(session.id());
+        for (var question : started.questions()) {
+            aiInterviewService.submitAnswer(
+                    session.id(),
+                    question.id(),
+                    new AiInterviewAnswerRequest("Answer " + question.displayOrder())
+            );
+        }
+        aiInterviewService.completeInterview(session.id());
+        SecurityContextHolder.clearContext();
+
+        // Break the link the way the deployed data was broken.
+        transactionTemplate.executeWithoutResult(status -> entityManager
+                .createQuery("update AiInterviewSession s set s.application = null where s.id = :id")
+                .setParameter("id", session.id())
+                .executeUpdate());
+
+        mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
+                        .with(jwtFor("moderator-orphan-ai", "MODERATOR"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisionNote\":\"interview counted\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviewStatus").value("APPROVED"));
+
+        // Adopted, not merely tolerated: the session now belongs to the
+        // application, so every later read agrees with this decision.
+        transactionTemplate.executeWithoutResult(status -> {
+            Long linked = entityManager
+                    .createQuery("select count(s) from AiInterviewSession s "
+                            + "where s.id = :id and s.application.id = :applicationId", Long.class)
+                    .setParameter("id", session.id())
+                    .setParameter("applicationId", applicationId)
+                    .getSingleResult();
+            org.assertj.core.api.Assertions.assertThat(linked).isEqualTo(1L);
+        });
+    }
+
+    /**
      * A rejected candidate can apply to the same job again, and the rejection
      * stays on record.
      *
