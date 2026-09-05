@@ -10,7 +10,6 @@ import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewSessionRes
 import co.istad.ai_interview_app.features.interview.ai.dto.AnswerEvaluationInput;
 import co.istad.ai_interview_app.features.interview.ai.dto.EvaluatedAnswer;
 import co.istad.ai_interview_app.features.interview.ai.dto.GeneratedQuestion;
-import co.istad.ai_interview_app.features.interview.ai.dto.GeneratedQuestionSet;
 import co.istad.ai_interview_app.features.interview.ai.dto.InterviewEvaluationRequest;
 import co.istad.ai_interview_app.features.interview.ai.dto.InterviewEvaluationResult;
 import co.istad.ai_interview_app.features.interview.ai.entity.AiInterviewAnswer;
@@ -74,7 +73,7 @@ import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNu
 @RequiredArgsConstructor
 public class AiInterviewServiceImpl implements AiInterviewService {
 
-    private final AiInterviewQuestionGenerator questionGenerator;
+    private final InterviewQuestionComposer questionComposer;
     private final AiInterviewConfigService configService;
     private final AiInterviewEvaluator evaluator;
     private final JobPostRepository jobPostRepository;
@@ -126,7 +125,17 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
         List<GeneratedQuestion> questions;
         try {
-            questions = composeQuestions(context, config);
+            questions = questionComposer.compose(
+                    new InterviewQuestionComposer.JobFacts(
+                            context.jobTitle(),
+                            context.jobDescription(),
+                            context.experienceLevel(),
+                            context.requiredSkills()
+                    ),
+                    context.manualQuestionMode(),
+                    context.writtenQuestions(),
+                    config
+            );
         } catch (RuntimeException ex) {
             transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
             throw ex;
@@ -135,175 +144,6 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         return transactionTemplate.execute(status -> persistQuestions(context.sessionId(), questions));
     }
 
-    /**
-     * The questions this session will ask: what an administrator wrote for the
-     * job, then whatever the AI is still asked to add.
-     *
-     * <p>Written questions always come first and keep their authored order — an
-     * author who put a screening question at the top meant it to be asked first.
-     */
-    private List<GeneratedQuestion> composeQuestions(
-            GenerationContext context,
-            AiInterviewGenerationConfig config
-    ) {
-        List<GeneratedQuestion> written = context.writtenQuestions();
-
-        int generatedCount = written.isEmpty()
-                ? config.questionCount()
-                : context.manualQuestionMode() == ManualQuestionMode.MANUAL_ONLY
-                        ? 0
-                        : Math.max(0, config.questionCount() - written.size());
-
-        // Nothing left for the AI: MANUAL_ONLY, or the written set already fills
-        // the interview. Either way it is not called at all.
-        if (generatedCount == 0) return renumber(written);
-
-        AiInterviewGenerationConfig generationConfig = written.isEmpty()
-                ? config
-                : topUpConfig(config, written, generatedCount);
-
-        GeneratedQuestionSet generated = questionGenerator.generateQuestions(
-                context.jobTitle(),
-                context.jobDescription(),
-                context.experienceLevel(),
-                context.requiredSkills(),
-                generationConfig
-        );
-
-        validateGeneratedQuestions(generated, generationConfig);
-
-        List<GeneratedQuestion> composed = new ArrayList<>(written);
-        composed.addAll(generated.questions());
-
-        return renumber(composed);
-    }
-
-    /**
-     * The generation settings for the part the AI still has to write.
-     *
-     * <p>Each written question is taken off its own type's allocation first, so
-     * a job with two hand-written behavioural questions gets two fewer generated
-     * ones of that type rather than a lopsided interview. What that leaves is
-     * then nudged up or down to land exactly on the number still needed, because
-     * the validator refuses a set that does not match its own distribution.
-     */
-    private AiInterviewGenerationConfig topUpConfig(
-            AiInterviewGenerationConfig config,
-            List<GeneratedQuestion> written,
-            int generatedCount
-    ) {
-        Map<InterviewQuestionType, Integer> distribution = new LinkedHashMap<>(config.typeDistribution());
-
-        for (GeneratedQuestion question : written) {
-            distribution.computeIfPresent(question.type(), (type, count) -> Math.max(0, count - 1));
-        }
-
-        /*
-         * Every allocation can be used up while questions are still owed — a job
-         * with more written questions of one type than the mix allows. Falling
-         * back to the mix's first type keeps a valid request rather than asking
-         * for zero questions of everything.
-         */
-        if (distribution.values().stream().mapToInt(Integer::intValue).sum() == 0) {
-            InterviewQuestionType fallback = config.typeDistribution().keySet().stream()
-                    .findFirst()
-                    .orElse(InterviewQuestionType.GENERAL);
-            distribution = new LinkedHashMap<>(Map.of(fallback, generatedCount));
-        }
-
-        balance(distribution, generatedCount);
-
-        return new AiInterviewGenerationConfig(
-                generatedCount,
-                config.maxScorePerQuestion(),
-                distribution,
-                appendWrittenQuestions(config.additionalInstructions(), written)
-        );
-    }
-
-    /** Adds or removes one at a time until the allocations total {@code target}. */
-    private void balance(Map<InterviewQuestionType, Integer> distribution, int target) {
-        int allocated = distribution.values().stream().mapToInt(Integer::intValue).sum();
-
-        while (allocated != target) {
-            InterviewQuestionType type = allocated < target
-                    ? largest(distribution)
-                    : largestAbove(distribution);
-
-            distribution.merge(type, allocated < target ? 1 : -1, Integer::sum);
-            allocated += allocated < target ? 1 : -1;
-        }
-    }
-
-    private InterviewQuestionType largest(Map<InterviewQuestionType, Integer> distribution) {
-        return distribution.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(InterviewQuestionType.GENERAL);
-    }
-
-    private InterviewQuestionType largestAbove(Map<InterviewQuestionType, Integer> distribution) {
-        return distribution.entrySet().stream()
-                .filter(entry -> entry.getValue() > 0)
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(InterviewQuestionType.GENERAL);
-    }
-
-    /**
-     * Tells the model what a human already asked, so it writes around it.
-     *
-     * <p>Without this the generated half happily repeats a written question in
-     * different words, and the candidate answers the same thing twice.
-     */
-    private String appendWrittenQuestions(String instructions, List<GeneratedQuestion> written) {
-        StringBuilder text = new StringBuilder();
-
-        if (normalizeBlankToNull(instructions) != null) {
-            text.append(instructions.trim()).append("\n\n");
-        }
-
-        text.append("These questions are already being asked by a human interviewer. ")
-                .append("Do not repeat them or ask a reworded version of them:\n");
-
-        for (GeneratedQuestion question : written) {
-            text.append("- ").append(question.question()).append('\n');
-        }
-
-        return text.toString();
-    }
-
-    /** Renumbers a composed list so the session's order is 1..n and contiguous. */
-    private List<GeneratedQuestion> renumber(List<GeneratedQuestion> questions) {
-        List<GeneratedQuestion> ordered = new ArrayList<>(questions.size());
-        int order = 1;
-
-        for (GeneratedQuestion question : questions) {
-            ordered.add(new GeneratedQuestion(
-                    order++,
-                    question.type(),
-                    question.question(),
-                    question.rubric(),
-                    question.maxScore()
-            ));
-        }
-
-        return ordered;
-    }
-
-    /** A job's hand-written questions, in the shape the session builder uses. */
-    private List<GeneratedQuestion> writtenQuestions(Long jobPostId) {
-        return writtenQuestionRepository.findAllByJobPost_IdOrderByDisplayOrderAsc(jobPostId)
-                .stream()
-                .map(question -> new GeneratedQuestion(
-                        question.getDisplayOrder(),
-                        question.getQuestionType(),
-                        question.getQuestionText(),
-                        question.getExpectedAnswer(),
-                        question.getMaxScore()
-                ))
-                .toList();
-    }
 
     @Override
     public List<AiInterviewSessionResponse> getMyInterviews() {
@@ -321,23 +161,8 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewSessionResponse startInterview(Long sessionId) {
-        return transactionTemplate.execute(status -> {
-            AiInterviewSession session = resolveMySessionWithQuestions(sessionId);
-
-            if (session.getStatus() == InterviewStatus.IN_PROGRESS
-                    || session.getStatus() == InterviewStatus.COMPLETED) {
-                return mapper.toSessionResponse(session);
-            }
-
-            if (session.getStatus() != InterviewStatus.READY) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only ready interviews can be started");
-            }
-
-            session.setStatus(InterviewStatus.IN_PROGRESS);
-            session.setStartedAt(Instant.now());
-
-            return mapper.toSessionResponse(session);
-        });
+        return transactionTemplate.execute(status ->
+                startSession(resolveMySessionWithQuestions(sessionId)));
     }
 
     @Override
@@ -347,38 +172,76 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             AiInterviewAnswerRequest request
     ) {
         return transactionTemplate.execute(status -> {
-            AiInterviewSession session = resolveMySessionWithQuestions(sessionId);
-            if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Interview must be in progress before answers can be submitted");
-            }
-
-            AiInterviewQuestion question = questionRepository
-                    .findByIdAndSession_IdAndSession_JobSeeker_KeycloakUserId(
-                            questionId,
-                            sessionId,
-                            AuthUtils.extractUserId()
-                    )
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "Interview question was not found for authenticated job seeker"
-                    ));
-
-            AiInterviewAnswer answer = answerRepository.findByQuestion_Id(questionId)
-                    .orElseGet(() -> {
-                        AiInterviewAnswer newAnswer = new AiInterviewAnswer();
-                        newAnswer.setQuestion(question);
-                        question.getAnswers().add(newAnswer);
-                        return newAnswer;
-                    });
-
-            answer.setAnswerText(normalizeBlankToNull(request.answerText()));
-            answer.setScore(null);
-            answer.setFeedback(null);
-            answer.setModelAnswer(null);
-            answerRepository.save(answer);
+            recordAnswer(resolveMySessionWithQuestions(sessionId), questionId, request);
 
             return mapper.toSessionResponse(resolveMySessionWithQuestions(sessionId));
         });
+    }
+
+    /**
+     * Opens an interview that is ready to be sat.
+     *
+     * <p>Takes a session the caller has already established belongs to whoever
+     * is asking, so the candidate flow and the guest flow share one set of
+     * rules about what may be started and when.
+     */
+    private AiInterviewSessionResponse startSession(AiInterviewSession session) {
+        if (session.getStatus() == InterviewStatus.IN_PROGRESS
+                || session.getStatus() == InterviewStatus.COMPLETED) {
+            return mapper.toSessionResponse(session);
+        }
+
+        if (session.getStatus() != InterviewStatus.READY) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only ready interviews can be started");
+        }
+
+        session.setStatus(InterviewStatus.IN_PROGRESS);
+        session.setStartedAt(Instant.now());
+
+        return mapper.toSessionResponse(session);
+    }
+
+    /**
+     * Records an answer against a question of an already-resolved session.
+     *
+     * <p>The question is looked up within the session rather than by a query
+     * that re-checks the owner: the session was resolved by owner a moment ago,
+     * and a question of that session is by definition the same person's.
+     */
+    private void recordAnswer(
+            AiInterviewSession session,
+            Long questionId,
+            AiInterviewAnswerRequest request
+    ) {
+        if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Interview must be in progress before answers can be submitted"
+            );
+        }
+
+        AiInterviewQuestion question = session.getQuestions()
+                .stream()
+                .filter(candidate -> candidate.getId().equals(questionId))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Interview question was not found for this interview"
+                ));
+
+        AiInterviewAnswer answer = answerRepository.findByQuestion_Id(questionId)
+                .orElseGet(() -> {
+                    AiInterviewAnswer newAnswer = new AiInterviewAnswer();
+                    newAnswer.setQuestion(question);
+                    question.getAnswers().add(newAnswer);
+                    return newAnswer;
+                });
+
+        answer.setAnswerText(normalizeBlankToNull(request.answerText()));
+        answer.setScore(null);
+        answer.setFeedback(null);
+        answer.setModelAnswer(null);
+        answerRepository.save(answer);
     }
 
     @Override
@@ -417,8 +280,20 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewSessionResponse bindVapiCall(Long sessionId, VapiCallBindingRequest request) {
-        return transactionTemplate.execute(status -> {
-            AiInterviewSession session = resolveMySessionWithQuestions(sessionId);
+        return transactionTemplate.execute(status ->
+                bindCall(resolveMySessionWithQuestions(sessionId), request));
+    }
+
+    /**
+     * Attaches a voice call to an interview the caller has already been shown to
+     * own.
+     *
+     * <p>Shared by the candidate and guest flows: which call may voice which
+     * interview is the same question whoever is sitting it.
+     */
+    private AiInterviewSessionResponse bindCall(AiInterviewSession session, VapiCallBindingRequest request) {
+        {
+            Long sessionId = session.getId();
 
             if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
                 throw new ResponseStatusException(
@@ -441,7 +316,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             session.setCallSessionId(callId);
 
             return mapper.toSessionResponse(session);
-        });
+        }
     }
 
     @Override
@@ -476,6 +351,20 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             Long sessionId,
             VoiceTranscriptRequest request
     ) {
+        return submitVoiceTranscript(sessionId, request, this::resolveMySessionWithQuestions);
+    }
+
+    /**
+     * Stores and scores a finished call, for whoever the resolver says owns it.
+     *
+     * <p>The resolver is the only difference between a candidate submitting a
+     * transcript and a guest doing it, so it is the only thing passed in.
+     */
+    private AiInterviewSessionResponse submitVoiceTranscript(
+            Long sessionId,
+            VoiceTranscriptRequest request,
+            java.util.function.LongFunction<AiInterviewSession> resolve
+    ) {
         List<VapiTranscriptTurn> turns = request.turns()
                 .stream()
                 .map(turn -> new VapiTranscriptTurn(
@@ -486,7 +375,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 .toList();
 
         Long readySessionId = transactionTemplate.execute(status -> acceptTranscript(
-                resolveMySessionWithQuestions(sessionId),
+                resolve.apply(sessionId),
                 VapiTranscriptTurn.toTranscript(turns),
                 turns
         ));
@@ -498,7 +387,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         }
 
         return transactionTemplate.execute(status ->
-                mapper.toSessionResponse(resolveMySessionWithQuestions(sessionId)));
+                mapper.toSessionResponse(resolve.apply(sessionId)));
     }
 
     /**
@@ -729,7 +618,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 jobPost.getExperienceLevel(),
                 requiredSkills(jobPost),
                 jobPost.getManualQuestionMode(),
-                writtenQuestions(jobPost.getId())
+                questionComposer.writtenQuestions(jobPost.getId())
         );
     }
 
@@ -804,7 +693,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 jobPost.getExperienceLevel(),
                 requiredSkills(jobPost),
                 jobPost.getManualQuestionMode(),
-                writtenQuestions(jobPost.getId())
+                questionComposer.writtenQuestions(jobPost.getId())
         );
     }
 
@@ -1044,35 +933,6 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 .toList();
     }
 
-    private void validateGeneratedQuestions(
-            GeneratedQuestionSet generatedQuestionSet,
-            AiInterviewGenerationConfig config
-    ) {
-        if (generatedQuestionSet == null || generatedQuestionSet.questions() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI did not return questions");
-        }
-
-        if (generatedQuestionSet.questions().size() != config.questionCount()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_GATEWAY,
-                    "AI did not return exactly " + config.questionCount() + " questions"
-            );
-        }
-
-        Set<Integer> orders = new HashSet<>();
-        for (GeneratedQuestion question : generatedQuestionSet.questions()) {
-            if (question == null
-                    || question.order() == null
-                    || !orders.add(question.order())
-                    || question.type() == null
-                    || normalizeBlankToNull(question.question()) == null
-                    || normalizeBlankToNull(question.rubric()) == null
-                    || question.maxScore() == null
-                    || question.maxScore() != config.maxScorePerQuestion()) {
-                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI returned invalid questions");
-            }
-        }
-    }
 
     private void validateEvaluation(
             AiInterviewSession session,
@@ -1144,5 +1004,166 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             InterviewEvaluationRequest request,
             boolean alreadyCompleted
     ) {
+    }
+
+    /* ------------------------------------------------------------ guests --- */
+
+    @Override
+    public AiInterviewSessionResponse createGuestInterview(
+            Long jobId,
+            String guestToken,
+            String guestIpHash,
+            ManualQuestionMode modeOverride
+    ) {
+        GenerationContext context = transactionTemplate.execute(status ->
+                createPreparingGuestSession(jobId, guestToken, guestIpHash, modeOverride));
+
+        return fillSession(context);
+    }
+
+    /**
+     * A guest's session: no account, no application, and a token instead.
+     *
+     * <p>Only published jobs, the same rule the public listing applies. A guest
+     * must not be able to interview against a draft by guessing its id.
+     */
+    private GenerationContext createPreparingGuestSession(
+            Long jobId,
+            String guestToken,
+            String guestIpHash,
+            ManualQuestionMode modeOverride
+    ) {
+        JobPost jobPost = jobPostRepository.findByIdAndStatus(jobId, JobStatus.PUBLISHED)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Published job was not found"));
+
+        AiInterviewSession session = new AiInterviewSession();
+        session.setJobPost(jobPost);
+        // No jobSeeker and no application on purpose: this interview belongs to
+        // nobody the platform knows, and must never reach a moderator's queue.
+        session.setGuestToken(guestToken);
+        session.setGuestIpHash(guestIpHash);
+        session.setProvider("GEMINI");
+        session.setAiModel(aiModel);
+        session.setStatus(InterviewStatus.PREPARING);
+
+        AiInterviewSession savedSession = sessionRepository.save(session);
+
+        InterviewQuestionComposer.JobFacts facts = questionComposer.jobFacts(jobPost);
+
+        return new GenerationContext(
+                savedSession.getId(),
+                facts.title(),
+                facts.description(),
+                facts.experienceLevel(),
+                facts.requiredSkills(),
+                modeOverride == null ? jobPost.getManualQuestionMode() : modeOverride,
+                questionComposer.writtenQuestions(jobPost.getId())
+        );
+    }
+
+    @Override
+    public AiInterviewSessionResponse getGuestInterview(Long sessionId, String guestToken) {
+        return transactionTemplate.execute(status ->
+                mapper.toSessionResponse(resolveGuestSession(sessionId, guestToken)));
+    }
+
+    @Override
+    public AiInterviewSessionResponse startGuestInterview(Long sessionId, String guestToken) {
+        return transactionTemplate.execute(status ->
+                startSession(resolveGuestSession(sessionId, guestToken)));
+    }
+
+    @Override
+    public AiInterviewSessionResponse submitGuestAnswer(
+            Long sessionId,
+            Long questionId,
+            String guestToken,
+            AiInterviewAnswerRequest request
+    ) {
+        return transactionTemplate.execute(status -> {
+            AiInterviewSession session = resolveGuestSession(sessionId, guestToken);
+            recordAnswer(session, questionId, request);
+
+            return mapper.toSessionResponse(resolveGuestSession(sessionId, guestToken));
+        });
+    }
+
+    @Override
+    public AiInterviewResultResponse completeGuestInterview(Long sessionId, String guestToken) {
+        EvaluationContext context = transactionTemplate.execute(status ->
+                prepareEvaluation(resolveGuestSession(sessionId, guestToken)));
+
+        if (context.alreadyCompleted()) {
+            return transactionTemplate.execute(status ->
+                    mapper.toResultResponse(resolveGuestSessionWithResult(sessionId, guestToken)));
+        }
+
+        InterviewEvaluationResult evaluation;
+        try {
+            evaluation = evaluator.evaluate(context.request());
+        } catch (RuntimeException ex) {
+            transactionTemplate.executeWithoutResult(status -> markSessionFailed(sessionId));
+            throw ex;
+        }
+
+        return transactionTemplate.execute(status ->
+                persistEvaluation(resolveGuestSessionWithResult(sessionId, guestToken), evaluation));
+    }
+
+
+    @Override
+    public AiInterviewSessionResponse bindGuestVapiCall(
+            Long sessionId,
+            String guestToken,
+            VapiCallBindingRequest request
+    ) {
+        return transactionTemplate.execute(status ->
+                bindCall(resolveGuestSession(sessionId, guestToken), request));
+    }
+
+    @Override
+    public AiInterviewSessionResponse submitGuestVoiceTranscript(
+            Long sessionId,
+            String guestToken,
+            VoiceTranscriptRequest request
+    ) {
+        return submitVoiceTranscript(sessionId, request, id -> resolveGuestSession(id, guestToken));
+    }
+
+    @Override
+    public AiInterviewResultResponse getGuestResult(Long sessionId, String guestToken) {
+        return transactionTemplate.execute(status ->
+                mapper.toResultResponse(resolveGuestSessionWithResult(sessionId, guestToken)));
+    }
+
+    /*
+     * The token is the whole of a guest's authorisation, so it is matched in the
+     * query rather than fetched and compared: a session that does not belong to
+     * this token is simply not found, and answers the same as one that does not
+     * exist.
+     */
+
+    private AiInterviewSession resolveGuestSession(Long sessionId, String guestToken) {
+        if (guestToken == null || guestToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest interview was not found");
+        }
+
+        return sessionRepository.findWithQuestionsByIdAndGuestToken(sessionId, guestToken)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Guest interview was not found"
+                ));
+    }
+
+    private AiInterviewSession resolveGuestSessionWithResult(Long sessionId, String guestToken) {
+        if (guestToken == null || guestToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest interview was not found");
+        }
+
+        return sessionRepository.findWithResultByIdAndGuestToken(sessionId, guestToken)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Guest interview was not found"
+                ));
     }
 }

@@ -128,6 +128,22 @@ public class SecurityConfig {
                                 "/api/v1/public/**"
                         ).permitAll()
 
+                        // Guest interviews are the one thing a signed-out
+                        // visitor may write. Scoped to this prefix and these two
+                        // methods rather than opening /api/v1/public/** to all
+                        // verbs: everything else under it is readable on purpose
+                        // and must stay read-only. The session itself is
+                        // protected by the guest's own token, which the service
+                        // requires on every one of these calls.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/public/guest-interviews/**"
+                        ).permitAll()
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/v1/public/guest-interviews/**"
+                        ).permitAll()
+
                         // Vapi's voice-interview webhook. Open to the filter
                         // chain because the caller is Vapi, which holds no
                         // Keycloak token and must never be issued one. It is not

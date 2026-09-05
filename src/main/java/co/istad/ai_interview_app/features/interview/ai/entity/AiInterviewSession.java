@@ -29,9 +29,33 @@ public class AiInterviewSession extends BaseEntity {
     @JoinColumn(name = "job_post_id")
     private JobPost jobPost;
 
-    @ManyToOne(optional = false)
+    /**
+     * The signed-in candidate, or null for a guest interview.
+     *
+     * <p>Nullable so a guest can sit an interview without an account. Every
+     * candidate-facing query filters on this or on the application, so a guest
+     * session cannot appear in a seeker's history, in a moderator's queue, or in
+     * the approval gate — none of which would match a null owner.
+     */
+    @ManyToOne
     @JoinColumn(name = "job_seeker_id")
     private UserAccount jobSeeker;
+
+    /**
+     * Identifies the browser that owns a guest interview, and is the only thing
+     * authorising reads and writes on it. Treated as a bearer secret: whoever
+     * holds it is that guest.
+     */
+    @Column(length = 64)
+    private String guestToken;
+
+    /**
+     * A salted hash of the guest's IP, used only to count interviews per
+     * network per day. Hashed rather than stored, because the address is not
+     * needed for anything except that count.
+     */
+    @Column(length = 64)
+    private String guestIpHash;
 
     private String provider;
 
