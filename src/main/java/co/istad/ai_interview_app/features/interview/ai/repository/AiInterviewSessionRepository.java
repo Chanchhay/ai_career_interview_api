@@ -48,6 +48,23 @@ public interface AiInterviewSessionRepository extends JpaRepository<AiInterviewS
             Long jobSeekerUserAccountId
     );
 
+    /* ------------------------------------------------------------ guests --- */
+
+    /*
+     * A guest has no account, so the token their browser holds is the only
+     * thing that says an interview is theirs. Every guest lookup therefore
+     * matches on it as well as the id — never on the id alone, which would let
+     * anyone read a stranger's interview by counting upwards.
+     */
+
+    Optional<AiInterviewSession> findWithQuestionsByIdAndGuestToken(Long id, String guestToken);
+
+    Optional<AiInterviewSession> findWithResultByIdAndGuestToken(Long id, String guestToken);
+
+    long countByGuestToken(String guestToken);
+
+    long countByGuestIpHashAndCreatedAtAfter(String guestIpHash, java.time.Instant createdAfter);
+
     /** Every session on an application, whatever state it reached. */
     List<AiInterviewSession> findAllByApplication_Id(Long applicationId);
 

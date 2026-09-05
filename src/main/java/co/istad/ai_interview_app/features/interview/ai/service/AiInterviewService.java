@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.interview.ai.service;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewAnswerRequest;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewResultResponse;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewSessionResponse;
+import co.istad.ai_interview_app.shared.enums.interview.ManualQuestionMode;
 import co.istad.ai_interview_app.features.interview.vapi.dto.VapiCallBindingRequest;
 import co.istad.ai_interview_app.features.interview.vapi.dto.VapiTranscriptTurn;
 import co.istad.ai_interview_app.features.interview.vapi.dto.VoiceTranscriptRequest;
@@ -49,4 +50,50 @@ public interface AiInterviewService {
      * scores the interview; the other finds it already done.
      */
     AiInterviewSessionResponse submitVoiceTranscript(Long sessionId, VoiceTranscriptRequest request);
+
+    /* ------------------------------------------------------------ guests --- */
+
+    /*
+     * A guest holds no account, so a token their browser keeps stands in for
+     * one. These mirror the seeker methods above and share every internal step
+     * with them — the same questions, the same state machine, the same scoring.
+     * Only who is allowed to touch the session differs, which is the whole of
+     * the difference between a guest and a candidate.
+     */
+
+    AiInterviewSessionResponse createGuestInterview(
+            Long jobId,
+            String guestToken,
+            String guestIpHash,
+            ManualQuestionMode modeOverride
+    );
+
+    AiInterviewSessionResponse getGuestInterview(Long sessionId, String guestToken);
+
+    AiInterviewSessionResponse startGuestInterview(Long sessionId, String guestToken);
+
+    AiInterviewSessionResponse submitGuestAnswer(
+            Long sessionId,
+            Long questionId,
+            String guestToken,
+            AiInterviewAnswerRequest request
+    );
+
+    AiInterviewResultResponse completeGuestInterview(Long sessionId, String guestToken);
+
+    AiInterviewResultResponse getGuestResult(Long sessionId, String guestToken);
+
+    /** Attaches the voice call that is speaking a guest's interview. */
+    AiInterviewSessionResponse bindGuestVapiCall(
+            Long sessionId,
+            String guestToken,
+            VapiCallBindingRequest request
+    );
+
+    /** Scores a guest's finished voice call from its transcript. */
+    AiInterviewSessionResponse submitGuestVoiceTranscript(
+            Long sessionId,
+            String guestToken,
+            VoiceTranscriptRequest request
+    );
 }
