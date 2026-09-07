@@ -4,14 +4,15 @@ import co.istad.ai_interview_app.features.application.dto.JobApplicationCreateRe
 import co.istad.ai_interview_app.features.application.dto.JobApplicationResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface JobSeekerApplicationService {
 
-    JobApplicationResponse apply(Long jobId, JobApplicationCreateRequest request);
+    JobApplicationResponse apply(UUID jobId, JobApplicationCreateRequest request);
 
     List<JobApplicationResponse> getMyApplications();
 
-    JobApplicationResponse getMyApplication(Long applicationId);
+    JobApplicationResponse getMyApplication(UUID applicationId);
 
-    JobApplicationResponse withdraw(Long applicationId);
+    JobApplicationResponse withdraw(UUID applicationId);
 }

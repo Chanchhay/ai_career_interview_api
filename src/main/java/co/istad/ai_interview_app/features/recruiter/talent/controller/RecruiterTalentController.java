@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/recruiter/talent")
@@ -70,7 +71,7 @@ public class RecruiterTalentController {
     @GetMapping("/{publicProfileSlug}/resumes/{resumeId}/download")
     public ResponseEntity<byte[]> getPublicResumeDownload(
             @PathVariable String publicProfileSlug,
-            @PathVariable Long resumeId
+            @PathVariable UUID resumeId
     ) {
         DownloadedFile file = recruiterTalentService.getPublicResumeDownload(publicProfileSlug, resumeId);
 

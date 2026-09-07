@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -49,7 +50,7 @@ public class CurrentUserServiceImpl implements CurrentUserService {
                         "Authenticated user is not registered in the application"
                 ));
 
-        Long userAccountId = userAccount.getId();
+        UUID userAccountId = userAccount.getId();
 
         // Whichever profile the account owns supplies the avatar, so callers get
         // one URL regardless of role rather than having to fetch a role-specific

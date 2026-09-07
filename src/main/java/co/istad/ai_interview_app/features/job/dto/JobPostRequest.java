@@ -9,9 +9,10 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public record JobPostRequest(
-        Long categoryId,
+        UUID categoryId,
 
         @NotBlank(message = "Job title is required")
         @Size(max = 200, message = "Job title must be at most 200 characters")

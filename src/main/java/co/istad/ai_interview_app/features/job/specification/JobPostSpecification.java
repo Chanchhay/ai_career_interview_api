@@ -95,14 +95,16 @@ public class JobPostSpecification {
             // categoryIds
             if (hasValues(filter.categoryIds())) {
                 Join<Object, Object> category = root.join("category", JoinType.LEFT);
-                predicates.add(category.get("id").in(filter.categoryIds()));
+                predicates.add(cb.or(category.get("id").in(filter.categoryIds()),
+                        category.get("parent").get("id").in(filter.categoryIds())));
             }
 
             // skillIds - a job matching any one of the requested skills is a hit
             if (hasValues(filter.skillIds())) {
                 Join<Object, Object> skills = root.join("skills", JoinType.LEFT);
                 Join<Object, Object> skill = skills.join("skill", JoinType.LEFT);
-                predicates.add(skill.get("id").in(filter.skillIds()));
+                predicates.add(cb.or(skill.get("id").in(filter.skillIds()),
+                        skill.get("parent").get("id").in(filter.skillIds())));
                 /*
                  * Only this join multiplies rows: a job with three of the
                  * requested skills would otherwise come back three times and

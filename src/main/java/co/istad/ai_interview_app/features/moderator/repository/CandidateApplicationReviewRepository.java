@@ -10,11 +10,12 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface CandidateApplicationReviewRepository extends JpaRepository<CandidateApplicationReview, Long> {
+public interface CandidateApplicationReviewRepository extends JpaRepository<CandidateApplicationReview, UUID> {
 
-    Optional<CandidateApplicationReview> findByApplication_Id(Long applicationId);
+    Optional<CandidateApplicationReview> findByApplication_Id(UUID applicationId);
 
     @EntityGraph(attributePaths = {
             "application",
@@ -24,7 +25,7 @@ public interface CandidateApplicationReviewRepository extends JpaRepository<Cand
             "application.jobSeekerProfile.userAccount",
             "moderator"
     })
-    Optional<CandidateApplicationReview> findWithApplicationByApplication_Id(Long applicationId);
+    Optional<CandidateApplicationReview> findWithApplicationByApplication_Id(UUID applicationId);
 
     @EntityGraph(attributePaths = {
             "application",
@@ -66,7 +67,7 @@ public interface CandidateApplicationReviewRepository extends JpaRepository<Cand
             "application.jobSeekerProfile.userAccount"
     })
     Optional<CandidateApplicationReview> findByApplication_IdAndReviewStatusAndApplication_JobPost_RecruiterProfile_UserAccount_KeycloakUserId(
-            Long applicationId,
+            UUID applicationId,
             CandidateApplicationReviewStatus reviewStatus,
             String keycloakUserId
     );

@@ -9,16 +9,17 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ConversationParticipantRepository extends JpaRepository<ConversationParticipant, Long> {
+public interface ConversationParticipantRepository extends JpaRepository<ConversationParticipant, UUID> {
 
     Optional<ConversationParticipant> findByConversation_IdAndUserAccount_Id(
-            Long conversationId,
-            Long userAccountId
+            UUID conversationId,
+            UUID userAccountId
     );
 
-    List<ConversationParticipant> findAllByConversation_Id(Long conversationId);
+    List<ConversationParticipant> findAllByConversation_Id(UUID conversationId);
 
     /**
      * Everyone still in the thread except the sender — the set a new message
@@ -32,8 +33,8 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
               and participant.leftAt is null
             """)
     List<ConversationParticipant> findRecipients(
-            @Param("conversationId") Long conversationId,
-            @Param("senderUserAccountId") Long senderUserAccountId
+            @Param("conversationId") UUID conversationId,
+            @Param("senderUserAccountId") UUID senderUserAccountId
     );
 
     /**
@@ -50,9 +51,9 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
             group by participant.conversation.id
             having count(distinct participant.userAccount.id) = 2
             """)
-    List<Long> findSharedOpenConversationIds(
-            @Param("firstUserAccountId") Long firstUserAccountId,
-            @Param("secondUserAccountId") Long secondUserAccountId,
+    List<UUID> findSharedOpenConversationIds(
+            @Param("firstUserAccountId") UUID firstUserAccountId,
+            @Param("secondUserAccountId") UUID secondUserAccountId,
             @Param("type") ConversationType type
     );
 }

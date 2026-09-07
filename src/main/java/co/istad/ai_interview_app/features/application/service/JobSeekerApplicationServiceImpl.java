@@ -36,6 +36,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -54,7 +55,7 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
 
     @Override
     @Transactional
-    public JobApplicationResponse apply(Long jobId, JobApplicationCreateRequest request) {
+    public JobApplicationResponse apply(UUID jobId, JobApplicationCreateRequest request) {
         JobSeekerProfile seekerProfile = seekerProfileResolver.resolve();
         JobPost jobPost = jobPostRepository.findById(jobId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job post was not found"));
@@ -142,13 +143,13 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
 
     @Override
     @Transactional(readOnly = true)
-    public JobApplicationResponse getMyApplication(Long applicationId) {
+    public JobApplicationResponse getMyApplication(UUID applicationId) {
         return applicationMapper.toResponse(resolveMyApplication(applicationId));
     }
 
     @Override
     @Transactional
-    public JobApplicationResponse withdraw(Long applicationId) {
+    public JobApplicationResponse withdraw(UUID applicationId) {
         JobApplication application = resolveMyApplication(applicationId);
         if (application.getStatus() == ApplicationStatus.WITHDRAWN) {
             return applicationMapper.toResponse(application);
@@ -181,7 +182,7 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
      * be timed, so it does not hold anyone back — refusing on an unknown date
      * would be an indefinite ban rather than a cooldown.
      */
-    private void enforceReapplyCooldown(Long jobPostId, Long jobSeekerProfileId) {
+    private void enforceReapplyCooldown(UUID jobPostId, UUID jobSeekerProfileId) {
         int cooldownDays = applicationSettingsService.reapplyCooldownDays();
 
         if (cooldownDays <= 0) return;
@@ -234,7 +235,7 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
         practiceSessions.forEach(session -> session.setApplication(application));
     }
 
-    private JobApplication resolveMyApplication(Long applicationId) {
+    private JobApplication resolveMyApplication(UUID applicationId) {
         return applicationRepository.findByIdAndJobSeekerProfile_UserAccount_KeycloakUserId(applicationId, AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -242,7 +243,7 @@ public class JobSeekerApplicationServiceImpl implements JobSeekerApplicationServ
                 ));
     }
 
-    private Resume resolveOwnedResume(Long resumeId, Long seekerProfileId) {
+    private Resume resolveOwnedResume(UUID resumeId, UUID seekerProfileId) {
         if (resumeId == null) {
             return null;
         }

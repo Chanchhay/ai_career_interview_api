@@ -5,9 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface CurrentUserModeratorProfileRepository extends JpaRepository<ModeratorProfile, Long> {
+public interface CurrentUserModeratorProfileRepository extends JpaRepository<ModeratorProfile, UUID> {
 
-    Optional<ModeratorProfile> findByUserAccount_Id(Long userAccountId);
+    Optional<ModeratorProfile> findByUserAccount_Id(UUID userAccountId);
 }

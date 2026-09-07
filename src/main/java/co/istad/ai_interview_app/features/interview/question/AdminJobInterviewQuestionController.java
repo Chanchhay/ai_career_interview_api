@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 /**
  * Writing a job's interview questions by hand.
@@ -31,7 +32,7 @@ public class AdminJobInterviewQuestionController {
 
     @GetMapping
     public ApiResponse<JobInterviewQuestionSetResponse> getSet(
-            @PathVariable Long jobId
+            @PathVariable UUID jobId
     ) {
         return ApiResponse.success(questionService.getSet(jobId));
     }
@@ -39,7 +40,7 @@ public class AdminJobInterviewQuestionController {
     /** Replaces the whole set. List order is the order candidates are asked. */
     @PutMapping
     public ApiResponse<JobInterviewQuestionSetResponse> saveSet(
-            @PathVariable Long jobId,
+            @PathVariable UUID jobId,
             @Valid @RequestBody JobInterviewQuestionSetRequest request
     ) {
         return ApiResponse.success(questionService.saveSet(jobId, request));

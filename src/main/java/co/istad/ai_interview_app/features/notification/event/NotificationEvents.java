@@ -4,6 +4,7 @@ import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.moderation.ModerationDecision;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * The domain events that produce a notification.
@@ -20,20 +21,20 @@ public final class NotificationEvents {
     }
 
     /** A recruiter sent their company for verification. Moderators are told. */
-    public record CompanyVerificationSubmitted(Long companyId) {
+    public record CompanyVerificationSubmitted(UUID companyId) {
     }
 
     /** A moderator approved, rejected, or asked for changes. The recruiter is told. */
-    public record CompanyVerificationDecided(Long companyId, ModerationDecision decision, String note) {
+    public record CompanyVerificationDecided(UUID companyId, ModerationDecision decision, String note) {
     }
 
     /** A job seeker applied. The moderator queue is told; the applicant gets a receipt. */
-    public record JobApplicationSubmitted(Long applicationId) {
+    public record JobApplicationSubmitted(UUID applicationId) {
     }
 
     /** An application moved. Tells the applicant only — see {@link CandidateForwarded}. */
     public record JobApplicationStatusChanged(
-            Long applicationId,
+            UUID applicationId,
             ApplicationStatus previousStatus,
             ApplicationStatus newStatus
     ) {
@@ -48,27 +49,29 @@ public final class NotificationEvents {
      * recruiter on that status would tell them about a candidate the forwarded
      * -applications endpoint still refuses to show them.
      */
-    public record CandidateForwarded(Long applicationId) {
+    public record CandidateForwarded(UUID applicationId) {
     }
 
     /** An invoice was issued to a company. Its recruiter is told what they owe. */
-    public record InvoiceIssued(Long invoiceId) {
+    public record InvoiceIssued(UUID invoiceId) {
     }
 
     /** An invoice was settled in full. The recruiter gets the receipt. */
-    public record InvoicePaid(Long invoiceId) {
+    public record InvoicePaid(UUID invoiceId) {
     }
 
     /** Someone sent a message. Every other participant still in the thread is told. */
-    public record MessageReceived(Long messageId) {
+    public record ConversationChanged(UUID conversationId) {}
+
+    public record MessageReceived(UUID messageId) {
     }
 
     /** A candidate finished an AI interview. */
-    public record AiInterviewCompleted(Long sessionId) {
+    public record AiInterviewCompleted(UUID sessionId) {
     }
 
     /** A moderator booked a human interview. The candidate is told. */
-    public record HumanInterviewScheduled(Long humanInterviewId) {
+    public record HumanInterviewScheduled(UUID humanInterviewId) {
     }
 
     /**
@@ -78,10 +81,10 @@ public final class NotificationEvents {
      * original in their calendar needs to know what it moved from, not just
      * what it moved to.
      */
-    public record HumanInterviewRescheduled(Long humanInterviewId, Instant previousScheduledAt) {
+    public record HumanInterviewRescheduled(UUID humanInterviewId, Instant previousScheduledAt) {
     }
 
     /** A moderator called off a booked interview. The candidate is told. */
-    public record HumanInterviewCancelled(Long humanInterviewId) {
+    public record HumanInterviewCancelled(UUID humanInterviewId) {
     }
 }

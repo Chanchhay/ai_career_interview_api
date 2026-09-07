@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/job-seeker/portfolios")
@@ -41,27 +42,27 @@ public class JobSeekerPortfolioController {
     }
 
     @GetMapping("/{portfolioId}")
-    public ApiResponse<PortfolioResponse> getMyPortfolio(@PathVariable Long portfolioId) {
+    public ApiResponse<PortfolioResponse> getMyPortfolio(@PathVariable UUID portfolioId) {
         return ApiResponse.success(portfolioService.getMyPortfolio(portfolioId));
     }
 
     @PatchMapping("/{portfolioId}")
     public ApiResponse<PortfolioResponse> updatePortfolio(
-            @PathVariable Long portfolioId,
+            @PathVariable UUID portfolioId,
             @Valid @RequestBody PortfolioUpdateRequest request
     ) {
         return ApiResponse.success(portfolioService.updatePortfolio(portfolioId, request));
     }
 
     @DeleteMapping("/{portfolioId}")
-    public ApiResponse<Void> deletePortfolio(@PathVariable Long portfolioId) {
+    public ApiResponse<Void> deletePortfolio(@PathVariable UUID portfolioId) {
         portfolioService.deletePortfolio(portfolioId);
         return ApiResponse.success(null);
     }
 
     @PostMapping("/{portfolioId}/projects")
     public ApiResponse<PortfolioProjectResponse> createProject(
-            @PathVariable Long portfolioId,
+            @PathVariable UUID portfolioId,
             @Valid @RequestBody PortfolioProjectRequest request
     ) {
         return ApiResponse.success(portfolioService.createProject(portfolioId, request));
@@ -69,8 +70,8 @@ public class JobSeekerPortfolioController {
 
     @PatchMapping("/{portfolioId}/projects/{projectId}")
     public ApiResponse<PortfolioProjectResponse> updateProject(
-            @PathVariable Long portfolioId,
-            @PathVariable Long projectId,
+            @PathVariable UUID portfolioId,
+            @PathVariable UUID projectId,
             @Valid @RequestBody PortfolioProjectUpdateRequest request
     ) {
         return ApiResponse.success(portfolioService.updateProject(portfolioId, projectId, request));
@@ -78,8 +79,8 @@ public class JobSeekerPortfolioController {
 
     @DeleteMapping("/{portfolioId}/projects/{projectId}")
     public ApiResponse<Void> deleteProject(
-            @PathVariable Long portfolioId,
-            @PathVariable Long projectId
+            @PathVariable UUID portfolioId,
+            @PathVariable UUID projectId
     ) {
         portfolioService.deleteProject(portfolioId, projectId);
         return ApiResponse.success(null);

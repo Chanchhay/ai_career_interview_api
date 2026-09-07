@@ -33,6 +33,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -97,7 +98,7 @@ public class RecruiterTalentServiceImpl implements RecruiterTalentService {
 
     @Override
     @Transactional(readOnly = true)
-    public DownloadedFile getPublicResumeDownload(String publicProfileSlug, Long resumeId) {
+    public DownloadedFile getPublicResumeDownload(String publicProfileSlug, UUID resumeId) {
         if (!AuthUtils.hasRole(AuthUtils.extractJwtAuthentication().getAuthorities(), "RECRUITER")) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Recruiter role is required");
         }

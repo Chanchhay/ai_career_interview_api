@@ -13,14 +13,15 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface CommissionRecordRepository extends JpaRepository<CommissionRecord, Long> {
+public interface CommissionRecordRepository extends JpaRepository<CommissionRecord, UUID> {
 
     /** The commission a confirmed hire produced. One-to-one, enforced by the table. */
-    Optional<CommissionRecord> findByHiringRecord_Id(Long hiringRecordId);
+    Optional<CommissionRecord> findByHiringRecord_Id(UUID hiringRecordId);
 
-    Page<CommissionRecord> findAllByCompany_IdOrderByCreatedAtDesc(Long companyId, Pageable pageable);
+    Page<CommissionRecord> findAllByCompany_IdOrderByCreatedAtDesc(UUID companyId, Pageable pageable);
 
     Page<CommissionRecord> findAllByStatusOrderByCreatedAtDesc(PaymentStatus status, Pageable pageable);
 
@@ -47,7 +48,7 @@ public interface CommissionRecordRepository extends JpaRepository<CommissionReco
               )
             order by commission.createdAt asc
             """)
-    List<CommissionRecord> findUnbilledByCompany(@Param("companyId") Long companyId);
+    List<CommissionRecord> findUnbilledByCompany(@Param("companyId") UUID companyId);
 
     /**
      * Every company holding unbilled commissions, with what they add up to.
@@ -88,5 +89,5 @@ public interface CommissionRecordRepository extends JpaRepository<CommissionReco
             from CommissionRecord commission
             where commission.id in :ids
             """)
-    List<CommissionRecord> findAllByIdIn(@Param("ids") Collection<Long> ids);
+    List<CommissionRecord> findAllByIdIn(@Param("ids") Collection<UUID> ids);
 }

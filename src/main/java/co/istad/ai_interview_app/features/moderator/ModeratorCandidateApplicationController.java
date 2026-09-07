@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/moderator")
@@ -40,14 +41,14 @@ public class ModeratorCandidateApplicationController {
 
     @GetMapping("/candidate-applications/{applicationId}")
     public ApiResponse<CandidateApplicationDetailResponse> getReviewDetail(
-            @PathVariable Long applicationId
+            @PathVariable UUID applicationId
     ) {
         return ApiResponse.success(applicationService.getReviewDetail(applicationId));
     }
 
     @PostMapping("/candidate-applications/{applicationId}/human-interviews")
     public ApiResponse<HumanInterviewResponse> scheduleHumanInterview(
-            @PathVariable Long applicationId,
+            @PathVariable UUID applicationId,
             @Valid @RequestBody HumanInterviewRequest request
     ) {
         return ApiResponse.success(applicationService.scheduleHumanInterview(applicationId, request));
@@ -55,7 +56,7 @@ public class ModeratorCandidateApplicationController {
 
     @PatchMapping("/human-interviews/{interviewId}/reschedule")
     public ApiResponse<HumanInterviewResponse> rescheduleHumanInterview(
-            @PathVariable Long interviewId,
+            @PathVariable UUID interviewId,
             @Valid @RequestBody HumanInterviewRequest request
     ) {
         return ApiResponse.success(applicationService.rescheduleHumanInterview(interviewId, request));
@@ -63,7 +64,7 @@ public class ModeratorCandidateApplicationController {
 
     @PostMapping("/human-interviews/{interviewId}/complete")
     public ApiResponse<HumanInterviewResponse> completeHumanInterview(
-            @PathVariable Long interviewId,
+            @PathVariable UUID interviewId,
             @Valid @RequestBody HumanInterviewCompleteRequest request
     ) {
         return ApiResponse.success(applicationService.completeHumanInterview(interviewId, request));
@@ -71,14 +72,14 @@ public class ModeratorCandidateApplicationController {
 
     @PostMapping("/human-interviews/{interviewId}/cancel")
     public ApiResponse<HumanInterviewResponse> cancelHumanInterview(
-            @PathVariable Long interviewId
+            @PathVariable UUID interviewId
     ) {
         return ApiResponse.success(applicationService.cancelHumanInterview(interviewId));
     }
 
     @PostMapping("/candidate-applications/{applicationId}/approve")
     public ApiResponse<CandidateApplicationReviewResponse> approve(
-            @PathVariable Long applicationId,
+            @PathVariable UUID applicationId,
             @Valid @RequestBody DecisionRequest request
     ) {
         return ApiResponse.success(applicationService.approve(applicationId, request));
@@ -86,7 +87,7 @@ public class ModeratorCandidateApplicationController {
 
     @PostMapping("/candidate-applications/{applicationId}/reject")
     public ApiResponse<CandidateApplicationReviewResponse> reject(
-            @PathVariable Long applicationId,
+            @PathVariable UUID applicationId,
             @Valid @RequestBody DecisionRequest request
     ) {
         return ApiResponse.success(applicationService.reject(applicationId, request));
@@ -94,7 +95,7 @@ public class ModeratorCandidateApplicationController {
 
     @PostMapping("/candidate-applications/{applicationId}/forward")
     public ApiResponse<CandidateApplicationReviewResponse> forward(
-            @PathVariable Long applicationId
+            @PathVariable UUID applicationId
     ) {
         return ApiResponse.success(applicationService.forward(applicationId));
     }

@@ -4,6 +4,7 @@ import co.istad.ai_interview_app.shared.enums.interview.InterviewQuestionType;
 import co.istad.ai_interview_app.shared.enums.interview.ManualQuestionMode;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * A job's written questions, plus everything the screen needs to explain what
@@ -15,7 +16,7 @@ import java.util.List;
  * says the same number the interview will really use.
  */
 public record JobInterviewQuestionSetResponse(
-        Long jobId,
+        UUID jobId,
         String jobTitle,
         ManualQuestionMode mode,
         int targetQuestionCount,

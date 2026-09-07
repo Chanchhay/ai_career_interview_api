@@ -2,6 +2,7 @@ package co.istad.ai_interview_app.features.job.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * What the current search could still be narrowed by, and by how much.
@@ -31,7 +32,7 @@ public record PublicJobFacetsResponse(
     }
 
     /** A referenced row - a category or a skill - named for display. */
-    public record PublicJobFacetOption(Long id, String name, long count) {
+    public record PublicJobFacetOption(UUID id, String name, long count) {
     }
 
     /** The salary span the matching jobs actually cover, for the slider bounds. */

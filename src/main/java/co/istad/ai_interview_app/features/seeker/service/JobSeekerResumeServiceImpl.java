@@ -31,6 +31,7 @@ import java.util.Objects;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -85,14 +86,14 @@ public class JobSeekerResumeServiceImpl implements JobSeekerResumeService {
 
     @Override
     @Transactional(readOnly = true)
-    public ResumeResponse getMyResume(Long resumeId) {
+    public ResumeResponse getMyResume(UUID resumeId) {
         JobSeekerProfile profile = profileResolver.resolve();
         return resumeMapper.toResponse(resolveOwnedResume(resumeId, profile.getId()));
     }
 
     @Override
     @Transactional
-    public ResumeResponse update(Long resumeId, ResumeUpdateRequest request) {
+    public ResumeResponse update(UUID resumeId, ResumeUpdateRequest request) {
         JobSeekerProfile profile = profileResolver.resolve();
         Resume resume = resolveOwnedResume(resumeId, profile.getId());
 
@@ -119,7 +120,7 @@ public class JobSeekerResumeServiceImpl implements JobSeekerResumeService {
 
     @Override
     @Transactional
-    public void delete(Long resumeId) {
+    public void delete(UUID resumeId) {
         JobSeekerProfile profile = profileResolver.resolve();
         Resume resume = resolveOwnedResume(resumeId, profile.getId());
 
@@ -135,7 +136,7 @@ public class JobSeekerResumeServiceImpl implements JobSeekerResumeService {
 
     @Override
     @Transactional
-    public ResumeResponse setDefault(Long resumeId) {
+    public ResumeResponse setDefault(UUID resumeId) {
         JobSeekerProfile profile = profileResolver.resolve();
         Resume resume = resolveOwnedResume(resumeId, profile.getId());
 
@@ -145,7 +146,7 @@ public class JobSeekerResumeServiceImpl implements JobSeekerResumeService {
         return resumeMapper.toResponse(resume);
     }
 
-    private Resume resolveOwnedResume(Long resumeId, Long profileId) {
+    private Resume resolveOwnedResume(UUID resumeId, UUID profileId) {
         return resumeRepository.findByIdAndJobSeekerProfile_Id(resumeId, profileId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -166,7 +167,7 @@ public class JobSeekerResumeServiceImpl implements JobSeekerResumeService {
      */
     @Override
     @Transactional
-    public ResumeResponse generate(Long resumeId) {
+    public ResumeResponse generate(UUID resumeId) {
         JobSeekerProfile profile = profileResolver.resolve();
         Resume resume = resolveOwnedResume(resumeId, profile.getId());
 
@@ -263,7 +264,7 @@ public class JobSeekerResumeServiceImpl implements JobSeekerResumeService {
      */
     @Override
     @Transactional(readOnly = true)
-    public DownloadedFile download(Long resumeId) {
+    public DownloadedFile download(UUID resumeId) {
         JobSeekerProfile profile = profileResolver.resolve();
         Resume resume = resolveOwnedResume(resumeId, profile.getId());
 

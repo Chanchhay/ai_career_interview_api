@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 /**
  * Billing companies for confirmed hires.
@@ -70,7 +71,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     @Transactional(readOnly = true)
     public Page<CommissionRecordResponse> findCommissions(
-            Long companyId,
+            UUID companyId,
             PaymentStatus status,
             Pageable pageable
     ) {
@@ -89,7 +90,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommissionRecordResponse> findUnbilledCommissions(Long companyId) {
+    public List<CommissionRecordResponse> findUnbilledCommissions(UUID companyId) {
         return commissionRecordRepository.findUnbilledByCompany(companyId).stream()
                 .map(mapper::toResponse)
                 .toList();
@@ -105,10 +106,12 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<InvoiceResponse> findInvoices(Long companyId, InvoiceStatus status, Pageable pageable) {
+    public Page<InvoiceResponse> findInvoices(UUID companyId, InvoiceStatus status, Pageable pageable) {
         Page<Invoice> page;
 
-        if (companyId != null) {
+        if (companyId != null && status != null) {
+            page = invoiceRepository.findAllByCompany_IdAndStatusOrderByCreatedAtDesc(companyId, status, pageable);
+        } else if (companyId != null) {
             page = invoiceRepository.findAllByCompany_IdOrderByCreatedAtDesc(companyId, pageable);
         } else if (status != null) {
             page = invoiceRepository.findAllByStatusOrderByCreatedAtDesc(status, pageable);
@@ -128,7 +131,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public InvoiceResponse getInvoice(Long invoiceId) {
+    public InvoiceResponse getInvoice(UUID invoiceId) {
         return detail(resolve(invoiceId));
     }
 
@@ -138,7 +141,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         Company company = companyRepository.findById(request.companyId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company was not found"));
 
-        Set<Long> requestedIds = new LinkedHashSet<>(request.commissionRecordIds());
+        Set<UUID> requestedIds = new LinkedHashSet<>(request.commissionRecordIds());
         List<CommissionRecord> commissions = commissionRecordRepository.findAllByIdIn(requestedIds);
 
         if (commissions.size() != requestedIds.size()) {
@@ -157,7 +160,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             if (!commission.getCompany().getId().equals(company.getId())) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "Commission %d belongs to a different company".formatted(commission.getId())
+                        "Commission %s belongs to a different company".formatted(commission.getId())
                 );
             }
 
@@ -168,7 +171,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             if (alreadyBilled) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,
-                        "Commission %d is already on an invoice".formatted(commission.getId())
+                        "Commission %s is already on an invoice".formatted(commission.getId())
                 );
             }
         }
@@ -194,12 +197,11 @@ public class InvoiceServiceImpl implements InvoiceService {
                 : request.dueAt());
         invoice.setStatus(InvoiceStatus.DRAFT);
         invoice.setNote(normalizeBlankToNull(request.note()));
-        invoice.setInvoiceNo(placeholderInvoiceNo());
+        // Numbered from a sequence, which is readable before the insert. A
+        // count would race two concurrent invoices onto one number.
+        invoice.setInvoiceNo(invoiceNo(invoiceRepository.nextInvoiceNumber()));
 
         Invoice saved = invoiceRepository.saveAndFlush(invoice);
-        // Numbered from the id, which the database has just assigned. Deriving
-        // it from a count would race two concurrent invoices onto one number.
-        saved.setInvoiceNo(invoiceNo(saved.getId()));
 
         for (CommissionRecord commission : commissions) {
             InvoiceItem item = new InvoiceItem();
@@ -220,7 +222,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional
-    public InvoiceResponse issueInvoice(Long invoiceId) {
+    public InvoiceResponse issueInvoice(UUID invoiceId) {
         Invoice invoice = resolve(invoiceId);
 
         if (invoice.getStatus() != InvoiceStatus.DRAFT) {
@@ -246,7 +248,7 @@ public class InvoiceServiceImpl implements InvoiceService {
      */
     @Override
     @Transactional
-    public InvoiceResponse cancelInvoice(Long invoiceId) {
+    public InvoiceResponse cancelInvoice(UUID invoiceId) {
         Invoice invoice = resolve(invoiceId);
 
         if (invoice.getStatus() == InvoiceStatus.PAID) {
@@ -270,7 +272,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional
-    public InvoiceResponse recordPayment(Long invoiceId, RecordPaymentRequest request) {
+    public InvoiceResponse recordPayment(UUID invoiceId, RecordPaymentRequest request) {
         Invoice invoice = resolve(invoiceId);
 
         if (invoice.getStatus() == InvoiceStatus.DRAFT) {
@@ -308,7 +310,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     @Transactional(readOnly = true)
     public Page<InvoiceResponse> findMyCompanyInvoices(Pageable pageable) {
-        Long companyId = myCompanyId();
+        UUID companyId = myCompanyId();
 
         return invoiceRepository
                 .findAllByCompany_IdOrderByCreatedAtDesc(companyId, pageable)
@@ -321,7 +323,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public InvoiceResponse getMyCompanyInvoice(Long invoiceId) {
+    public InvoiceResponse getMyCompanyInvoice(UUID invoiceId) {
         Invoice invoice = invoiceRepository
                 .findByIdAndCompany_Id(invoiceId, myCompanyId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice was not found"));
@@ -375,7 +377,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
     }
 
-    private Invoice resolve(Long invoiceId) {
+    private Invoice resolve(UUID invoiceId) {
         return invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invoice was not found"));
     }
@@ -388,7 +390,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         );
     }
 
-    private Long myCompanyId() {
+    private UUID myCompanyId() {
         return companyRepository
                 .findByRecruiterProfile_UserAccount_KeycloakUserId(AuthUtils.extractUserId())
                 .map(Company::getId)
@@ -429,13 +431,8 @@ public class InvoiceServiceImpl implements InvoiceService {
                 });
     }
 
-    /** Unique and obviously temporary, replaced as soon as the row has an id. */
-    private String placeholderInvoiceNo() {
-        return "DRAFT-" + java.util.UUID.randomUUID();
-    }
-
-    private String invoiceNo(Long invoiceId) {
+    private String invoiceNo(long sequenceValue) {
         int year = Instant.now().atZone(ZoneOffset.UTC).getYear();
-        return "INV-%d-%06d".formatted(year, invoiceId);
+        return "INV-%d-%06d".formatted(year, sequenceValue);
     }
 }

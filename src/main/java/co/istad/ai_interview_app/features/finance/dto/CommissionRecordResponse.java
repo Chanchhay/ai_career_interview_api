@@ -4,11 +4,12 @@ import co.istad.ai_interview_app.shared.enums.finance.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 public record CommissionRecordResponse(
-        Long id,
-        Long hiringRecordId,
-        Long companyId,
+        UUID id,
+        UUID hiringRecordId,
+        UUID companyId,
         String companyName,
         /** Frozen at confirmation, so later rate changes never rewrite this. */
         BigDecimal commissionRate,
@@ -19,7 +20,7 @@ public record CommissionRecordResponse(
         PaymentStatus status,
         String note,
         /** Null until an invoice picks this commission up. */
-        Long invoiceId,
+        UUID invoiceId,
         String invoiceNo
 ) {
 }

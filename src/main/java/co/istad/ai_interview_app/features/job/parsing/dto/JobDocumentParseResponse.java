@@ -4,6 +4,7 @@ import co.istad.ai_interview_app.features.job.dto.JobPostSectionRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * What the recruiter's form receives after a PDF job description is parsed.
@@ -34,7 +35,7 @@ public record JobDocumentParseResponse(
         String experienceLevel,
         BigDecimal salaryMin,
         BigDecimal salaryMax,
-        Long categoryId,
+        UUID categoryId,
         String categoryName,
         List<JobPostSectionRequest> sections,
         List<ParsedJobSkill> skills

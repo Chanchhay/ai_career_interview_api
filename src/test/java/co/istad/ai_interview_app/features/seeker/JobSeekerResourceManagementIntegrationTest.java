@@ -39,6 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -63,7 +64,7 @@ class JobSeekerResourceManagementIntegrationTest {
         mockMvc.perform(get("/api/v1/job-seeker/profile")
                         .with(jwtFor(fixture.keycloakUserId(), "SEEKER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(fixture.profileId()))
+                .andExpect(jsonPath("$.data.id").value(fixture.profileId().toString()))
                 .andExpect(jsonPath("$.data.publicProfileSlug").value(fixture.slug()))
                 .andExpect(jsonPath("$.data.profileVisibility").value("PUBLIC"));
 
@@ -124,7 +125,7 @@ class JobSeekerResourceManagementIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        Long firstResumeId = extractId(firstResumeResponse);
+        UUID firstResumeId = extractId(firstResumeResponse);
 
         String secondResumeResponse = mockMvc.perform(post("/api/v1/job-seeker/resumes")
                         .with(jwtFor(owner.keycloakUserId(), "SEEKER"))
@@ -140,7 +141,7 @@ class JobSeekerResourceManagementIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        Long secondResumeId = extractId(secondResumeResponse);
+        UUID secondResumeId = extractId(secondResumeResponse);
 
         mockMvc.perform(post("/api/v1/job-seeker/resumes/{resumeId}/default", firstResumeId)
                         .with(jwtFor(owner.keycloakUserId(), "SEEKER")))
@@ -157,7 +158,7 @@ class JobSeekerResourceManagementIntegrationTest {
             assertThat(entityManager.find(Resume.class, secondResumeId).getIsDefault()).isTrue();
         });
 
-        Long otherResumeId = createResume(other.profileId(), "Other Resume", "https://files.example/other.pdf");
+        UUID otherResumeId = createResume(other.profileId(), "Other Resume", "https://files.example/other.pdf");
         mockMvc.perform(get("/api/v1/job-seeker/resumes/{resumeId}", otherResumeId)
                         .with(jwtFor(owner.keycloakUserId(), "SEEKER")))
                 .andExpect(status().isNotFound());
@@ -208,7 +209,7 @@ class JobSeekerResourceManagementIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        Long portfolioId = extractId(portfolioResponse);
+        UUID portfolioId = extractId(portfolioResponse);
 
         String projectResponse = mockMvc.perform(post("/api/v1/job-seeker/portfolios/{portfolioId}/projects", portfolioId)
                         .with(jwtFor(owner.keycloakUserId(), "SEEKER"))
@@ -230,7 +231,7 @@ class JobSeekerResourceManagementIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        Long projectId = extractId(projectResponse);
+        UUID projectId = extractId(projectResponse);
 
         mockMvc.perform(patch("/api/v1/job-seeker/portfolios/{portfolioId}/projects/{projectId}", portfolioId, projectId)
                         .with(jwtFor(owner.keycloakUserId(), "SEEKER"))
@@ -308,7 +309,7 @@ class JobSeekerResourceManagementIntegrationTest {
         });
     }
 
-    private Long createResume(Long profileId, String title, String fileUrl) {
+    private UUID createResume(UUID profileId, String title, String fileUrl) {
         return transactionTemplate.execute(status -> {
             JobSeekerProfile profile = entityManager.find(JobSeekerProfile.class, profileId);
             Resume resume = new Resume();
@@ -322,7 +323,7 @@ class JobSeekerResourceManagementIntegrationTest {
         });
     }
 
-    private void createApplicationReferencingResume(Long profileId, Long resumeId) {
+    private void createApplicationReferencingResume(UUID profileId, UUID resumeId) {
         transactionTemplate.executeWithoutResult(status -> {
             UserAccount recruiterUser = new UserAccount();
             recruiterUser.setKeycloakUserId("resource-recruiter-" + SEQUENCE.incrementAndGet());
@@ -354,14 +355,12 @@ class JobSeekerResourceManagementIntegrationTest {
         });
     }
 
-    private Long extractId(String responseBody) {
-        int idIndex = responseBody.indexOf("\"id\":");
-        int start = idIndex + 5;
-        int end = start;
-        while (end < responseBody.length() && Character.isDigit(responseBody.charAt(end))) {
-            end++;
-        }
-        return Long.parseLong(responseBody.substring(start, end));
+    private UUID extractId(String responseBody) {
+        // The id is a quoted UUID now, not a run of digits.
+        String marker = "\"id\":\"";
+        int start = responseBody.indexOf(marker) + marker.length();
+        int end = responseBody.indexOf('"', start);
+        return UUID.fromString(responseBody.substring(start, end));
     }
 
     private static org.springframework.test.web.servlet.request.RequestPostProcessor jwtFor(String subject, String role) {
@@ -373,8 +372,8 @@ class JobSeekerResourceManagementIntegrationTest {
     }
 
     private record Fixture(
-            Long userAccountId,
-            Long profileId,
+            UUID userAccountId,
+            UUID profileId,
             String keycloakUserId,
             String slug
     ) {

@@ -37,6 +37,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -61,7 +62,7 @@ class CompanyVerificationJobPublicationIntegrationTest {
                 VerificationStatus.PENDING_VERIFICATION,
                 ProfileStatus.PENDING
         );
-        Long jobId = createJob(recruiter.recruiterProfileId(), recruiter.companyId(), "Unverified Publish", JobStatus.DRAFT, future());
+        UUID jobId = createJob(recruiter.recruiterProfileId(), recruiter.companyId(), "Unverified Publish", JobStatus.DRAFT, future());
 
         mockMvc.perform(post("/api/v1/recruiter/jobs/{id}/publish", jobId)
                         .with(jwtFor(recruiter.keycloakUserId(), "RECRUITER")))
@@ -107,7 +108,7 @@ class CompanyVerificationJobPublicationIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.decision").value("APPROVED"));
 
-        Long jobId = createJob(recruiter.recruiterProfileId(), recruiter.companyId(), "Approved Direct Publish", JobStatus.DRAFT, future());
+        UUID jobId = createJob(recruiter.recruiterProfileId(), recruiter.companyId(), "Approved Direct Publish", JobStatus.DRAFT, future());
 
         mockMvc.perform(post("/api/v1/recruiter/jobs/{id}/publish", jobId)
                         .with(jwtFor(recruiter.keycloakUserId(), "RECRUITER")))
@@ -135,7 +136,7 @@ class CompanyVerificationJobPublicationIntegrationTest {
     void recruiterCannotPublishAnotherRecruitersJob() throws Exception {
         RecruiterFixture owner = createRecruiterCompany("owner", VerificationStatus.APPROVED, ProfileStatus.ACTIVE);
         RecruiterFixture other = createRecruiterCompany("other", VerificationStatus.APPROVED, ProfileStatus.ACTIVE);
-        Long jobId = createJob(owner.recruiterProfileId(), owner.companyId(), "Owned Job", JobStatus.DRAFT, future());
+        UUID jobId = createJob(owner.recruiterProfileId(), owner.companyId(), "Owned Job", JobStatus.DRAFT, future());
 
         mockMvc.perform(post("/api/v1/recruiter/jobs/{id}/publish", jobId)
                         .with(jwtFor(other.keycloakUserId(), "RECRUITER")))
@@ -150,7 +151,7 @@ class CompanyVerificationJobPublicationIntegrationTest {
         RecruiterFixture suspended = createRecruiterCompany("public-suspended", VerificationStatus.APPROVED, ProfileStatus.SUSPENDED);
         addCompanyDocument(approved.companyId(), approved.recruiterProfileId(), "https://files.example/private-company-doc.pdf");
 
-        Long publicJobId = createJob(
+        UUID publicJobId = createJob(
                 approved.recruiterProfileId(),
                 approved.companyId(),
                 "Visible " + marker,
@@ -160,21 +161,21 @@ class CompanyVerificationJobPublicationIntegrationTest {
         createJob(approved.recruiterProfileId(), approved.companyId(), "Draft " + marker, JobStatus.DRAFT, future());
         createJob(approved.recruiterProfileId(), approved.companyId(), "Paused " + marker, JobStatus.PAUSED, future());
         createJob(approved.recruiterProfileId(), approved.companyId(), "Closed " + marker, JobStatus.CLOSED, future());
-        Long expiredJobId = createJob(
+        UUID expiredJobId = createJob(
                 approved.recruiterProfileId(),
                 approved.companyId(),
                 "Expired " + marker,
                 JobStatus.PUBLISHED,
                 Instant.now().minus(1, ChronoUnit.DAYS)
         );
-        Long unapprovedJobId = createJob(
+        UUID unapprovedJobId = createJob(
                 unapproved.recruiterProfileId(),
                 unapproved.companyId(),
                 "Unapproved " + marker,
                 JobStatus.PUBLISHED,
                 future()
         );
-        Long suspendedJobId = createJob(
+        UUID suspendedJobId = createJob(
                 suspended.recruiterProfileId(),
                 suspended.companyId(),
                 "Suspended " + marker,
@@ -186,14 +187,14 @@ class CompanyVerificationJobPublicationIntegrationTest {
                         .param("keyword", marker))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(1))
-                .andExpect(jsonPath("$.data.content[0].id").value(publicJobId))
+                .andExpect(jsonPath("$.data.content[0].id").value(publicJobId.toString()))
                 .andExpect(content().string(not(containsString(approved.keycloakUserId()))))
                 .andExpect(content().string(not(containsString("private-company-doc.pdf"))))
                 .andExpect(content().string(not(containsString("verificationHistory"))));
 
         mockMvc.perform(get("/api/v1/public/jobs/{jobId}", publicJobId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(publicJobId));
+                .andExpect(jsonPath("$.data.id").value(publicJobId.toString()));
 
         mockMvc.perform(get("/api/v1/public/jobs/{jobId}", expiredJobId))
                 .andExpect(status().isNotFound());
@@ -267,9 +268,9 @@ class CompanyVerificationJobPublicationIntegrationTest {
         });
     }
 
-    private Long createJob(
-            Long recruiterProfileId,
-            Long companyId,
+    private UUID createJob(
+            UUID recruiterProfileId,
+            UUID companyId,
             String title,
             JobStatus status,
             Instant expiredAt
@@ -306,7 +307,7 @@ class CompanyVerificationJobPublicationIntegrationTest {
         });
     }
 
-    private void addCompanyDocument(Long companyId, Long recruiterProfileId, String documentUrl) {
+    private void addCompanyDocument(UUID companyId, UUID recruiterProfileId, String documentUrl) {
         transactionTemplate.executeWithoutResult(status -> {
             Company company = entityManager.find(Company.class, companyId);
             RecruiterProfile recruiterProfile = entityManager.find(RecruiterProfile.class, recruiterProfileId);
@@ -325,17 +326,29 @@ class CompanyVerificationJobPublicationIntegrationTest {
         return transactionTemplate.execute(status -> {
             int suffix = SEQUENCE.incrementAndGet();
 
+            JobCategory categoryParent = new JobCategory();
+            categoryParent.setName("JobCategory parent " + suffix);
+            entityManager.persist(categoryParent);
             JobCategory category = new JobCategory();
+            category.setParent(categoryParent);
             category.setName("Category " + suffix);
             category.setDescription("Category description");
             entityManager.persist(category);
 
+            Skill skillParent = new Skill();
+            skillParent.setName("Skill parent " + suffix);
+            entityManager.persist(skillParent);
             Skill skill = new Skill();
+            skill.setParent(skillParent);
             skill.setName("Skill " + suffix);
             skill.setSkillType("TECHNICAL");
             entityManager.persist(skill);
 
+            Industry industryParent = new Industry();
+            industryParent.setName("Industry parent " + suffix);
+            entityManager.persist(industryParent);
             Industry industry = new Industry();
+            industry.setParent(industryParent);
             industry.setName("Industry " + suffix);
             industry.setDescription("Industry description");
             industry.setStatus(ProfileStatus.ACTIVE);
@@ -360,8 +373,8 @@ class CompanyVerificationJobPublicationIntegrationTest {
 
     private record RecruiterFixture(
             String keycloakUserId,
-            Long recruiterProfileId,
-            Long companyId
+            UUID recruiterProfileId,
+            UUID companyId
     ) {
     }
 

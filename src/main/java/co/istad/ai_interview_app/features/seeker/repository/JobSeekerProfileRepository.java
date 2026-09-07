@@ -11,9 +11,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface JobSeekerProfileRepository extends JpaRepository<JobSeekerProfile, Long>, JpaSpecificationExecutor<JobSeekerProfile> {
+public interface JobSeekerProfileRepository extends JpaRepository<JobSeekerProfile, UUID>, JpaSpecificationExecutor<JobSeekerProfile> {
 
     Optional<JobSeekerProfile> findByUserAccount_KeycloakUserId(String keycloakUserId);
 

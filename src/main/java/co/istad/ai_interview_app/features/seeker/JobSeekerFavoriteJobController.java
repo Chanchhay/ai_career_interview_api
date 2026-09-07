@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/job-seeker/favorite-jobs")
@@ -48,7 +49,7 @@ public class JobSeekerFavoriteJobController {
      */
     @PostMapping("/{jobId}")
     public ApiResponse<FavoriteJobResponse> saveFavoriteJob(
-            @PathVariable Long jobId
+            @PathVariable UUID jobId
     ) {
         return ApiResponse.success(jobSeekerFavoriteJobService.saveFavoriteJob(jobId));
     }
@@ -56,7 +57,7 @@ public class JobSeekerFavoriteJobController {
     @DeleteMapping("/{jobId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeFavoriteJob(
-            @PathVariable Long jobId
+            @PathVariable UUID jobId
     ) {
         jobSeekerFavoriteJobService.removeFavoriteJob(jobId);
     }

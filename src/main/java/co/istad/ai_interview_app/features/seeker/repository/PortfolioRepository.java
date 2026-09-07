@@ -8,16 +8,17 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PortfolioRepository extends JpaRepository<Portfolio, Long> {
+public interface PortfolioRepository extends JpaRepository<Portfolio, UUID> {
 
-    Optional<Portfolio> findByIdAndJobSeekerProfile_Id(Long id, Long jobSeekerProfileId);
+    Optional<Portfolio> findByIdAndJobSeekerProfile_Id(UUID id, UUID jobSeekerProfileId);
 
-    List<Portfolio> findAllByJobSeekerProfile_IdOrderByCreatedAtDesc(Long jobSeekerProfileId);
+    List<Portfolio> findAllByJobSeekerProfile_IdOrderByCreatedAtDesc(UUID jobSeekerProfileId);
 
     List<Portfolio> findAllByJobSeekerProfile_IdAndStatusAndVisibilityOrderByCreatedAtDesc(
-            Long jobSeekerProfileId,
+            UUID jobSeekerProfileId,
             ProfileStatus status,
             VisibilityStatus visibility
     );

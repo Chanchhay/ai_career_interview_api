@@ -1,10 +1,12 @@
 package co.istad.ai_interview_app.features.identity.dto;
 
+import java.util.UUID;
+
 public record CurrentUserProfilesResponse(
-        Long jobSeekerProfileId,
-        Long recruiterProfileId,
-        Long moderatorProfileId,
-        Long adminProfileId,
-        Long financeProfileId
+        UUID jobSeekerProfileId,
+        UUID recruiterProfileId,
+        UUID moderatorProfileId,
+        UUID adminProfileId,
+        UUID financeProfileId
 ) {
 }

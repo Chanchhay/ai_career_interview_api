@@ -5,11 +5,12 @@ import co.istad.ai_interview_app.shared.enums.finance.InvoiceStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public record InvoiceResponse(
-        Long id,
+        UUID id,
         String invoiceNo,
-        Long companyId,
+        UUID companyId,
         String companyName,
         BigDecimal subtotalAmount,
         BigDecimal taxAmount,

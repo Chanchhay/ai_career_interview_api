@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Bills a company for a chosen set of its unbilled commissions.
@@ -17,8 +18,8 @@ import java.util.List;
  * disputed hire should be leavable off it.
  */
 public record CreateInvoiceRequest(
-        @NotNull Long companyId,
-        @NotEmpty List<Long> commissionRecordIds,
+        @NotNull UUID companyId,
+        @NotEmpty List<UUID> commissionRecordIds,
         @DecimalMin("0.0") BigDecimal taxAmount,
         Instant dueAt,
         @Size(max = 2000) String note

@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.job.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * A published job as the public site renders it.
@@ -14,10 +15,16 @@ import java.util.List;
  * header.
  */
 public record PublicJobResponse(
-        Long id,
-        Long companyId,
+        UUID id,
+        UUID companyId,
         String companyName,
-        Long categoryId,
+        /**
+         * The employer's logo, or the administrator-set stand-in when the
+         * company is masked. Null whenever there is no mark to show — a masked
+         * company without a stand-in, or a company that never uploaded one.
+         */
+        String companyLogoUrl,
+        UUID categoryId,
         String categoryName,
         String title,
         String description,

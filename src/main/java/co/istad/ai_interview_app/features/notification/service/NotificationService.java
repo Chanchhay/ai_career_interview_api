@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Collection;
+import java.util.UUID;
 
 public interface NotificationService {
 
@@ -14,11 +15,11 @@ public interface NotificationService {
 
     UnreadCountResponse unreadCount();
 
-    NotificationResponse markAsRead(Long notificationId);
+    NotificationResponse markAsRead(UUID notificationId);
 
     UnreadCountResponse markAllAsRead();
 
-    void delete(Long notificationId);
+    void delete(UUID notificationId);
 
     /** Creates and delivers one notification. Called by listeners, never by a controller. */
     void create(NewNotification notification);

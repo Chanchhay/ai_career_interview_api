@@ -48,6 +48,7 @@ import java.util.Optional;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 /**
  * Moderator-mediated messaging.
@@ -87,12 +88,12 @@ public class ConversationServiceImpl implements ConversationService {
         UserAccount me = currentUserAccount();
         Page<Conversation> page = conversationRepository.findAllForParticipant(me.getId(), pageable);
 
-        List<Long> conversationIds = page.getContent().stream().map(Conversation::getId).toList();
+        List<UUID> conversationIds = page.getContent().stream().map(Conversation::getId).toList();
 
         // Both maps are one query each, so an inbox of any size costs three
         // round trips rather than three per row.
-        Map<Long, Message> latestByConversation = latestMessages(conversationIds);
-        Map<Long, Long> unreadByConversation = unreadCounts(me.getId(), conversationIds);
+        Map<UUID, Message> latestByConversation = latestMessages(conversationIds);
+        Map<UUID, Long> unreadByConversation = unreadCounts(me.getId(), conversationIds);
 
         return page.map(conversation -> toResponse(
                 conversation,
@@ -104,7 +105,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional(readOnly = true)
-    public ConversationResponse getConversation(Long conversationId) {
+    public ConversationResponse getConversation(UUID conversationId) {
         UserAccount me = currentUserAccount();
         Conversation conversation = requireMyConversation(conversationId, me);
 
@@ -118,7 +119,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<MessageResponse> findMessages(Long conversationId, Pageable pageable) {
+    public Page<MessageResponse> findMessages(UUID conversationId, Pageable pageable) {
         UserAccount me = currentUserAccount();
         requireMyConversation(conversationId, me);
 
@@ -129,7 +130,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional
-    public MessageResponse sendMessage(Long conversationId, SendMessageRequest request) {
+    public MessageResponse sendMessage(UUID conversationId, SendMessageRequest request) {
         UserAccount me = currentUserAccount();
         Conversation conversation = requireMyConversation(conversationId, me);
 
@@ -164,7 +165,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional
-    public ConversationResponse markAsRead(Long conversationId) {
+    public ConversationResponse markAsRead(UUID conversationId) {
         UserAccount me = currentUserAccount();
         requireMyConversation(conversationId, me);
 
@@ -172,6 +173,7 @@ public class ConversationServiceImpl implements ConversationService {
                 .findByConversation_IdAndUserAccount_Id(conversationId, me.getId())
                 .ifPresent(participant -> participant.setLastReadAt(Instant.now()));
 
+        events.publishEvent(new NotificationEvents.ConversationChanged(conversationId));
         return getConversation(conversationId);
     }
 
@@ -185,7 +187,7 @@ public class ConversationServiceImpl implements ConversationService {
      */
     @Override
     @Transactional
-    public void deleteMessage(Long conversationId, Long messageId) {
+    public void deleteMessage(UUID conversationId, UUID messageId) {
         UserAccount me = currentUserAccount();
         requireMyConversation(conversationId, me);
 
@@ -202,6 +204,7 @@ public class ConversationServiceImpl implements ConversationService {
         message.setStatus(MessageStatus.DELETED);
         message.setContent(null);
         message.setDeletedAt(Instant.now());
+        events.publishEvent(new NotificationEvents.ConversationChanged(conversationId));
     }
 
     /**
@@ -264,7 +267,7 @@ public class ConversationServiceImpl implements ConversationService {
      * otherwise be added twice and trip the participant uniqueness constraint.
      */
     private List<UserAccount> moderatorRecipients(UserAccount caller) {
-        List<Long> moderatorAccountIds = moderatorProfileRepository
+        List<UUID> moderatorAccountIds = moderatorProfileRepository
                 .findUserAccountIdsByStatus(ProfileStatus.ACTIVE)
                 .stream()
                 .filter(id -> !id.equals(caller.getId()))
@@ -319,11 +322,12 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional
-    public ConversationResponse closeConversation(Long conversationId) {
+    public ConversationResponse closeConversation(UUID conversationId) {
         UserAccount me = currentUserAccount();
         Conversation conversation = requireMyConversation(conversationId, me);
 
         conversation.setStatus(ConversationStatus.CLOSED);
+        events.publishEvent(new NotificationEvents.ConversationChanged(conversationId));
 
         return getConversation(conversationId);
     }
@@ -466,7 +470,7 @@ public class ConversationServiceImpl implements ConversationService {
      * thread exists is itself a disclosure, and here it would confirm that two
      * particular people are talking.
      */
-    private Conversation requireMyConversation(Long conversationId, UserAccount me) {
+    private Conversation requireMyConversation(UUID conversationId, UserAccount me) {
         participantRepository
                 .findByConversation_IdAndUserAccount_Id(conversationId, me.getId())
                 .filter(participant -> participant.getLeftAt() == null)
@@ -482,29 +486,35 @@ public class ConversationServiceImpl implements ConversationService {
                 ));
     }
 
-    private Map<Long, Message> latestMessages(List<Long> conversationIds) {
+    private Map<UUID, Message> latestMessages(List<UUID> conversationIds) {
         if (conversationIds.isEmpty()) return Map.of();
 
-        Map<Long, Message> latest = new HashMap<>();
+        Map<UUID, Message> latest = new HashMap<>();
 
         for (Message message : messageRepository.findLatestPerConversation(conversationIds)) {
             latest.merge(
                     message.getConversation().getId(),
                     message,
-                    (first, second) -> first.getId() >= second.getId() ? first : second
+                    (first, second) -> {
+                        int bySentAt = first.getSentAt().compareTo(second.getSentAt());
+                        if (bySentAt != 0) return bySentAt > 0 ? first : second;
+                        // Equal timestamps: pick deterministically, since a
+                        // random UUID says nothing about insertion order.
+                        return first.getId().compareTo(second.getId()) >= 0 ? first : second;
+                    }
             );
         }
 
         return latest;
     }
 
-    private Map<Long, Long> unreadCounts(Long userAccountId, List<Long> conversationIds) {
+    private Map<UUID, Long> unreadCounts(UUID userAccountId, List<UUID> conversationIds) {
         if (conversationIds.isEmpty()) return Map.of();
 
-        Map<Long, Long> counts = new HashMap<>();
+        Map<UUID, Long> counts = new HashMap<>();
 
         for (Object[] row : messageRepository.countUnreadPerConversation(userAccountId, conversationIds)) {
-            counts.put((Long) row[0], (Long) row[1]);
+            counts.put((UUID) row[0], (Long) row[1]);
         }
 
         return counts;
@@ -528,6 +538,7 @@ public class ConversationServiceImpl implements ConversationService {
                 conversation.getType(),
                 conversation.getStatus(),
                 conversation.getApplication() == null ? null : conversation.getApplication().getId(),
+                conversation.getApplication() == null ? null : conversation.getApplication().getJobPost().getTitle(),
                 participants,
                 lastMessage == null ? null : toResponse(lastMessage, me),
                 unreadCount,
@@ -536,7 +547,7 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     private ConversationParticipantResponse toResponse(ConversationParticipant participant, UserAccount me) {
-        Long accountId = participant.getUserAccount().getId();
+        UUID accountId = participant.getUserAccount().getId();
         UserAccountRoleResolver.AccountRole role = roleResolver.resolve(accountId);
 
         // Only these two profiles carry something worth showing as a label; a

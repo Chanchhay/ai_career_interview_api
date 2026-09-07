@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -90,7 +91,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public CompanyResponse updateCompany(
-            Long id,
+            UUID id,
             CompanyUpdateRequest request
     ) {
         Company company = companyRepository.findByIdAndRecruiterProfile_UserAccount_KeycloakUserId(
@@ -122,7 +123,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public CompanyDocumentResponse addDocument(Long companyId, CompanyDocumentRequest request) {
+    public CompanyDocumentResponse addDocument(UUID companyId, CompanyDocumentRequest request) {
         RecruiterProfile recruiterProfile = recruiterProfileResolver.resolve();
         Company company = resolveMyCompany(companyId);
 
@@ -138,7 +139,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CompanyDocumentResponse> getDocuments(Long companyId) {
+    public List<CompanyDocumentResponse> getDocuments(UUID companyId) {
         resolveMyCompany(companyId);
 
         return companyDocumentRepository.findAllByCompany_IdOrderByCreatedAtDesc(companyId)
@@ -149,7 +150,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public void deleteDocument(Long companyId, Long documentId) {
+    public void deleteDocument(UUID companyId, UUID documentId) {
         CompanyDocument document = companyDocumentRepository
                 .findByIdAndCompany_IdAndCompany_RecruiterProfile_UserAccount_KeycloakUserId(
                         documentId,
@@ -166,7 +167,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public CompanyResponse submitVerification(Long companyId) {
+    public CompanyResponse submitVerification(UUID companyId) {
         Company company = resolveMyCompany(companyId);
         validateRequiredDocuments(company.getId());
 
@@ -178,7 +179,7 @@ public class CompanyServiceImpl implements CompanyService {
         return companyMapper.toResponse(company);
     }
 
-    private Industry resolveIndustry(Long industryId) {
+    private Industry resolveIndustry(UUID industryId) {
         if (industryId == null) {
             return null;
         }
@@ -189,14 +190,17 @@ public class CompanyServiceImpl implements CompanyService {
                         "Industry was not found"
                 ));
 
-        if (industry.getStatus() != ProfileStatus.ACTIVE) {
+        if (industry.getParent() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose an industry subcategory.");
+        }
+        if (industry.getStatus() != ProfileStatus.ACTIVE || industry.getParent().getStatus() != ProfileStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Industry is not active");
         }
 
         return industry;
     }
 
-    private Company resolveMyCompany(Long companyId) {
+    private Company resolveMyCompany(UUID companyId) {
         return companyRepository.findByIdAndRecruiterProfile_UserAccount_KeycloakUserId(
                         companyId,
                         AuthUtils.extractUserId()
@@ -207,7 +211,7 @@ public class CompanyServiceImpl implements CompanyService {
                 ));
     }
 
-    private void validateRequiredDocuments(Long companyId) {
+    private void validateRequiredDocuments(UUID companyId) {
         Set<String> uploadedTypes = companyDocumentRepository.findAllByCompany_IdOrderByCreatedAtDesc(companyId)
                 .stream()
                 .filter(document -> document.getStatus() == ProfileStatus.ACTIVE)

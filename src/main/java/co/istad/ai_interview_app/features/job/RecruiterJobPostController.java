@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/recruiter/jobs")
@@ -41,7 +42,7 @@ public class RecruiterJobPostController {
 
     @GetMapping("/{id}")
     public ApiResponse<JobPostResponse> getMyJob(
-            @PathVariable Long id
+            @PathVariable UUID id
     ) {
         return ApiResponse.success(
                 recruiterJobPostService.getMyJob(id)
@@ -50,7 +51,7 @@ public class RecruiterJobPostController {
 
     @PutMapping("/{id}")
     public ApiResponse<JobPostResponse> updateMyJob(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody JobPostRequest request
     ) {
         return ApiResponse.success(
@@ -60,7 +61,7 @@ public class RecruiterJobPostController {
 
     @PostMapping("/{id}/publish")
     public ApiResponse<JobPostResponse> publishMyJob(
-            @PathVariable Long id
+            @PathVariable UUID id
     ) {
         return ApiResponse.success(
                 recruiterJobPostService.publishMyJob(id)
@@ -69,7 +70,7 @@ public class RecruiterJobPostController {
 
     @PostMapping("/{id}/pause")
     public ApiResponse<JobPostResponse> pauseMyJob(
-            @PathVariable Long id
+            @PathVariable UUID id
     ) {
         return ApiResponse.success(
                 recruiterJobPostService.pauseMyJob(id)
@@ -78,7 +79,7 @@ public class RecruiterJobPostController {
 
     @PostMapping("/{id}/resume")
     public ApiResponse<JobPostResponse> resumeMyJob(
-            @PathVariable Long id
+            @PathVariable UUID id
     ) {
         return ApiResponse.success(
                 recruiterJobPostService.resumeMyJob(id)
@@ -87,7 +88,7 @@ public class RecruiterJobPostController {
 
     @PostMapping("/{id}/close")
     public ApiResponse<JobPostResponse> closeMyJob(
-            @PathVariable Long id
+            @PathVariable UUID id
     ) {
         return ApiResponse.success(
                 recruiterJobPostService.closeMyJob(id)

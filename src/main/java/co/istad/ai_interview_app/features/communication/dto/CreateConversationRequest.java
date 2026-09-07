@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.communication.dto;
 
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 
 /**
  * Opens a thread with exactly one counterpart, named one of three ways.
@@ -12,9 +13,9 @@ import jakarta.validation.constraints.Size;
  */
 public record CreateConversationRequest(
         /** APPLICATION thread with the candidate who applied. */
-        Long applicationId,
+        UUID applicationId,
         /** GENERAL thread with the recruiter who owns the company. */
-        Long companyId,
+        UUID companyId,
         /** GENERAL thread with a named account, when neither of the above fits. */
         String recipientKeycloakUserId,
         @Size(max = 200) String title,

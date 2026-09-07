@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.interview.vapi.dto;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Gemini's reconstruction of what the candidate answered to each question.
@@ -19,7 +20,7 @@ public record TranscriptSegmentationResult(
      *                    an empty string
      */
     public record SegmentedAnswer(
-            Long questionId,
+            UUID questionId,
             String answerText,
             Boolean answered
     ) {

@@ -39,9 +39,12 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -71,12 +74,42 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
                 ? reviewRepository.findAll(pageable)
                 : reviewRepository.findAllByReviewStatus(status, pageable);
 
-        return reviews.map(this::toListItem);
+        // One query for the page's finished AI interviews, so the score beside
+        // each candidate does not cost a lookup per row.
+        Map<UUID, AiInterviewSession> sessions = latestSessionsFor(reviews.getContent());
+
+        return reviews.map(review -> toListItem(
+                review,
+                sessions.get(review.getApplication().getId())
+        ));
+    }
+
+    /**
+     * The most recent finished session per application.
+     *
+     * <p>The query returns oldest first, so putting every row into the map in
+     * order leaves the newest one per application standing.
+     */
+    private Map<UUID, AiInterviewSession> latestSessionsFor(
+            List<CandidateApplicationReview> reviews
+    ) {
+        if (reviews.isEmpty()) return Map.of();
+
+        List<UUID> applicationIds = reviews.stream()
+                .map(review -> review.getApplication().getId())
+                .toList();
+
+        Map<UUID, AiInterviewSession> latest = new HashMap<>();
+        aiInterviewSessionRepository
+                .findAllByApplication_IdInAndStatusOrderByEndedAtAsc(applicationIds, InterviewStatus.COMPLETED)
+                .forEach(session -> latest.put(session.getApplication().getId(), session));
+
+        return latest;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CandidateApplicationDetailResponse getReviewDetail(Long applicationId) {
+    public CandidateApplicationDetailResponse getReviewDetail(UUID applicationId) {
         CandidateApplicationReview review = resolveReview(applicationId);
         JobApplication application = review.getApplication();
 
@@ -104,7 +137,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
     @Override
     @Transactional
-    public HumanInterviewResponse scheduleHumanInterview(Long applicationId, HumanInterviewRequest request) {
+    public HumanInterviewResponse scheduleHumanInterview(UUID applicationId, HumanInterviewRequest request) {
         ModeratorProfile moderator = moderatorProfileResolver.resolve();
         CandidateApplicationReview review = resolveReview(applicationId);
         JobApplication application = review.getApplication();
@@ -131,7 +164,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
     @Override
     @Transactional
-    public HumanInterviewResponse rescheduleHumanInterview(Long interviewId, HumanInterviewRequest request) {
+    public HumanInterviewResponse rescheduleHumanInterview(UUID interviewId, HumanInterviewRequest request) {
         HumanInterview interview = resolveMyHumanInterview(interviewId);
         if (interview.getStatus() == InterviewStatus.COMPLETED || interview.getStatus() == InterviewStatus.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Completed or cancelled interviews cannot be rescheduled");
@@ -149,7 +182,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
     @Override
     @Transactional
-    public HumanInterviewResponse completeHumanInterview(Long interviewId, HumanInterviewCompleteRequest request) {
+    public HumanInterviewResponse completeHumanInterview(UUID interviewId, HumanInterviewCompleteRequest request) {
         HumanInterview interview = resolveMyHumanInterview(interviewId);
         if (interview.getStatus() == InterviewStatus.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cancelled interviews cannot be completed");
@@ -171,7 +204,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
     @Override
     @Transactional
-    public HumanInterviewResponse cancelHumanInterview(Long interviewId) {
+    public HumanInterviewResponse cancelHumanInterview(UUID interviewId) {
         HumanInterview interview = resolveMyHumanInterview(interviewId);
         if (interview.getStatus() == InterviewStatus.COMPLETED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Completed interviews cannot be cancelled");
@@ -192,7 +225,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
     @Override
     @Transactional
-    public CandidateApplicationReviewResponse approve(Long applicationId, DecisionRequest request) {
+    public CandidateApplicationReviewResponse approve(UUID applicationId, DecisionRequest request) {
         ModeratorProfile moderator = moderatorProfileResolver.resolve();
         CandidateApplicationReview review = resolveReview(applicationId);
         JobApplication application = review.getApplication();
@@ -257,7 +290,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
     @Override
     @Transactional
-    public CandidateApplicationReviewResponse reject(Long applicationId, DecisionRequest request) {
+    public CandidateApplicationReviewResponse reject(UUID applicationId, DecisionRequest request) {
         ModeratorProfile moderator = moderatorProfileResolver.resolve();
         CandidateApplicationReview review = resolveReview(applicationId);
         JobApplication application = review.getApplication();
@@ -281,7 +314,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
 
     @Override
     @Transactional
-    public CandidateApplicationReviewResponse forward(Long applicationId) {
+    public CandidateApplicationReviewResponse forward(UUID applicationId) {
         CandidateApplicationReview review = resolveReview(applicationId);
         if (review.getReviewStatus() == CandidateApplicationReviewStatus.FORWARDED) {
             return mapper.toReviewResponse(review);
@@ -302,17 +335,22 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
         return mapper.toReviewResponse(review);
     }
 
-    private CandidateApplicationListItemResponse toListItem(CandidateApplicationReview review) {
+    private CandidateApplicationListItemResponse toListItem(
+            CandidateApplicationReview review,
+            AiInterviewSession session
+    ) {
         JobApplication application = review.getApplication();
         return new CandidateApplicationListItemResponse(
                 mapper.toApplicationSummary(application),
                 mapper.toCandidateProfile(application.getJobSeekerProfile()),
                 mapper.toSubmittedResume(application.getResume()),
-                mapper.toReviewResponse(review)
+                mapper.toReviewResponse(review),
+                session == null ? null : session.getTotalScore(),
+                session == null ? null : session.getResult()
         );
     }
 
-    private CandidateApplicationReview resolveReview(Long applicationId) {
+    private CandidateApplicationReview resolveReview(UUID applicationId) {
         return reviewRepository.findWithApplicationByApplication_Id(applicationId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -320,7 +358,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
                 ));
     }
 
-    private HumanInterview resolveMyHumanInterview(Long interviewId) {
+    private HumanInterview resolveMyHumanInterview(UUID interviewId) {
         return humanInterviewRepository.findByIdAndModerator_UserAccount_KeycloakUserId(interviewId, AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -335,7 +373,7 @@ public class ModeratorCandidateApplicationServiceImpl implements ModeratorCandid
      * should be judged on the attempt that stands, not on whichever row the
      * database returned first.
      */
-    private Optional<AiInterviewSession> latestCompletedAiInterview(Long applicationId) {
+    private Optional<AiInterviewSession> latestCompletedAiInterview(UUID applicationId) {
         return aiInterviewSessionRepository
                 .findFirstByApplication_IdAndStatusOrderByEndedAtDesc(applicationId, InterviewStatus.COMPLETED);
     }

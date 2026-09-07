@@ -7,6 +7,7 @@ import co.istad.ai_interview_app.features.interview.guest.dto.GuestInterviewAvai
 import co.istad.ai_interview_app.features.interview.guest.dto.GuestInterviewStartResponse;
 import co.istad.ai_interview_app.features.interview.vapi.dto.VapiCallBindingRequest;
 import co.istad.ai_interview_app.features.interview.vapi.dto.VoiceTranscriptRequest;
+import java.util.UUID;
 
 /**
  * AI interviews for people who are not signed in.
@@ -19,21 +20,21 @@ public interface GuestInterviewService {
 
     GuestInterviewAvailabilityResponse availability(String guestToken);
 
-    GuestInterviewStartResponse start(Long jobId, String guestToken, String clientIp);
+    GuestInterviewStartResponse start(UUID jobId, String guestToken, String clientIp);
 
-    AiInterviewSessionResponse get(Long sessionId, String guestToken);
+    AiInterviewSessionResponse get(UUID sessionId, String guestToken);
 
-    AiInterviewSessionResponse begin(Long sessionId, String guestToken);
+    AiInterviewSessionResponse begin(UUID sessionId, String guestToken);
 
-    AiInterviewSessionResponse answer(Long sessionId, Long questionId, String guestToken, AiInterviewAnswerRequest request);
+    AiInterviewSessionResponse answer(UUID sessionId, UUID questionId, String guestToken, AiInterviewAnswerRequest request);
 
-    AiInterviewResultResponse complete(Long sessionId, String guestToken);
+    AiInterviewResultResponse complete(UUID sessionId, String guestToken);
 
-    AiInterviewResultResponse result(Long sessionId, String guestToken);
+    AiInterviewResultResponse result(UUID sessionId, String guestToken);
 
     /* A guest may sit the interview by voice as well as by typing. */
 
-    AiInterviewSessionResponse bindVoiceCall(Long sessionId, String guestToken, VapiCallBindingRequest request);
+    AiInterviewSessionResponse bindVoiceCall(UUID sessionId, String guestToken, VapiCallBindingRequest request);
 
-    AiInterviewSessionResponse submitVoiceTranscript(Long sessionId, String guestToken, VoiceTranscriptRequest request);
+    AiInterviewSessionResponse submitVoiceTranscript(UUID sessionId, String guestToken, VoiceTranscriptRequest request);
 }

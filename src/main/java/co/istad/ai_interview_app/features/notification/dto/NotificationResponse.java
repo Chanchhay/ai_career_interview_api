@@ -3,9 +3,10 @@ package co.istad.ai_interview_app.features.notification.dto;
 import co.istad.ai_interview_app.shared.enums.admin.NotificationEventType;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record NotificationResponse(
-        Long id,
+        UUID id,
         NotificationEventType eventType,
         String title,
         String body,

@@ -3,9 +3,10 @@ package co.istad.ai_interview_app.features.recruiter.talent.dto;
 import co.istad.ai_interview_app.shared.enums.profile.SalaryVisibility;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record PublicTalentListItemResponse(
-        Long profileId,
+        UUID profileId,
         String publicProfileSlug,
         String avatarUrl,
         String headline,

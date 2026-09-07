@@ -6,11 +6,12 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface AiInterviewAnswerRepository extends JpaRepository<AiInterviewAnswer, Long> {
+public interface AiInterviewAnswerRepository extends JpaRepository<AiInterviewAnswer, UUID> {
 
-    Optional<AiInterviewAnswer> findByQuestion_Id(Long questionId);
+    Optional<AiInterviewAnswer> findByQuestion_Id(UUID questionId);
 
-    List<AiInterviewAnswer> findAllByQuestion_Session_Id(Long sessionId);
+    List<AiInterviewAnswer> findAllByQuestion_Session_Id(UUID sessionId);
 }

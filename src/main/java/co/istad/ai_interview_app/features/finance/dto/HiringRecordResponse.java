@@ -4,15 +4,16 @@ import co.istad.ai_interview_app.shared.enums.finance.HiringRecordStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 public record HiringRecordResponse(
-        Long id,
-        Long applicationId,
-        Long jobPostId,
+        UUID id,
+        UUID applicationId,
+        UUID jobPostId,
         String jobTitle,
-        Long companyId,
+        UUID companyId,
         String companyName,
-        Long jobSeekerProfileId,
+        UUID jobSeekerProfileId,
         /** The candidate's headline — this platform does not carry real names. */
         String candidateLabel,
         Instant hiredAt,

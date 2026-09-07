@@ -3,8 +3,15 @@ package co.istad.ai_interview_app.shared.exception;
 import com.google.genai.errors.ClientException;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.retry.RetryException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -55,5 +62,57 @@ class AppGlobalExceptionAiProviderTest {
                 handler.handleUnhandledEx(new IllegalStateException("a real bug"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    void answersUnsupportedMethodWithMethodNotAllowedAndAllowHeader() {
+        HttpRequestMethodNotSupportedException ex =
+                new HttpRequestMethodNotSupportedException("GET", List.of("POST", "PATCH"));
+
+        ResponseEntity<ErrorResponse> response = handler.handleMethodNotSupportedEx(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(response.getHeaders().getAllow())
+                .containsExactlyInAnyOrder(HttpMethod.POST, HttpMethod.PATCH);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(405);
+        assertThat(response.getBody().status()).isEqualTo("Method Not Allowed");
+        assertThat(response.getBody().message()).isEqualTo("Request method 'GET' is not supported");
+    }
+
+    @Test
+    void answersResourceNotFoundWithNotFound() {
+        NoResourceFoundException ex = new NoResourceFoundException(HttpMethod.GET, "Resource not found", "/api/v1/missing");
+
+        ResponseEntity<ErrorResponse> response = handler.handleNoResourceFoundEx(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(404);
+        assertThat(response.getBody().message()).contains("/api/v1/missing");
+    }
+
+    @Test
+    void answersUnsupportedMediaType() {
+        HttpMediaTypeNotSupportedException ex =
+                new HttpMediaTypeNotSupportedException("text/plain is not supported");
+
+        ResponseEntity<ErrorResponse> response = handler.handleMediaTypeNotSupportedEx(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(415);
+    }
+
+    @Test
+    void answersNotAcceptableMediaType() {
+        HttpMediaTypeNotAcceptableException ex =
+                new HttpMediaTypeNotAcceptableException("not acceptable");
+
+        ResponseEntity<ErrorResponse> response = handler.handleMediaTypeNotAcceptableEx(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_ACCEPTABLE);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo(406);
     }
 }

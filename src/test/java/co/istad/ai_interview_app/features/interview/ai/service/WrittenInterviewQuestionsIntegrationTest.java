@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.util.UUID;
 
 /**
  * What a candidate is actually asked when an administrator has written
@@ -92,7 +93,7 @@ class WrittenInterviewQuestionsIntegrationTest {
 
     @Test
     void writtenQuestionsComeFirstAndTheAiFillsTheRest() {
-        Long jobId = seedJob();
+        UUID jobId = seedJob();
         write(jobId, ManualQuestionMode.MANUAL_PLUS_AI, "Explain the virtual DOM.", "Describe a conflict you resolved.");
 
         AiInterviewSessionResponse session = aiInterviewService.createInterviewForJob(jobId);
@@ -109,7 +110,7 @@ class WrittenInterviewQuestionsIntegrationTest {
 
     @Test
     void manualOnlyAsksExactlyWhatWasWritten() {
-        Long jobId = seedJob();
+        UUID jobId = seedJob();
         write(jobId, ManualQuestionMode.MANUAL_ONLY, "Why this company?", "Walk me through a recent project.");
 
         AiInterviewSessionResponse session = aiInterviewService.createInterviewForJob(jobId);
@@ -126,7 +127,7 @@ class WrittenInterviewQuestionsIntegrationTest {
      */
     @Test
     void aWrittenSetLongerThanTheTargetIsAskedInFull() {
-        Long jobId = seedJob();
+        UUID jobId = seedJob();
         String[] questions = new String[TARGET_COUNT + 2];
         for (int index = 0; index < questions.length; index++) {
             questions[index] = "Written question " + (index + 1);
@@ -144,7 +145,7 @@ class WrittenInterviewQuestionsIntegrationTest {
     /** A job nobody wrote questions for is generated exactly as it always was. */
     @Test
     void aJobWithNoWrittenQuestionsIsFullyGenerated() {
-        Long jobId = seedJob();
+        UUID jobId = seedJob();
 
         AiInterviewSessionResponse session = aiInterviewService.createInterviewForJob(jobId);
 
@@ -156,11 +157,11 @@ class WrittenInterviewQuestionsIntegrationTest {
 
     @Test
     void savingAgainUpdatesInPlaceRatherThanPilingUp() {
-        Long jobId = seedJob();
+        UUID jobId = seedJob();
         JobInterviewQuestionSetResponse first =
                 write(jobId, ManualQuestionMode.MANUAL_PLUS_AI, "First wording.", "Second question.");
 
-        Long keptId = first.questions().get(0).id();
+        UUID keptId = first.questions().get(0).id();
 
         JobInterviewQuestionSetResponse second = questionService.saveSet(
                 jobId,
@@ -188,7 +189,7 @@ class WrittenInterviewQuestionsIntegrationTest {
     /** The count the editor shows before saving must match what really happens. */
     @Test
     void theSetReportsHowManyQuestionsTheAiWouldAdd()  {
-        Long jobId = seedJob();
+        UUID jobId = seedJob();
 
         assertThat(questionService.getSet(jobId).generatedQuestionCount()).isEqualTo(TARGET_COUNT);
 
@@ -200,7 +201,7 @@ class WrittenInterviewQuestionsIntegrationTest {
     /* ------------------------------------------------------------ seed --- */
 
     private JobInterviewQuestionSetResponse write(
-            Long jobId,
+            UUID jobId,
             ManualQuestionMode mode,
             String... questionTexts
     ) {
@@ -217,7 +218,7 @@ class WrittenInterviewQuestionsIntegrationTest {
         return questionService.saveSet(jobId, new JobInterviewQuestionSetRequest(mode, questions));
     }
 
-    private Long seedJob() {
+    private UUID seedJob() {
         return transactionTemplate.execute(status -> {
             int suffix = SEQUENCE.incrementAndGet();
 

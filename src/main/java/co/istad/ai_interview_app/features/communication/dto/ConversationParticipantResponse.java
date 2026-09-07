@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.communication.dto;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Someone in a thread.
@@ -13,7 +14,7 @@ import java.time.Instant;
  * shortfall.
  */
 public record ConversationParticipantResponse(
-        Long userAccountId,
+        UUID userAccountId,
         /** SEEKER, RECRUITER, MODERATOR, FINANCE, ADMIN, or UNKNOWN. */
         String role,
         /** Headline or position where the profile has one, otherwise the role. */

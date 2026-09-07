@@ -1,5 +1,7 @@
 package co.istad.ai_interview_app.features.job.parsing.dto;
 
+import java.util.UUID;
+
 /**
  * A skill the uploaded job description asked for, resolved to a row and
  * attached to the prefill.
@@ -9,7 +11,7 @@ package co.istad.ai_interview_app.features.job.parsing.dto;
  *                they can see what their upload changed.
  */
 public record ParsedJobSkill(
-        Long skillId,
+        UUID skillId,
         String name,
         String skillType,
         boolean created

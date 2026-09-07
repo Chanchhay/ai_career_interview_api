@@ -4,10 +4,11 @@ import co.istad.ai_interview_app.shared.enums.interview.InterviewResult;
 import co.istad.ai_interview_app.shared.enums.interview.InterviewStatus;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record HumanInterviewResponse(
-        Long id,
-        Long applicationId,
+        UUID id,
+        UUID applicationId,
         Instant scheduledAt,
         String meetingUrl,
         InterviewStatus status,

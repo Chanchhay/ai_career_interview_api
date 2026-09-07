@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import java.util.UUID;
 
 /**
  * Recruiters add skills two ways — by hand, and by importing a job description
@@ -36,6 +37,11 @@ import static org.mockito.Mockito.when;
  * into a pile of near-duplicates live in {@code findOrCreateAll}.
  */
 class RecruiterSkillServiceTest {
+
+    private static final UUID RECRUITER_ID = UUID.randomUUID();
+    private static final UUID REACT_ID = UUID.randomUUID();
+    private static final UUID ZUSTAND_ID = UUID.randomUUID();
+    private static final UUID CREATED_ID = UUID.randomUUID();
 
     private SkillRepository skillRepository;
     private SkillCreator skillCreator;
@@ -49,7 +55,7 @@ class RecruiterSkillServiceTest {
         CompanyRepository companyRepository = mock(CompanyRepository.class);
 
         recruiter = new RecruiterProfile();
-        recruiter.setId(11L);
+        recruiter.setId(RECRUITER_ID);
 
         AuthenticatedRecruiterProfileResolver resolver =
                 mock(AuthenticatedRecruiterProfileResolver.class);
@@ -58,7 +64,7 @@ class RecruiterSkillServiceTest {
         Company company = new Company();
         company.setName("Acme Ltd");
         company.setRecruiterProfile(recruiter);
-        when(companyRepository.findFirstByRecruiterProfile_Id(11L))
+        when(companyRepository.findFirstByRecruiterProfile_Id(RECRUITER_ID))
                 .thenReturn(Optional.of(company));
 
         service = new RecruiterSkillServiceImpl(
@@ -71,25 +77,29 @@ class RecruiterSkillServiceTest {
         when(skillRepository.findAllByLowercaseNameIn(any())).thenReturn(List.of());
         when(skillRepository.findFirstByNameIgnoreCase(any())).thenReturn(Optional.empty());
         when(skillCreator.create(any(), any(), any())).thenAnswer(invocation -> skill(
-                42L,
+                CREATED_ID,
                 invocation.getArgument(0),
                 invocation.getArgument(1),
                 invocation.getArgument(2)
         ));
     }
 
-    private static Skill skill(Long id, String name, String skillType) {
+    private static Skill skill(UUID id, String name, String skillType) {
         return skill(id, name, skillType, null);
     }
 
     private static Skill skill(
-            Long id,
+            UUID id,
             String name,
             String skillType,
             RecruiterProfile createdBy
     ) {
         Skill skill = new Skill();
         skill.setId(id);
+        Skill parent = new Skill();
+        parent.setId(UUID.randomUUID());
+        parent.setName("General");
+        skill.setParent(parent);
         skill.setName(name);
         skill.setSkillType(skillType);
         skill.setCreatedByRecruiterProfile(createdBy);
@@ -99,13 +109,13 @@ class RecruiterSkillServiceTest {
     @Test
     void anExistingSkillIsReturnedRatherThanDuplicated() {
         when(skillRepository.findAllByLowercaseNameIn(any()))
-                .thenReturn(List.of(skill(3L, "React", "LIBRARY")));
+                .thenReturn(List.of(skill(REACT_ID, "React", "LIBRARY")));
 
         SkillResponse response = service.findOrCreate(
                 new SkillCreateRequest("react", "FRAMEWORK")
         );
 
-        assertThat(response.id()).isEqualTo(3L);
+        assertThat(response.id()).isEqualTo(REACT_ID);
         // The stored name and type win: the recruiter is attaching a skill, not
         // reclassifying one that already exists.
         assertThat(response.name()).isEqualTo("React");
@@ -122,9 +132,9 @@ class RecruiterSkillServiceTest {
         );
 
         verify(skillCreator).create("React Native", "FRAMEWORK", recruiter);
-        assertThat(response.id()).isEqualTo(42L);
+        assertThat(response.id()).isEqualTo(CREATED_ID);
         // Admins can see this did not come from them, and whose it is.
-        assertThat(response.createdByRecruiterProfileId()).isEqualTo(11L);
+        assertThat(response.createdByRecruiterProfileId()).isEqualTo(RECRUITER_ID);
         assertThat(response.createdByCompanyName()).isEqualTo("Acme Ltd");
     }
 
@@ -147,7 +157,7 @@ class RecruiterSkillServiceTest {
     @Test
     void importingAJobResolvesEveryNameInOnePass() {
         when(skillRepository.findAllByLowercaseNameIn(any()))
-                .thenReturn(List.of(skill(3L, "React", "LIBRARY")));
+                .thenReturn(List.of(skill(REACT_ID, "React", "LIBRARY")));
 
         List<ResolvedSkill> resolved = service.findOrCreateAll(List.of(
                 new SkillCreateRequest("React", "LIBRARY"),
@@ -174,14 +184,14 @@ class RecruiterSkillServiceTest {
         when(skillCreator.create(any(), any(), any()))
                 .thenThrow(new DataIntegrityViolationException("duplicate key"));
         when(skillRepository.findFirstByNameIgnoreCase("Zustand"))
-                .thenReturn(Optional.of(skill(9L, "Zustand", "LIBRARY")));
+                .thenReturn(Optional.of(skill(ZUSTAND_ID, "Zustand", "LIBRARY")));
 
         List<ResolvedSkill> resolved = service.findOrCreateAll(
                 List.of(new SkillCreateRequest("Zustand", "LIBRARY"))
         );
 
         assertThat(resolved).hasSize(1);
-        assertThat(resolved.getFirst().skill().id()).isEqualTo(9L);
+        assertThat(resolved.getFirst().skill().id()).isEqualTo(ZUSTAND_ID);
         // Someone else's row, so this import did not create it.
         assertThat(resolved.getFirst().created()).isFalse();
     }

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 /**
  * The review step between a recruiter's claim and a bill.
@@ -41,14 +42,14 @@ public class ModeratorHiringController {
 
     @GetMapping("/{hiringRecordId}")
     public ApiResponse<HiringRecordResponse> get(
-            @PathVariable Long hiringRecordId
+            @PathVariable UUID hiringRecordId
     ) {
         return ApiResponse.success(hiringRecordService.get(hiringRecordId));
     }
 
     @PostMapping("/{hiringRecordId}/confirm")
     public ApiResponse<HiringRecordResponse> confirm(
-            @PathVariable Long hiringRecordId,
+            @PathVariable UUID hiringRecordId,
             @Valid @RequestBody(required = false) HireReviewRequest request
     ) {
         return ApiResponse.success(hiringRecordService.confirm(hiringRecordId, request));
@@ -56,7 +57,7 @@ public class ModeratorHiringController {
 
     @PostMapping("/{hiringRecordId}/reject")
     public ApiResponse<HiringRecordResponse> reject(
-            @PathVariable Long hiringRecordId,
+            @PathVariable UUID hiringRecordId,
             @Valid @RequestBody(required = false) HireReviewRequest request
     ) {
         return ApiResponse.success(hiringRecordService.reject(hiringRecordId, request));

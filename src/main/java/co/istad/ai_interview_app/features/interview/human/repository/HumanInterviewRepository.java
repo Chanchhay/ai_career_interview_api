@@ -9,13 +9,14 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface HumanInterviewRepository extends JpaRepository<HumanInterview, Long> {
+public interface HumanInterviewRepository extends JpaRepository<HumanInterview, UUID> {
 
-    List<HumanInterview> findAllByApplication_IdOrderByScheduledAtDesc(Long applicationId);
+    List<HumanInterview> findAllByApplication_IdOrderByScheduledAtDesc(UUID applicationId);
 
-    boolean existsByApplication_IdAndStatus(Long applicationId, InterviewStatus status);
+    boolean existsByApplication_IdAndStatus(UUID applicationId, InterviewStatus status);
 
     /**
      * Whether a booked interview is still waiting to happen.
@@ -24,8 +25,8 @@ public interface HumanInterviewRepository extends JpaRepository<HumanInterview, 
      * one the moderator decided not to hold, so it should stop blocking the
      * decision rather than block it forever.
      */
-    boolean existsByApplication_IdAndStatusIn(Long applicationId, Collection<InterviewStatus> statuses);
+    boolean existsByApplication_IdAndStatusIn(UUID applicationId, Collection<InterviewStatus> statuses);
 
     @EntityGraph(attributePaths = {"application", "application.jobPost", "moderator"})
-    Optional<HumanInterview> findByIdAndModerator_UserAccount_KeycloakUserId(Long id, String keycloakUserId);
+    Optional<HumanInterview> findByIdAndModerator_UserAccount_KeycloakUserId(UUID id, String keycloakUserId);
 }

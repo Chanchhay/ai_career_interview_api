@@ -4,6 +4,7 @@ import co.istad.ai_interview_app.features.job.dto.JobPostRequest;
 import co.istad.ai_interview_app.features.job.dto.JobPostResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface RecruiterJobPostService {
 
@@ -11,15 +12,15 @@ public interface RecruiterJobPostService {
 
     List<JobPostResponse> getMyJobs();
 
-    JobPostResponse getMyJob(Long id);
+    JobPostResponse getMyJob(UUID id);
 
-    JobPostResponse updateMyJob(Long id, JobPostRequest request);
+    JobPostResponse updateMyJob(UUID id, JobPostRequest request);
 
-    JobPostResponse publishMyJob(Long id);
+    JobPostResponse publishMyJob(UUID id);
 
-    JobPostResponse pauseMyJob(Long id);
+    JobPostResponse pauseMyJob(UUID id);
 
-    JobPostResponse resumeMyJob(Long id);
+    JobPostResponse resumeMyJob(UUID id);
 
-    JobPostResponse closeMyJob(Long id);
+    JobPostResponse closeMyJob(UUID id);
 }

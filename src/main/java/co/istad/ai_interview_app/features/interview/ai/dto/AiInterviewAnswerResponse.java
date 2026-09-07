@@ -1,9 +1,10 @@
 package co.istad.ai_interview_app.features.interview.ai.dto;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public record AiInterviewAnswerResponse(
-        Long id,
+        UUID id,
         String answerText,
         BigDecimal score,
         String feedback,

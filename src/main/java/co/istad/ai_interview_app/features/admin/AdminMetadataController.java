@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin")
@@ -49,20 +50,20 @@ public class AdminMetadataController {
     }
 
     @GetMapping("/job-categories/{id}")
-    public ApiResponse<JobCategoryResponse> getJobCategoryById(@PathVariable Long id) {
+    public ApiResponse<JobCategoryResponse> getJobCategoryById(@PathVariable UUID id) {
         return ApiResponse.success(adminMetadataService.getJobCategoryById(id));
     }
 
     @PutMapping("/job-categories/{id}")
     public ApiResponse<JobCategoryResponse> updateJobCategory(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody JobCategoryUpdateRequest request
     ) {
         return ApiResponse.success(adminMetadataService.updateJobCategory(id, request));
     }
 
     @DeleteMapping("/job-categories/{id}")
-    public ApiResponse<Void> deleteJobCategory(@PathVariable Long id) {
+    public ApiResponse<Void> deleteJobCategory(@PathVariable UUID id) {
         adminMetadataService.deleteJobCategory(id);
         return ApiResponse.success(null);
     }
@@ -83,20 +84,20 @@ public class AdminMetadataController {
     }
 
     @GetMapping("/skills/{id}")
-    public ApiResponse<SkillResponse> getSkillById(@PathVariable Long id) {
+    public ApiResponse<SkillResponse> getSkillById(@PathVariable UUID id) {
         return ApiResponse.success(adminMetadataService.getSkillById(id));
     }
 
     @PutMapping("/skills/{id}")
     public ApiResponse<SkillResponse> updateSkill(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody SkillUpdateRequest request
     ) {
         return ApiResponse.success(adminMetadataService.updateSkill(id, request));
     }
 
     @DeleteMapping("/skills/{id}")
-    public ApiResponse<Void> deleteSkill(@PathVariable Long id) {
+    public ApiResponse<Void> deleteSkill(@PathVariable UUID id) {
         adminMetadataService.deleteSkill(id);
         return ApiResponse.success(null);
     }
@@ -117,20 +118,20 @@ public class AdminMetadataController {
     }
 
     @GetMapping("/industries/{id}")
-    public ApiResponse<IndustryResponse> getIndustryById(@PathVariable Long id) {
+    public ApiResponse<IndustryResponse> getIndustryById(@PathVariable UUID id) {
         return ApiResponse.success(adminMetadataService.getIndustryById(id));
     }
 
     @PutMapping("/industries/{id}")
     public ApiResponse<IndustryResponse> updateIndustry(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody IndustryUpdateRequest request
     ) {
         return ApiResponse.success(adminMetadataService.updateIndustry(id, request));
     }
 
     @DeleteMapping("/industries/{id}")
-    public ApiResponse<Void> deleteIndustry(@PathVariable Long id) {
+    public ApiResponse<Void> deleteIndustry(@PathVariable UUID id) {
         adminMetadataService.deleteIndustry(id);
         return ApiResponse.success(null);
     }

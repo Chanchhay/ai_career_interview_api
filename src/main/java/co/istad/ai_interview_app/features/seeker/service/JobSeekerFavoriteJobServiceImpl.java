@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +46,7 @@ public class JobSeekerFavoriteJobServiceImpl implements JobSeekerFavoriteJobServ
      */
     @Override
     @Transactional
-    public FavoriteJobResponse saveFavoriteJob(Long jobId) {
+    public FavoriteJobResponse saveFavoriteJob(UUID jobId) {
         JobSeekerProfile profile = jobSeekerProfileResolver.resolve();
 
         return favoriteJobRepository
@@ -62,7 +63,7 @@ public class JobSeekerFavoriteJobServiceImpl implements JobSeekerFavoriteJobServ
 
     @Override
     @Transactional
-    public void removeFavoriteJob(Long jobId) {
+    public void removeFavoriteJob(UUID jobId) {
         JobSeekerProfile profile = jobSeekerProfileResolver.resolve();
 
         favoriteJobRepository
@@ -84,7 +85,7 @@ public class JobSeekerFavoriteJobServiceImpl implements JobSeekerFavoriteJobServ
      * same query the public detail page uses, so a draft or a paused post
      * cannot be bookmarked by guessing its id.
      */
-    private JobPost resolveSavableJob(Long jobId) {
+    private JobPost resolveSavableJob(UUID jobId) {
         return jobPostRepository.findPublicJobById(
                         jobId,
                         JobStatus.PUBLISHED,

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.UUID;
 
 /**
  * Holds the open Server-Sent Events connections and pushes notifications down
@@ -38,11 +39,17 @@ public class NotificationStreamService {
      * and a bounded timeout means a client that vanished without closing
      * cleanly is reaped rather than held forever.
      */
+    private final LiveWebSocketHandler webSocket;
+
+    public NotificationStreamService(LiveWebSocketHandler webSocket) {
+        this.webSocket = webSocket;
+    }
+
     private static final long TIMEOUT_MILLIS = Duration.ofMinutes(30).toMillis();
 
-    private final Map<Long, List<SseEmitter>> emittersByUserAccountId = new ConcurrentHashMap<>();
+    private final Map<UUID, List<SseEmitter>> emittersByUserAccountId = new ConcurrentHashMap<>();
 
-    public SseEmitter subscribe(Long userAccountId) {
+    public SseEmitter subscribe(UUID userAccountId) {
         return register(userAccountId, new SseEmitter(TIMEOUT_MILLIS));
     }
 
@@ -53,7 +60,7 @@ public class NotificationStreamService {
      * observe — a real one needs an HTTP response behind it before it will
      * accept a single event.
      */
-    SseEmitter register(Long userAccountId, SseEmitter emitter) {
+    SseEmitter register(UUID userAccountId, SseEmitter emitter) {
         emittersByUserAccountId
                 .computeIfAbsent(userAccountId, key -> new CopyOnWriteArrayList<>())
                 .add(emitter);
@@ -72,7 +79,7 @@ public class NotificationStreamService {
         return emitter;
     }
 
-    public void push(Long userAccountId, NotificationResponse notification) {
+    public void push(UUID userAccountId, NotificationResponse notification) {
         pushEvent(userAccountId, "notification", notification);
     }
 
@@ -83,11 +90,12 @@ public class NotificationStreamService {
      * on it without decoding a notification payload, and so a muted thread still
      * updates on screen while staying quiet in the bell.
      */
-    public void pushMessage(Long userAccountId, MessageStreamEvent event) {
+    public void pushMessage(UUID userAccountId, MessageStreamEvent event) {
         pushEvent(userAccountId, "message", event);
     }
 
-    private void pushEvent(Long userAccountId, String eventName, Object payload) {
+    private void pushEvent(UUID userAccountId, String eventName, Object payload) {
+        webSocket.push(userAccountId, eventName, payload);
         List<SseEmitter> emitters = emittersByUserAccountId.get(userAccountId);
 
         if (emitters == null || emitters.isEmpty()) return;
@@ -126,7 +134,7 @@ public class NotificationStreamService {
         }
     }
 
-    private void remove(Long userAccountId, SseEmitter emitter) {
+    private void remove(UUID userAccountId, SseEmitter emitter) {
         List<SseEmitter> emitters = emittersByUserAccountId.get(userAccountId);
 
         if (emitters == null) return;

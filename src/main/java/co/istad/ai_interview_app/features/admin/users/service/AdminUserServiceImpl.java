@@ -54,6 +54,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
+import java.util.UUID;
 
 /**
  * Administrative user management across the two systems that together make up
@@ -521,7 +522,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (account == null) return List.of();
 
         List<String> names = new ArrayList<>();
-        Long id = account.getId();
+        UUID id = account.getId();
 
         jobSeekerProfileRepository.findByUserAccount_Id(id).ifPresent(profile -> names.add("JOB_SEEKER"));
         recruiterProfileRepository.findByUserAccount_Id(id).ifPresent(profile -> names.add("RECRUITER"));

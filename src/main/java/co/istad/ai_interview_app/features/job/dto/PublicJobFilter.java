@@ -3,6 +3,7 @@ package co.istad.ai_interview_app.features.job.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The caller-supplied half of a public job search: everything a visitor can
@@ -17,8 +18,8 @@ import java.util.List;
 public record PublicJobFilter(
         String keyword,
         String location,
-        List<Long> categoryIds,
-        List<Long> skillIds,
+        List<UUID> categoryIds,
+        List<UUID> skillIds,
         List<String> workModes,
         List<String> jobTypes,
         List<String> experienceLevels,

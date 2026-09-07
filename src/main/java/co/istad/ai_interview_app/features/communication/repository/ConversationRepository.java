@@ -12,9 +12,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ConversationRepository extends JpaRepository<Conversation, Long> {
+public interface ConversationRepository extends JpaRepository<Conversation, UUID> {
 
     /**
      * The caller's threads, newest activity first.
@@ -46,7 +47,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
                     """
     )
     Page<Conversation> findAllForParticipant(
-            @Param("userAccountId") Long userAccountId,
+            @Param("userAccountId") UUID userAccountId,
             Pageable pageable
     );
 
@@ -67,7 +68,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
               and conversation.status = co.istad.ai_interview_app.shared.enums.conversation.ConversationStatus.OPEN
             order by conversation.id desc
             """)
-    List<Conversation> findOpenSupportConversations(@Param("userAccountId") Long userAccountId);
+    List<Conversation> findOpenSupportConversations(@Param("userAccountId") UUID userAccountId);
 
     /**
      * An existing open thread for this application, so a moderator opening the
@@ -75,7 +76,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
      * second history nobody will read.
      */
     Optional<Conversation> findFirstByApplication_IdAndTypeAndStatus(
-            Long applicationId,
+            UUID applicationId,
             ConversationType type,
             ConversationStatus status
     );

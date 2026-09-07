@@ -45,10 +45,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.util.UUID;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AiInterviewServiceImplTest {
+// Public so other suites can @Import the fake AI below rather than writing a
+// second fake that answers differently.
+public class AiInterviewServiceImplTest {
 
     private static final String SEEKER_KEYCLOAK_ID = "test-seeker";
 
@@ -85,7 +88,7 @@ class AiInterviewServiceImplTest {
 
     @Test
     void completesTextInterviewWorkflowWithFakeAi() {
-        Long jobId = createPublishedJobAndSeeker();
+        UUID jobId = createPublishedJobAndSeeker();
 
         AiInterviewSessionResponse created = aiInterviewService.createInterviewForJob(jobId);
 
@@ -138,7 +141,7 @@ class AiInterviewServiceImplTest {
         assertThat(session.getApplication()).isNull();
     }
 
-    Long createPublishedJobAndSeeker() {
+    UUID createPublishedJobAndSeeker() {
         return transactionTemplate.execute(status -> {
             UserAccount seekerUser = new UserAccount();
             seekerUser.setKeycloakUserId(SEEKER_KEYCLOAK_ID);
@@ -198,7 +201,7 @@ class AiInterviewServiceImplTest {
     }
 
     @TestConfiguration
-    static class FakeAiConfiguration {
+    public static class FakeAiConfiguration {
 
         @Bean
         @Primary

@@ -2,6 +2,7 @@ package co.istad.ai_interview_app.features.company.service;
 
 import co.istad.ai_interview_app.features.company.entity.Company;
 import co.istad.ai_interview_app.shared.enums.visibility.CompanyIdentityVisibility;
+import java.util.UUID;
 
 /**
  * The one place that decides what a candidate is told about a company.
@@ -46,16 +47,23 @@ public final class CompanyIdentity {
      * lets a page link to the company, and lets anyone compare two masked
      * postings and see they came from the same employer.
      */
-    public static Long displayId(Company company) {
+    public static UUID displayId(Company company) {
         if (company == null || isMasked(company)) return null;
 
         return company.getId();
     }
 
-    /** A logo names a company as surely as its name does. */
+    /**
+     * The logo to show a candidate.
+     *
+     * <p>A logo names a company as surely as its name does, so the real one is
+     * never shown while masked. What a masked company gets instead is the
+     * stand-in an administrator set for it, which is usually null — a masked
+     * posting with no mark at all is the ordinary case, not an error.
+     */
     public static String displayLogoUrl(Company company) {
-        if (company == null || isMasked(company)) return null;
+        if (company == null) return null;
 
-        return company.getLogoUrl();
+        return isMasked(company) ? company.getMaskedLogoUrl() : company.getLogoUrl();
     }
 }

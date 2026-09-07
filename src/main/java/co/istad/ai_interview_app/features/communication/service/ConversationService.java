@@ -7,6 +7,7 @@ import co.istad.ai_interview_app.features.communication.dto.OpenSupportRequest;
 import co.istad.ai_interview_app.features.communication.dto.SendMessageRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.util.UUID;
 
 public interface ConversationService {
 
@@ -14,15 +15,15 @@ public interface ConversationService {
 
     Page<ConversationResponse> findMyConversations(Pageable pageable);
 
-    ConversationResponse getConversation(Long conversationId);
+    ConversationResponse getConversation(UUID conversationId);
 
-    Page<MessageResponse> findMessages(Long conversationId, Pageable pageable);
+    Page<MessageResponse> findMessages(UUID conversationId, Pageable pageable);
 
-    MessageResponse sendMessage(Long conversationId, SendMessageRequest request);
+    MessageResponse sendMessage(UUID conversationId, SendMessageRequest request);
 
-    ConversationResponse markAsRead(Long conversationId);
+    ConversationResponse markAsRead(UUID conversationId);
 
-    void deleteMessage(Long conversationId, Long messageId);
+    void deleteMessage(UUID conversationId, UUID messageId);
 
     /**
      * Opens (or continues) the caller's support thread with the moderator team.
@@ -34,5 +35,5 @@ public interface ConversationService {
 
     ConversationResponse createConversation(CreateConversationRequest request);
 
-    ConversationResponse closeConversation(Long conversationId);
+    ConversationResponse closeConversation(UUID conversationId);
 }

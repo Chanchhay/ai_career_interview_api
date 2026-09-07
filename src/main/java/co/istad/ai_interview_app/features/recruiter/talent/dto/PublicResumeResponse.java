@@ -2,6 +2,7 @@ package co.istad.ai_interview_app.features.recruiter.talent.dto;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Resumes built in the app have no uploaded file, so a recruiter could only ever
@@ -9,7 +10,7 @@ import java.util.Map;
  * URL drives the download button, the data renders the document inline.
  */
 public record PublicResumeResponse(
-        Long id,
+        UUID id,
         String title,
         Boolean isDefault,
         String resumeFileUrl,

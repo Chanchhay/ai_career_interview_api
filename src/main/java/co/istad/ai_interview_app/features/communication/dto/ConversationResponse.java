@@ -5,14 +5,16 @@ import co.istad.ai_interview_app.shared.enums.conversation.ConversationType;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public record ConversationResponse(
-        Long id,
+        UUID id,
         String title,
         ConversationType type,
         ConversationStatus status,
         /** Set for APPLICATION threads, so the client can deep-link the case. */
-        Long applicationId,
+        UUID applicationId,
+        String jobTitle,
         List<ConversationParticipantResponse> participants,
         MessageResponse lastMessage,
         long unreadCount,

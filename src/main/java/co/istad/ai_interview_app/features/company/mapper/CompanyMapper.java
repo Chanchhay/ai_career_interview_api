@@ -35,6 +35,9 @@ public interface CompanyMapper {
     // Administrators decide this, not the company being masked. Ignored here so
     // a recruiter cannot unmask themselves by saving their own profile.
     @Mapping(target = "identityVisibility", ignore = true)
+    // Likewise administrator-owned: a masked company does not choose the mark
+    // that stands in for it.
+    @Mapping(target = "maskedLogoUrl", ignore = true)
     Company toEntity(
             CompanyCreateRequest request,
             Industry industry
@@ -60,6 +63,9 @@ public interface CompanyMapper {
     // Administrators decide this, not the company being masked. Ignored here so
     // a recruiter cannot unmask themselves by saving their own profile.
     @Mapping(target = "identityVisibility", ignore = true)
+    // Likewise administrator-owned: a masked company does not choose the mark
+    // that stands in for it.
+    @Mapping(target = "maskedLogoUrl", ignore = true)
     void updateEntity(
             @MappingTarget Company company,
             CompanyUpdateRequest request,

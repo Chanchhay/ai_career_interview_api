@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.job.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import java.util.UUID;
 import jakarta.validation.constraints.Size;
 
 public record JobCategoryCreateRequest(
@@ -8,6 +9,8 @@ public record JobCategoryCreateRequest(
         @Size(max = 150, message = "Category name must be at most 150 characters")
         String name,
 
-        String description
+        String description,
+
+        UUID parentId
 ) {
 }

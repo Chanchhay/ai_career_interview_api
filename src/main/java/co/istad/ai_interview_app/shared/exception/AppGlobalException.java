@@ -1,13 +1,19 @@
 package co.istad.ai_interview_app.shared.exception;
 
 import com.google.genai.errors.ApiException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,11 +21,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @RestControllerAdvice
@@ -92,6 +100,102 @@ public class AppGlobalException {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(value = HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupportedEx(
+            HttpRequestMethodNotSupportedException e,
+            HttpServletRequest request
+    ) {
+        log.warn(
+                "Method not allowed: {} {} (supported: {})",
+                request != null ? request.getMethod() : e.getMethod(),
+                request != null ? request.getRequestURI() : "unknown",
+                e.getSupportedHttpMethods()
+        );
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .success(false)
+                .status(statusText(HttpStatus.METHOD_NOT_ALLOWED))
+                .code(HttpStatus.METHOD_NOT_ALLOWED.value())
+                .message("Request method '%s' is not supported".formatted(e.getMethod()))
+                .timestamp(Instant.now())
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        Set<HttpMethod> supportedMethods = e.getSupportedHttpMethods();
+        if (supportedMethods != null && !supportedMethods.isEmpty()) {
+            headers.setAllow(supportedMethods);
+        }
+
+        return new ResponseEntity<>(errorResponse, headers, HttpStatus.METHOD_NOT_ALLOWED);
+    }
+
+    public ResponseEntity<ErrorResponse> handleMethodNotSupportedEx(HttpRequestMethodNotSupportedException e) {
+        return handleMethodNotSupportedEx(e, null);
+    }
+
+    @ExceptionHandler(value = HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMediaTypeNotSupportedEx(
+            HttpMediaTypeNotSupportedException e,
+            HttpServletRequest request
+    ) {
+        log.warn(
+                "Media type not supported: {} {} contentType={}",
+                request != null ? request.getMethod() : "unknown",
+                request != null ? request.getRequestURI() : "unknown",
+                e.getContentType()
+        );
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .success(false)
+                .status(statusText(HttpStatus.UNSUPPORTED_MEDIA_TYPE))
+                .code(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value())
+                .message("Content-Type '%s' is not supported".formatted(e.getContentType()))
+                .timestamp(Instant.now())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    public ResponseEntity<ErrorResponse> handleMediaTypeNotSupportedEx(HttpMediaTypeNotSupportedException e) {
+        return handleMediaTypeNotSupportedEx(e, null);
+    }
+
+    @ExceptionHandler(value = HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ErrorResponse> handleMediaTypeNotAcceptableEx(
+            HttpMediaTypeNotAcceptableException e
+    ) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .success(false)
+                .status(statusText(HttpStatus.NOT_ACCEPTABLE))
+                .code(HttpStatus.NOT_ACCEPTABLE.value())
+                .message("Requested media type is not acceptable")
+                .timestamp(Instant.now())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @ExceptionHandler(value = NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundEx(
+            NoResourceFoundException e,
+            HttpServletRequest request
+    ) {
+        String path = request != null ? request.getRequestURI() : e.getResourcePath();
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .success(false)
+                .status(statusText(HttpStatus.NOT_FOUND))
+                .code(HttpStatus.NOT_FOUND.value())
+                .message("Resource '%s' was not found".formatted(path))
+                .timestamp(Instant.now())
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundEx(NoResourceFoundException e) {
+        return handleNoResourceFoundEx(e, null);
+    }
+
     @ExceptionHandler(value = DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityEx(DataIntegrityViolationException e) {
         ErrorResponse errorResponse = ErrorResponse.builder()
@@ -148,7 +252,7 @@ public class AppGlobalException {
     }
 
     @ExceptionHandler(value = Exception.class)
-    public ResponseEntity<ErrorResponse> handleUnhandledEx(Exception e) {
+    public ResponseEntity<ErrorResponse> handleUnhandledEx(Exception e, HttpServletRequest request) {
         // A provider failure that was retried arrives wrapped in a RetryException
         // rather than raw, so the chain is searched before this is called an
         // unexpected error. Without this a depleted quota would read as a bug in
@@ -158,7 +262,11 @@ public class AppGlobalException {
             return handleAiProviderEx(providerError);
         }
 
-        log.error("Unhandled application exception", e);
+        if (request != null) {
+            log.error("Unhandled application exception on {} {}", request.getMethod(), request.getRequestURI(), e);
+        } else {
+            log.error("Unhandled application exception", e);
+        }
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .success(false)
@@ -169,6 +277,10 @@ public class AppGlobalException {
                 .build();
 
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    public ResponseEntity<ErrorResponse> handleUnhandledEx(Exception e) {
+        return handleUnhandledEx(e, null);
     }
 
     private ApiException findProviderError(Throwable error) {

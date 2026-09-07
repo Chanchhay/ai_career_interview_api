@@ -8,6 +8,7 @@ import co.istad.ai_interview_app.features.seeker.dto.PortfolioResponse;
 import co.istad.ai_interview_app.features.seeker.dto.PortfolioUpdateRequest;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface JobSeekerPortfolioService {
 
@@ -15,15 +16,15 @@ public interface JobSeekerPortfolioService {
 
     List<PortfolioResponse> getMyPortfolios();
 
-    PortfolioResponse getMyPortfolio(Long portfolioId);
+    PortfolioResponse getMyPortfolio(UUID portfolioId);
 
-    PortfolioResponse updatePortfolio(Long portfolioId, PortfolioUpdateRequest request);
+    PortfolioResponse updatePortfolio(UUID portfolioId, PortfolioUpdateRequest request);
 
-    void deletePortfolio(Long portfolioId);
+    void deletePortfolio(UUID portfolioId);
 
-    PortfolioProjectResponse createProject(Long portfolioId, PortfolioProjectRequest request);
+    PortfolioProjectResponse createProject(UUID portfolioId, PortfolioProjectRequest request);
 
-    PortfolioProjectResponse updateProject(Long portfolioId, Long projectId, PortfolioProjectUpdateRequest request);
+    PortfolioProjectResponse updateProject(UUID portfolioId, UUID projectId, PortfolioProjectUpdateRequest request);
 
-    void deleteProject(Long portfolioId, Long projectId);
+    void deleteProject(UUID portfolioId, UUID projectId);
 }

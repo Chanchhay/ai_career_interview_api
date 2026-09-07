@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 /**
  * Opening and closing threads — moderators only, via the existing
@@ -44,7 +45,7 @@ public class ModeratorConversationController {
 
     @PostMapping("/{conversationId}/close")
     public ApiResponse<ConversationResponse> closeConversation(
-            @PathVariable Long conversationId
+            @PathVariable UUID conversationId
     ) {
         return ApiResponse.success(conversationService.closeConversation(conversationId));
     }

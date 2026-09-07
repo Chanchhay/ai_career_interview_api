@@ -4,11 +4,12 @@ import co.istad.ai_interview_app.shared.enums.conversation.MessageStatus;
 import co.istad.ai_interview_app.shared.enums.conversation.MessageType;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record MessageResponse(
-        Long id,
-        Long conversationId,
-        Long senderUserAccountId,
+        UUID id,
+        UUID conversationId,
+        UUID senderUserAccountId,
         /** True when the caller sent it, so the client need not compare ids. */
         Boolean mine,
         /** Null once deleted — the row survives to keep the thread readable. */

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -98,10 +99,10 @@ public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
             throw new GeminiGenerationException("Gemini did not evaluate every answer");
         }
 
-        Set<Long> expectedQuestionIds = new HashSet<>();
+        Set<UUID> expectedQuestionIds = new HashSet<>();
         request.answers().forEach(answer -> expectedQuestionIds.add(answer.questionId()));
 
-        Set<Long> evaluatedQuestionIds = new HashSet<>();
+        Set<UUID> evaluatedQuestionIds = new HashSet<>();
         for (EvaluatedAnswer answer : result.answers()) {
             validateAnswer(answer, expectedQuestionIds);
             evaluatedQuestionIds.add(answer.questionId());
@@ -127,7 +128,7 @@ public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
 
     private void validateAnswer(
             EvaluatedAnswer answer,
-            Set<Long> expectedQuestionIds
+            Set<UUID> expectedQuestionIds
     ) {
         if (answer == null
                 || answer.questionId() == null

@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The finance desk — FINANCE role, and SUPER_ADMIN through the role hierarchy.
@@ -48,7 +49,7 @@ public class FinanceController {
 
     @GetMapping("/commissions")
     public ApiResponse<Page<CommissionRecordResponse>> findCommissions(
-            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) UUID companyId,
             @RequestParam(required = false) PaymentStatus status,
             @PageableDefault(size = 20) Pageable pageable
     ) {
@@ -70,7 +71,7 @@ public class FinanceController {
     /** What could go on this company's next invoice. */
     @GetMapping("/companies/{companyId}/unbilled-commissions")
     public ApiResponse<List<CommissionRecordResponse>> findUnbilled(
-            @PathVariable Long companyId
+            @PathVariable UUID companyId
     ) {
         return ApiResponse.success(invoiceService.findUnbilledCommissions(companyId));
     }
@@ -79,7 +80,7 @@ public class FinanceController {
 
     @GetMapping("/invoices")
     public ApiResponse<Page<InvoiceResponse>> findInvoices(
-            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) UUID companyId,
             @RequestParam(required = false) InvoiceStatus status,
             @PageableDefault(size = 20) Pageable pageable
     ) {
@@ -88,7 +89,7 @@ public class FinanceController {
 
     @GetMapping("/invoices/{invoiceId}")
     public ApiResponse<InvoiceResponse> getInvoice(
-            @PathVariable Long invoiceId
+            @PathVariable UUID invoiceId
     ) {
         return ApiResponse.success(invoiceService.getInvoice(invoiceId));
     }
@@ -104,14 +105,14 @@ public class FinanceController {
 
     @PostMapping("/invoices/{invoiceId}/issue")
     public ApiResponse<InvoiceResponse> issueInvoice(
-            @PathVariable Long invoiceId
+            @PathVariable UUID invoiceId
     ) {
         return ApiResponse.success(invoiceService.issueInvoice(invoiceId));
     }
 
     @PostMapping("/invoices/{invoiceId}/cancel")
     public ApiResponse<InvoiceResponse> cancelInvoice(
-            @PathVariable Long invoiceId
+            @PathVariable UUID invoiceId
     ) {
         return ApiResponse.success(invoiceService.cancelInvoice(invoiceId));
     }
@@ -119,7 +120,7 @@ public class FinanceController {
     @PostMapping("/invoices/{invoiceId}/payments")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<InvoiceResponse> recordPayment(
-            @PathVariable Long invoiceId,
+            @PathVariable UUID invoiceId,
             @Valid @RequestBody RecordPaymentRequest request
     ) {
         return ApiResponse.success(invoiceService.recordPayment(invoiceId, request));
