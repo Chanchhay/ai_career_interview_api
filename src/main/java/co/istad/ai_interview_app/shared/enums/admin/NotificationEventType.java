@@ -28,6 +28,7 @@ public enum NotificationEventType {
 
     MESSAGE_RECEIVED,
 
+    HIRE_REPORTED,
     INVOICE_ISSUED,
     INVOICE_PAID
 }

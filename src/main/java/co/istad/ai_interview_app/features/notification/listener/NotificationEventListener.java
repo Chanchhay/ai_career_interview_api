@@ -10,6 +10,8 @@ import co.istad.ai_interview_app.features.communication.repository.ConversationP
 import co.istad.ai_interview_app.features.communication.repository.MessageRepository;
 import co.istad.ai_interview_app.features.company.repository.CompanyRepository;
 import co.istad.ai_interview_app.features.finance.entity.Invoice;
+import co.istad.ai_interview_app.features.finance.entity.HiringRecord;
+import co.istad.ai_interview_app.features.finance.repository.HiringRecordRepository;
 import co.istad.ai_interview_app.features.finance.repository.InvoiceRepository;
 import co.istad.ai_interview_app.features.interview.ai.entity.AiInterviewSession;
 import co.istad.ai_interview_app.features.interview.ai.repository.AiInterviewSessionRepository;
@@ -76,6 +78,7 @@ public class NotificationEventListener {
     private final ConversationParticipantRepository participantRepository;
     private final UserAccountRoleResolver roleResolver;
     private final InvoiceRepository invoiceRepository;
+    private final HiringRecordRepository hiringRecordRepository;
     private final CurrentUserAdminProfileRepository adminProfileRepository;
 
     /* --------------------------------------------- company verification --- */
@@ -417,6 +420,37 @@ public class NotificationEventListener {
                     .toList();
 
             notificationService.createAll(notifications);
+        });
+    }
+
+    /* ------------------------------------------------------------- hires --- */
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onHireReported(NotificationEvents.HireReported event) {
+        safely("hire reported", () -> {
+            HiringRecord record = hiringRecordRepository.findById(event.hiringRecordId()).orElse(null);
+            if (record == null) return;
+
+            String jobTitle = record.getJobPost().getTitle();
+            String companyName = record.getCompany().getName();
+            String candidate = Optional.ofNullable(record.getJobSeekerProfile())
+                    .map(profile -> profile.getCurrentPosition())
+                    .filter(value -> !value.isBlank())
+                    .orElse("A candidate");
+
+            notificationService.createAll(moderatorRecipients().stream()
+                    .map(moderatorId -> new NewNotification(
+                            moderatorId,
+                            NotificationEventType.HIRE_REPORTED,
+                            "Hire report awaiting review",
+                            "%s reported %s as hired for %s."
+                                    .formatted(companyName, candidate, jobTitle),
+                            "HiringRecord",
+                            String.valueOf(record.getId()),
+                            "/finance"
+                    ))
+                    .toList());
         });
     }
 

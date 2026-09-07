@@ -56,6 +56,10 @@ public final class NotificationEvents {
     public record InvoiceIssued(UUID invoiceId) {
     }
 
+    /** A recruiter reported a hire. Moderators are told to review it. */
+    public record HireReported(UUID hiringRecordId) {
+    }
+
     /** An invoice was settled in full. The recruiter gets the receipt. */
     public record InvoicePaid(UUID invoiceId) {
     }
