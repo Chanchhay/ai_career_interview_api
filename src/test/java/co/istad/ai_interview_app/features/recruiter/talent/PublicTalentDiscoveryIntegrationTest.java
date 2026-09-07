@@ -40,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -105,7 +106,7 @@ class PublicTalentDiscoveryIntegrationTest {
                         .with(jwtFor("recruiter-list", "RECRUITER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(1))
-                .andExpect(jsonPath("$.data.content[0].profileId").value(publicActive.profileId))
+                .andExpect(jsonPath("$.data.content[0].profileId").value(publicActive.profileId.toString()))
                 .andExpect(jsonPath("$.data.content[0].publicProfileSlug").value(publicActive.slug));
     }
 
@@ -155,7 +156,7 @@ class PublicTalentDiscoveryIntegrationTest {
     @Test
     void recruiterCanDownloadOnlyPublicResumeBelongingToPublicProfile() throws Exception {
         Fixture fixture = createTalentFixture("download", VisibilityStatus.PUBLIC, ProfileStatus.ACTIVE, true);
-        Long privateResumeId = createResume(fixture.profileId, "Private Resume", "https://files.example/private.pdf", VisibilityStatus.PRIVATE);
+        UUID privateResumeId = createResume(fixture.profileId, "Private Resume", "https://files.example/private.pdf", VisibilityStatus.PRIVATE);
 
         // This fixture's resume points outside the platform's object storage, so
         // the browser is redirected rather than served bytes the backend does
@@ -189,7 +190,7 @@ class PublicTalentDiscoveryIntegrationTest {
                 .andExpect(jsonPath("$.data.portfolios.length()").value(1))
                 .andExpect(jsonPath("$.data.portfolios[0].projects.length()").value(1))
                 .andExpect(jsonPath("$.data.resumes.length()").value(1))
-                .andExpect(jsonPath("$.data.resumes[0].id").value(fixture.resumeId))
+                .andExpect(jsonPath("$.data.resumes[0].id").value(fixture.resumeId.toString()))
                 .andExpect(content().string(not(containsString("Private Resume Leak"))))
                 .andExpect(content().string(not(containsString("private-leak.pdf"))))
                 .andExpect(content().string(not(containsString("secret-cover-letter"))))
@@ -273,7 +274,7 @@ class PublicTalentDiscoveryIntegrationTest {
         });
     }
 
-    private Long createResume(Long profileId, String title, String fileUrl, VisibilityStatus visibility) {
+    private UUID createResume(UUID profileId, String title, String fileUrl, VisibilityStatus visibility) {
         return transactionTemplate.execute(status -> {
             JobSeekerProfile profile = entityManager.find(JobSeekerProfile.class, profileId);
             Resume resume = new Resume();
@@ -291,8 +292,8 @@ class PublicTalentDiscoveryIntegrationTest {
     }
 
     private void createPrivateWorkflowData(
-            Long profileId,
-            Long seekerUserAccountId,
+            UUID profileId,
+            UUID seekerUserAccountId,
             String coverLetter,
             String transcript
     ) {
@@ -348,10 +349,10 @@ class PublicTalentDiscoveryIntegrationTest {
     }
 
     private record Fixture(
-            Long userAccountId,
-            Long profileId,
-            Long portfolioId,
-            Long resumeId,
+            UUID userAccountId,
+            UUID profileId,
+            UUID portfolioId,
+            UUID resumeId,
             String keycloakUserId,
             String slug
     ) {

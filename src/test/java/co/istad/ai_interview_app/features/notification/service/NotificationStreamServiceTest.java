@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import java.util.UUID;
 
 /**
  * The live stream's delivery rules.
@@ -22,19 +23,26 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class NotificationStreamServiceTest {
 
+    private static final UUID RECIPIENT = UUID.randomUUID();
+    private static final UUID BYSTANDER = UUID.randomUUID();
+    private static final UUID SENDER = UUID.randomUUID();
+    private static final UUID OTHER_SENDER = UUID.randomUUID();
+    private static final UUID CONVERSATION = UUID.randomUUID();
+    private static final UUID MESSAGE = UUID.randomUUID();
+
     private NotificationStreamService service;
 
     @BeforeEach
     void setUp() {
-        service = new NotificationStreamService();
+        service = new NotificationStreamService(org.mockito.Mockito.mock(LiveWebSocketHandler.class));
     }
 
     @Test
     void aMessageReachesTheRecipientsOwnSubscription() throws IOException {
         RecordingEmitter recipient = new RecordingEmitter();
-        service.register(1L, recipient);
+        service.register(RECIPIENT, recipient);
 
-        service.pushMessage(1L, new MessageStreamEvent(7L, 42L, 2L, Instant.now()));
+        service.pushMessage(RECIPIENT, new MessageStreamEvent(CONVERSATION, MESSAGE, SENDER, Instant.now()));
 
         // The initial "connected" event is sent on subscribe; the message follows.
         assertThat(recipient.events).containsExactly("connected", "message");
@@ -44,10 +52,10 @@ class NotificationStreamServiceTest {
     void aMessageIsNotBroadcastToOtherAccounts() throws IOException {
         RecordingEmitter recipient = new RecordingEmitter();
         RecordingEmitter bystander = new RecordingEmitter();
-        service.register(1L, recipient);
-        service.register(2L, bystander);
+        service.register(RECIPIENT, recipient);
+        service.register(BYSTANDER, bystander);
 
-        service.pushMessage(1L, new MessageStreamEvent(7L, 42L, 3L, Instant.now()));
+        service.pushMessage(RECIPIENT, new MessageStreamEvent(CONVERSATION, MESSAGE, OTHER_SENDER, Instant.now()));
 
         assertThat(recipient.events).contains("message");
         assertThat(bystander.events).containsExactly("connected");
@@ -58,10 +66,10 @@ class NotificationStreamServiceTest {
     void everyOpenConnectionForAnAccountReceivesTheMessage() throws IOException {
         RecordingEmitter firstTab = new RecordingEmitter();
         RecordingEmitter secondTab = new RecordingEmitter();
-        service.register(1L, firstTab);
-        service.register(1L, secondTab);
+        service.register(RECIPIENT, firstTab);
+        service.register(RECIPIENT, secondTab);
 
-        service.pushMessage(1L, new MessageStreamEvent(7L, 42L, 2L, Instant.now()));
+        service.pushMessage(RECIPIENT, new MessageStreamEvent(CONVERSATION, MESSAGE, SENDER, Instant.now()));
 
         assertThat(firstTab.events).contains("message");
         assertThat(secondTab.events).contains("message");

@@ -46,6 +46,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import java.util.UUID;
 
 /**
  * Covers what happens between the uploaded PDF and the prefill the recruiter's
@@ -59,6 +60,13 @@ class JobDocumentParseServiceTest {
     private JobCategoryRepository jobCategoryRepository;
     private RecruiterSkillService recruiterSkillService;
     private JobDocumentParseServiceImpl service;
+
+    private static final UUID ENGINEERING_ID = UUID.randomUUID();
+
+    private static final UUID REACT_ID = UUID.randomUUID();
+
+    private static final UUID ZUSTAND_ID = UUID.randomUUID();
+
 
     @BeforeEach
     void setUp() {
@@ -149,8 +157,8 @@ class JobDocumentParseServiceTest {
         );
     }
 
-    private static SkillResponse skillResponse(Long id, String name, String skillType) {
-        return new SkillResponse(id, name, skillType, null, null, null, null);
+    private static SkillResponse skillResponse(UUID id, String name, String skillType) {
+        return new SkillResponse(id, name, skillType, null, null, null, null, null, null);
     }
 
     private void stubExtraction(ExtractedJobDocument document) {
@@ -271,7 +279,7 @@ class JobDocumentParseServiceTest {
     @Test
     void categoryIsMatchedByNameIgnoringCase() throws IOException {
         JobCategory engineering = new JobCategory();
-        engineering.setId(7L);
+        engineering.setId(ENGINEERING_ID);
         engineering.setName("Engineering");
         when(jobCategoryRepository.findAllByOrderByNameAsc())
                 .thenReturn(List.of(engineering));
@@ -283,7 +291,7 @@ class JobDocumentParseServiceTest {
 
         JobDocumentParseResponse response = service.parse(readableJobPdf());
 
-        assertThat(response.categoryId()).isEqualTo(7L);
+        assertThat(response.categoryId()).isEqualTo(ENGINEERING_ID);
         assertThat(response.categoryName()).isEqualTo("Engineering");
     }
 
@@ -303,8 +311,8 @@ class JobDocumentParseServiceTest {
     @Test
     void everySkillNamedByTheDocumentIsResolvedAndFlaggedIfItWasCreated() throws IOException {
         when(recruiterSkillService.findOrCreateAll(anyList())).thenReturn(List.of(
-                new ResolvedSkill(skillResponse(3L, "React", "LIBRARY"), false),
-                new ResolvedSkill(skillResponse(9L, "Zustand", "LIBRARY"), true)
+                new ResolvedSkill(skillResponse(REACT_ID, "React", "LIBRARY"), false),
+                new ResolvedSkill(skillResponse(ZUSTAND_ID, "Zustand", "LIBRARY"), true)
         ));
 
         stubExtraction(extracted(
@@ -320,8 +328,8 @@ class JobDocumentParseServiceTest {
         JobDocumentParseResponse response = service.parse(readableJobPdf());
 
         assertThat(response.skills()).containsExactly(
-                new ParsedJobSkill(3L, "React", "LIBRARY", false),
-                new ParsedJobSkill(9L, "Zustand", "LIBRARY", true)
+                new ParsedJobSkill(REACT_ID, "React", "LIBRARY", false),
+                new ParsedJobSkill(ZUSTAND_ID, "Zustand", "LIBRARY", true)
         );
 
         // Types are normalized on the way in, and one the model invented is

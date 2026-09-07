@@ -36,6 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 /**
  * What a candidate can learn about a masked company.
@@ -79,7 +80,7 @@ class MaskedCompanyIdentityIntegrationTest {
         mockMvc.perform(get("/api/v1/public/jobs/{jobId}", seed.jobId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.companyName").value(seed.companyName()))
-                .andExpect(jsonPath("$.data.companyId").value(seed.companyId()));
+                .andExpect(jsonPath("$.data.companyId").value(seed.companyId().toString()));
     }
 
     /**
@@ -237,6 +238,6 @@ class MaskedCompanyIdentityIntegrationTest {
                 .authorities(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
-    private record Seed(Long companyId, String companyName, Long jobId, Long recruiterProfileId) {
+    private record Seed(UUID companyId, String companyName, UUID jobId, UUID recruiterProfileId) {
     }
 }

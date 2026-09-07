@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.within;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 /**
  * The finance desk's "who can I bill" list.
@@ -80,7 +81,7 @@ class BillableCompaniesIntegrationTest {
         Instant older = Instant.now().minus(20, ChronoUnit.DAYS);
         Instant newer = Instant.now().plus(10, ChronoUnit.DAYS);
 
-        Long companyId = transactionTemplate.execute(status -> {
+        UUID companyId = transactionTemplate.execute(status -> {
             Company company = seedCompany("Billable Co");
             commission(company, new BigDecimal("100.00"), newer, false);
             commission(company, new BigDecimal("250.00"), older, false);
@@ -100,7 +101,7 @@ class BillableCompaniesIntegrationTest {
 
     @Test
     void aCommissionAlreadyOnAnInvoiceLeavesTheList() throws Exception {
-        Long companyId = transactionTemplate.execute(status -> {
+        UUID companyId = transactionTemplate.execute(status -> {
             Company company = seedCompany("Already Billed Co");
             commission(company, new BigDecimal("400.00"), Instant.now(), true);
             return company.getId();
@@ -115,7 +116,7 @@ class BillableCompaniesIntegrationTest {
      */
     @Test
     void aCancelledInvoiceReturnsItsCompanyToTheList() throws Exception {
-        Long companyId = transactionTemplate.execute(status -> {
+        UUID companyId = transactionTemplate.execute(status -> {
             Company company = seedCompany("Cancelled Invoice Co");
             InvoiceItem item = commission(company, new BigDecimal("75.00"), Instant.now(), true);
             item.getInvoice().setStatus(InvoiceStatus.CANCELLED);
@@ -135,7 +136,7 @@ class BillableCompaniesIntegrationTest {
      * shares one database, so anything else that confirms a hire lands in the
      * same list.
      */
-    private JsonNode billableRow(Long companyId) throws Exception {
+    private JsonNode billableRow(UUID companyId) throws Exception {
         String body = mockMvc.perform(get("/api/v1/finance/billable-companies").with(financeJwt()))
                 .andExpect(status().isOk())
                 .andReturn()
@@ -143,7 +144,7 @@ class BillableCompaniesIntegrationTest {
                 .getContentAsString();
 
         for (JsonNode row : objectMapper.readTree(body).get("data")) {
-            if (row.get("companyId").asLong() == companyId) return row;
+            if (companyId.toString().equals(row.get("companyId").asText())) return row;
         }
 
         return null;

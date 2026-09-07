@@ -114,6 +114,16 @@ class SecurityRulesTest {
     }
 
     @Test
+    @DisplayName("WebSocket notifications endpoint is admitted for signed-in accounts without 405 collision")
+    void webSocketNotificationsEndpointNotBlockedByMethodNotAllowed() throws Exception {
+        MvcResult result = perform("/api/v1/notifications/ws", "SUPER_ADMIN");
+
+        assertThat(result.getResponse().getStatus())
+                .as("WebSocket handshake on /api/v1/notifications/ws should not be blocked with 405")
+                .isNotEqualTo(HttpStatus.METHOD_NOT_ALLOWED.value());
+    }
+
+    @Test
     @DisplayName("Public job discovery needs no token")
     void publicEndpointsStayOpen() throws Exception {
         MvcResult result = mockMvc.perform(get(PUBLIC_PATH)).andReturn();

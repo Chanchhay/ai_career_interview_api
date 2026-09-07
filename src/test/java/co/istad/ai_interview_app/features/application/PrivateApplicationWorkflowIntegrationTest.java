@@ -58,6 +58,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.UUID;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -87,19 +88,19 @@ class PrivateApplicationWorkflowIntegrationTest {
     void applicationCreationValidatesDuplicatesStatusExpirationResumeOwnershipAndAccess() throws Exception {
         Fixture fixture = createFixture("apply-validations", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
         Fixture other = createFixture("apply-other", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
-        Long draftJobId = transactionTemplate.execute(status ->
+        UUID draftJobId = transactionTemplate.execute(status ->
                 createJob(fixture.ownerRecruiterProfileId, fixture.companyId, "Draft Job", JobStatus.DRAFT, null));
-        Long expiredJobId = transactionTemplate.execute(status ->
+        UUID expiredJobId = transactionTemplate.execute(status ->
                 createJob(fixture.ownerRecruiterProfileId, fixture.companyId, "Expired Job", JobStatus.PUBLISHED, Instant.now().minus(1, ChronoUnit.DAYS)));
 
         mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d,"coverLetter":"private-cover-letter"}
+                                {"resumeId":"%s","coverLetter":"private-cover-letter"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.resumeId").value(fixture.privateResumeId))
+                .andExpect(jsonPath("$.data.resumeId").value(fixture.privateResumeId.toString()))
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"));
 
         mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
@@ -124,11 +125,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(other.privateResumeId)))
                 .andExpect(status().isNotFound());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
         mockMvc.perform(get("/api/v1/job-seeker/applications/{applicationId}", applicationId)
                         .with(jwtFor(other.seekerKeycloakId, "SEEKER")))
                 .andExpect(status().isNotFound());
@@ -144,11 +145,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d,"coverLetter":"forwarding-secret-cover-letter"}
+                                {"resumeId":"%s","coverLetter":"forwarding-secret-cover-letter"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
         mockMvc.perform(get("/api/v1/recruiter/forwarded-applications/{applicationId}", applicationId)
                         .with(jwtFor(fixture.ownerRecruiterKeycloakId, "RECRUITER")))
@@ -184,7 +185,7 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor("moderator-workflow", "MODERATOR"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"scheduledAt":"%s","meetingUrl":"https://meet.example/%d"}
+                                {"scheduledAt":"%s","meetingUrl":"https://meet.example/%s"}
                                 """.formatted(Instant.now().plus(1, ChronoUnit.DAYS), applicationId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("PENDING"))
@@ -192,7 +193,7 @@ class PrivateApplicationWorkflowIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        Long interviewId = extractId(scheduleResponse);
+        UUID interviewId = extractId(scheduleResponse);
 
         // Booking an interview and then approving before holding it contradicts
         // the act of booking, so approval is refused for as long as it is
@@ -229,7 +230,7 @@ class PrivateApplicationWorkflowIntegrationTest {
         mockMvc.perform(get("/api/v1/recruiter/forwarded-applications/{applicationId}", applicationId)
                         .with(jwtFor(fixture.ownerRecruiterKeycloakId, "RECRUITER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.application.id").value(applicationId))
+                .andExpect(jsonPath("$.data.application.id").value(applicationId.toString()))
                 .andExpect(content().string(containsString("forwarding-secret-cover-letter")))
                 .andExpect(content().string(not(containsString("internal moderator note"))))
                 .andExpect(content().string(not(containsString("Rubric"))))
@@ -254,11 +255,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
         completeApplicationAiInterview(fixture.seekerKeycloakId, applicationId);
 
         mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
@@ -279,11 +280,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
         completeApplicationAiInterview(fixture.seekerKeycloakId, applicationId);
 
         String scheduled = mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/human-interviews", applicationId)
@@ -335,11 +336,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
         completeApplicationAiInterview(fixture.seekerKeycloakId, applicationId);
 
         // The stubbed evaluator does not fail anyone, so the verdict is forced
@@ -386,11 +387,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
         // The job route, not the application route.
         setSecurity(fixture.seekerKeycloakId, "SEEKER");
@@ -428,11 +429,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
         mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/approve", applicationId)
                         .with(jwtFor("moderator-gate-messages", "MODERATOR"))
@@ -475,11 +476,11 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
 
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
         setSecurity(fixture.seekerKeycloakId, "SEEKER");
         AiInterviewSessionResponse session = aiInterviewService.createInterviewForJob(fixture.jobId);
@@ -536,14 +537,14 @@ class PrivateApplicationWorkflowIntegrationTest {
 
         applyTo(fixture);
 
-        Long firstApplicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID firstApplicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
         // A second attempt while the first is still open is still refused.
         mockMvc.perform(post("/api/v1/job-seeker/jobs/{jobId}/applications", fixture.jobId)
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isConflict());
 
@@ -579,7 +580,7 @@ class PrivateApplicationWorkflowIntegrationTest {
         Fixture fixture = createFixture("reapply-withdraw", JobStatus.PUBLISHED, Instant.now().plus(5, ChronoUnit.DAYS));
 
         applyTo(fixture);
-        Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+        UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
         mockMvc.perform(post("/api/v1/job-seeker/applications/{applicationId}/withdraw", applicationId)
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER")))
@@ -605,7 +606,7 @@ class PrivateApplicationWorkflowIntegrationTest {
             setReapplyCooldownDays(7);
 
             applyTo(fixture);
-            Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+            UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
             mockMvc.perform(post("/api/v1/moderator/candidate-applications/{applicationId}/reject", applicationId)
                             .with(jwtFor("moderator-cooldown", "MODERATOR"))
@@ -617,7 +618,7 @@ class PrivateApplicationWorkflowIntegrationTest {
                             .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
-                                    {"resumeId":%d}
+                                    {"resumeId":"%s"}
                                     """.formatted(fixture.privateResumeId)))
                     .andExpect(status().isConflict());
 
@@ -650,7 +651,7 @@ class PrivateApplicationWorkflowIntegrationTest {
             setReapplyCooldownDays(30);
 
             applyTo(fixture);
-            Long applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
+            UUID applicationId = findApplicationId(fixture.jobId, fixture.seekerProfileId);
 
             mockMvc.perform(post("/api/v1/job-seeker/applications/{applicationId}/withdraw", applicationId)
                             .with(jwtFor(fixture.seekerKeycloakId, "SEEKER")))
@@ -682,12 +683,12 @@ class PrivateApplicationWorkflowIntegrationTest {
                         .with(jwtFor(fixture.seekerKeycloakId, "SEEKER"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"resumeId":%d}
+                                {"resumeId":"%s"}
                                 """.formatted(fixture.privateResumeId)))
                 .andExpect(status().isOk());
     }
 
-    private void completeApplicationAiInterview(String seekerKeycloakId, Long applicationId) {
+    private void completeApplicationAiInterview(String seekerKeycloakId, UUID applicationId) {
         setSecurity(seekerKeycloakId, "SEEKER");
 
         AiInterviewSessionResponse created = aiInterviewService.createInterviewForApplication(applicationId);
@@ -740,7 +741,7 @@ class PrivateApplicationWorkflowIntegrationTest {
             company.setName("Company " + marker);
             entityManager.persist(company);
 
-            Long jobId = createJob(recruiterProfile.getId(), company.getId(), "Job " + marker, jobStatus, expiredAt);
+            UUID jobId = createJob(recruiterProfile.getId(), company.getId(), "Job " + marker, jobStatus, expiredAt);
 
             entityManager.flush();
 
@@ -756,7 +757,7 @@ class PrivateApplicationWorkflowIntegrationTest {
         });
     }
 
-    private Long createJob(Long recruiterProfileId, Long companyId, String title, JobStatus status, Instant expiredAt) {
+    private UUID createJob(UUID recruiterProfileId, UUID companyId, String title, JobStatus status, Instant expiredAt) {
         RecruiterProfile recruiterProfile = entityManager.find(RecruiterProfile.class, recruiterProfileId);
         Company company = entityManager.find(Company.class, companyId);
         JobPost jobPost = new JobPost();
@@ -793,26 +794,27 @@ class PrivateApplicationWorkflowIntegrationTest {
      * several attempts at one job once earlier ones are closed, and callers
      * always mean the one they just created.
      */
-    private Long findApplicationId(Long jobId, Long seekerProfileId) {
+    private UUID findApplicationId(UUID jobId, UUID seekerProfileId) {
         return transactionTemplate.execute(status -> entityManager
                 .createQuery("""
                         select a.id
                         from JobApplication a
                         where a.jobPost.id = :jobId
                           and a.jobSeekerProfile.id = :seekerProfileId
-                        order by a.id desc
-                        """, Long.class)
+                        order by a.createdAt desc
+                        """, UUID.class)
                 .setParameter("jobId", jobId)
                 .setParameter("seekerProfileId", seekerProfileId)
                 .setMaxResults(1)
                 .getSingleResult());
     }
 
-    private static Long extractId(String responseBody) {
-        String marker = "\"id\":";
+    private static UUID extractId(String responseBody) {
+        // The id is a quoted UUID now, not a bare number.
+        String marker = "\"id\":\"";
         int start = responseBody.indexOf(marker) + marker.length();
-        int end = responseBody.indexOf(',', start);
-        return Long.valueOf(responseBody.substring(start, end));
+        int end = responseBody.indexOf('"', start);
+        return UUID.fromString(responseBody.substring(start, end));
     }
 
     private static void setSecurity(String subject, String role) {
@@ -838,12 +840,12 @@ class PrivateApplicationWorkflowIntegrationTest {
 
     private record Fixture(
             String seekerKeycloakId,
-            Long seekerProfileId,
-            Long privateResumeId,
+            UUID seekerProfileId,
+            UUID privateResumeId,
             String ownerRecruiterKeycloakId,
-            Long ownerRecruiterProfileId,
-            Long companyId,
-            Long jobId
+            UUID ownerRecruiterProfileId,
+            UUID companyId,
+            UUID jobId
     ) {
     }
 
