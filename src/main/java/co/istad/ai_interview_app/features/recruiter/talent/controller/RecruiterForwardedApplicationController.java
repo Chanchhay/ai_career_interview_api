@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/recruiter/forwarded-applications")
@@ -25,7 +26,7 @@ public class RecruiterForwardedApplicationController {
 
     @GetMapping("/{applicationId}")
     public ApiResponse<ForwardedApplicationResponse> getForwardedApplication(
-            @PathVariable Long applicationId
+            @PathVariable UUID applicationId
     ) {
         return ApiResponse.success(forwardedApplicationService.getForwardedApplication(applicationId));
     }

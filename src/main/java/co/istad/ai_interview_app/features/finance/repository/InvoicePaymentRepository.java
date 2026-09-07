@@ -8,11 +8,12 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface InvoicePaymentRepository extends JpaRepository<InvoicePayment, Long> {
+public interface InvoicePaymentRepository extends JpaRepository<InvoicePayment, UUID> {
 
-    List<InvoicePayment> findAllByInvoice_IdOrderByIdAsc(Long invoiceId);
+    List<InvoicePayment> findAllByInvoice_IdOrderByIdAsc(UUID invoiceId);
 
     /**
      * What the invoice has actually been paid.
@@ -28,7 +29,7 @@ public interface InvoicePaymentRepository extends JpaRepository<InvoicePayment, 
               and payment.status = :status
             """)
     Optional<BigDecimal> sumAmountByInvoiceAndStatus(
-            @org.springframework.data.repository.query.Param("invoiceId") Long invoiceId,
+            @org.springframework.data.repository.query.Param("invoiceId") UUID invoiceId,
             @org.springframework.data.repository.query.Param("status") PaymentStatus status
     );
 }

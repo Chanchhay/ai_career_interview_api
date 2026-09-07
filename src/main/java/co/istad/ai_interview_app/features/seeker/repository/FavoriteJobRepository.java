@@ -11,9 +11,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface FavoriteJobRepository extends JpaRepository<FavoriteJob, Long> {
+public interface FavoriteJobRepository extends JpaRepository<FavoriteJob, UUID> {
 
     /**
      * The saved-jobs page. Fetches the company eagerly because every row on
@@ -35,11 +36,11 @@ public interface FavoriteJobRepository extends JpaRepository<FavoriteJob, Long> 
                     """
     )
     Page<FavoriteJob> findPageByJobSeekerProfileId(
-            @Param("jobSeekerProfileId") Long jobSeekerProfileId,
+            @Param("jobSeekerProfileId") UUID jobSeekerProfileId,
             Pageable pageable
     );
 
-    Optional<FavoriteJob> findByJobSeekerProfile_IdAndJobPost_Id(Long jobSeekerProfileId, Long jobPostId);
+    Optional<FavoriteJob> findByJobSeekerProfile_IdAndJobPost_Id(UUID jobSeekerProfileId, UUID jobPostId);
 
     /**
      * Which of {@code jobPostIds} the caller has saved, for the {@code isFavorite}
@@ -53,8 +54,8 @@ public interface FavoriteJobRepository extends JpaRepository<FavoriteJob, Long> 
             where favoriteJob.jobSeekerProfile.userAccount.keycloakUserId = :keycloakUserId
               and favoriteJob.jobPost.id in :jobPostIds
             """)
-    List<Long> findSavedJobPostIds(
+    List<UUID> findSavedJobPostIds(
             @Param("keycloakUserId") String keycloakUserId,
-            @Param("jobPostIds") Collection<Long> jobPostIds
+            @Param("jobPostIds") Collection<UUID> jobPostIds
     );
 }

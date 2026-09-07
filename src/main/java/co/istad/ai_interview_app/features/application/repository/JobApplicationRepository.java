@@ -10,9 +10,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
+public interface JobApplicationRepository extends JpaRepository<JobApplication, UUID> {
 
     /**
      * Whether the seeker already has a live application for this job.
@@ -33,8 +34,8 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
               )
             """)
     boolean existsLiveApplication(
-            @Param("jobPostId") Long jobPostId,
-            @Param("jobSeekerProfileId") Long jobSeekerProfileId
+            @Param("jobPostId") UUID jobPostId,
+            @Param("jobSeekerProfileId") UUID jobSeekerProfileId
     );
 
     /**
@@ -55,8 +56,8 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
               )
             """)
     Optional<JobApplication> findLiveApplication(
-            @Param("jobPostId") Long jobPostId,
-            @Param("jobSeekerProfileId") Long jobSeekerProfileId
+            @Param("jobPostId") UUID jobPostId,
+            @Param("jobSeekerProfileId") UUID jobSeekerProfileId
     );
 
     /**
@@ -75,20 +76,20 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
             order by application.closedAt desc nulls last, application.id desc
             """)
     List<JobApplication> findRejectedApplicationsNewestFirst(
-            @Param("jobPostId") Long jobPostId,
-            @Param("jobSeekerProfileId") Long jobSeekerProfileId
+            @Param("jobPostId") UUID jobPostId,
+            @Param("jobSeekerProfileId") UUID jobSeekerProfileId
     );
 
-    boolean existsByResume_Id(Long resumeId);
+    boolean existsByResume_Id(UUID resumeId);
 
     @EntityGraph(attributePaths = {"jobPost", "resume", "jobSeekerProfile", "jobSeekerProfile.userAccount"})
     List<JobApplication> findAllByJobSeekerProfile_UserAccount_KeycloakUserIdOrderByAppliedAtDesc(String keycloakUserId);
 
     @EntityGraph(attributePaths = {"jobPost", "resume", "jobSeekerProfile", "jobSeekerProfile.userAccount"})
-    Optional<JobApplication> findByIdAndJobSeekerProfile_UserAccount_KeycloakUserId(Long id, String keycloakUserId);
+    Optional<JobApplication> findByIdAndJobSeekerProfile_UserAccount_KeycloakUserId(UUID id, String keycloakUserId);
 
     @EntityGraph(attributePaths = {"jobPost", "resume", "jobSeekerProfile", "jobSeekerProfile.userAccount"})
-    Optional<JobApplication> findByIdAndJobPost_RecruiterProfile_UserAccount_KeycloakUserId(Long id, String keycloakUserId);
+    Optional<JobApplication> findByIdAndJobPost_RecruiterProfile_UserAccount_KeycloakUserId(UUID id, String keycloakUserId);
 
     @EntityGraph(attributePaths = {"jobPost", "resume", "jobSeekerProfile", "jobSeekerProfile.userAccount"})
     List<JobApplication> findAllByStatus(ApplicationStatus status);

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -44,7 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationResponse> findMine(boolean unreadOnly, Pageable pageable) {
-        Long recipientId = currentUserAccount().getId();
+        UUID recipientId = currentUserAccount().getId();
 
         Page<Notification> page = unreadOnly
                 ? notificationRepository.findAllByRecipient_IdAndReadAtIsNullOrderByCreatedAtDesc(recipientId, pageable)
@@ -65,7 +66,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public NotificationResponse markAsRead(Long notificationId) {
+    public NotificationResponse markAsRead(UUID notificationId) {
         Notification notification = notificationRepository
                 .findByIdAndRecipient_Id(notificationId, currentUserAccount().getId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -91,7 +92,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Transactional
-    public void delete(Long notificationId) {
+    public void delete(UUID notificationId) {
         Notification notification = notificationRepository
                 .findByIdAndRecipient_Id(notificationId, currentUserAccount().getId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -129,7 +130,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         if (enabled.isEmpty()) return;
 
-        Set<Long> recipientIds = enabled.stream()
+        Set<UUID> recipientIds = enabled.stream()
                 .map(NewNotification::recipientUserAccountId)
                 .collect(Collectors.toSet());
 

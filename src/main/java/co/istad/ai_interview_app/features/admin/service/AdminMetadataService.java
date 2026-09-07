@@ -11,27 +11,28 @@ import co.istad.ai_interview_app.features.job.dto.SkillResponse;
 import co.istad.ai_interview_app.features.job.dto.SkillUpdateRequest;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface AdminMetadataService {
 
     // Job Category operations
     JobCategoryResponse createJobCategory(JobCategoryCreateRequest request);
     List<JobCategoryResponse> getAllJobCategories();
-    JobCategoryResponse getJobCategoryById(Long id);
-    JobCategoryResponse updateJobCategory(Long id, JobCategoryUpdateRequest request);
-    void deleteJobCategory(Long id);
+    JobCategoryResponse getJobCategoryById(UUID id);
+    JobCategoryResponse updateJobCategory(UUID id, JobCategoryUpdateRequest request);
+    void deleteJobCategory(UUID id);
 
     // Skill operations
     SkillResponse createSkill(SkillCreateRequest request);
     List<SkillResponse> getAllSkills();
-    SkillResponse getSkillById(Long id);
-    SkillResponse updateSkill(Long id, SkillUpdateRequest request);
-    void deleteSkill(Long id);
+    SkillResponse getSkillById(UUID id);
+    SkillResponse updateSkill(UUID id, SkillUpdateRequest request);
+    void deleteSkill(UUID id);
 
     // Industry operations
     IndustryResponse createIndustry(IndustryCreateRequest request);
     List<IndustryResponse> getAllIndustries();
-    IndustryResponse getIndustryById(Long id);
-    IndustryResponse updateIndustry(Long id, IndustryUpdateRequest request);
-    void deleteIndustry(Long id);
+    IndustryResponse getIndustryById(UUID id);
+    IndustryResponse updateIndustry(UUID id, IndustryUpdateRequest request);
+    void deleteIndustry(UUID id);
 }

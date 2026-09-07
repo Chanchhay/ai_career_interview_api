@@ -26,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +48,12 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
         }
 
         JobCategory category = new JobCategory();
+
+        category.setParent(ListHierarchy.resolveParent(
+                category.getId(), category.getParent() == null ? null : category.getParent().getId(), request.parentId(),
+                parentId -> jobCategoryRepository.findByIdForUpdate(parentId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category was not found.")),
+                JobCategory::getParent));
         category.setName(name);
         category.setDescription(normalizeBlankToNull(request.description()));
 
@@ -65,7 +72,7 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional(readOnly = true)
-    public JobCategoryResponse getJobCategoryById(Long id) {
+    public JobCategoryResponse getJobCategoryById(UUID id) {
         JobCategory category = jobCategoryRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job category not found with id " + id));
         return toCategoryResponse(category);
@@ -73,8 +80,8 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional
-    public JobCategoryResponse updateJobCategory(Long id, JobCategoryUpdateRequest request) {
-        JobCategory category = jobCategoryRepository.findById(id)
+    public JobCategoryResponse updateJobCategory(UUID id, JobCategoryUpdateRequest request) {
+        JobCategory category = jobCategoryRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job category not found with id " + id));
 
         String name = normalizeBlankToNull(request.name());
@@ -82,6 +89,12 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Job category with name '" + name + "' already exists");
         }
 
+
+        category.setParent(ListHierarchy.resolveParent(
+                category.getId(), category.getParent() == null ? null : category.getParent().getId(), request.parentId(),
+                parentId -> jobCategoryRepository.findByIdForUpdate(parentId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category was not found.")),
+                JobCategory::getParent));
         category.setName(name);
         category.setDescription(normalizeBlankToNull(request.description()));
 
@@ -90,9 +103,10 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional
-    public void deleteJobCategory(Long id) {
-        JobCategory category = jobCategoryRepository.findById(id)
+    public void deleteJobCategory(UUID id) {
+        JobCategory category = jobCategoryRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job category not found with id " + id));
+        ListHierarchy.requireNoChildren(jobCategoryRepository.existsByParent_Id(id));
         jobCategoryRepository.delete(category);
     }
 
@@ -107,6 +121,12 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
         }
 
         Skill skill = new Skill();
+
+        skill.setParent(ListHierarchy.resolveParent(
+                skill.getId(), skill.getParent() == null ? null : skill.getParent().getId(), request.parentId(),
+                parentId -> skillRepository.findByIdForUpdate(parentId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category was not found.")),
+                Skill::getParent));
         skill.setName(name);
         skill.setSkillType(normalizeBlankToNull(request.skillType()));
 
@@ -124,7 +144,7 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional(readOnly = true)
-    public SkillResponse getSkillById(Long id) {
+    public SkillResponse getSkillById(UUID id) {
         Skill skill = skillRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found with id " + id));
         return toSkillResponse(skill);
@@ -132,8 +152,8 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional
-    public SkillResponse updateSkill(Long id, SkillUpdateRequest request) {
-        Skill skill = skillRepository.findById(id)
+    public SkillResponse updateSkill(UUID id, SkillUpdateRequest request) {
+        Skill skill = skillRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found with id " + id));
 
         String name = normalizeBlankToNull(request.name());
@@ -141,6 +161,12 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Skill with name '" + name + "' already exists");
         }
 
+
+        skill.setParent(ListHierarchy.resolveParent(
+                skill.getId(), skill.getParent() == null ? null : skill.getParent().getId(), request.parentId(),
+                parentId -> skillRepository.findByIdForUpdate(parentId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category was not found.")),
+                Skill::getParent));
         skill.setName(name);
         skill.setSkillType(normalizeBlankToNull(request.skillType()));
 
@@ -149,9 +175,10 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional
-    public void deleteSkill(Long id) {
-        Skill skill = skillRepository.findById(id)
+    public void deleteSkill(UUID id) {
+        Skill skill = skillRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Skill not found with id " + id));
+        ListHierarchy.requireNoChildren(skillRepository.existsByParent_Id(id));
         skillRepository.delete(skill);
     }
 
@@ -166,6 +193,12 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
         }
 
         Industry industry = new Industry();
+
+        industry.setParent(ListHierarchy.resolveParent(
+                industry.getId(), industry.getParent() == null ? null : industry.getParent().getId(), request.parentId(),
+                parentId -> industryRepository.findByIdForUpdate(parentId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category was not found.")),
+                Industry::getParent));
         industry.setName(name);
         industry.setDescription(normalizeBlankToNull(request.description()));
         industry.setStatus(request.status() != null ? request.status() : ProfileStatus.ACTIVE);
@@ -185,7 +218,7 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional(readOnly = true)
-    public IndustryResponse getIndustryById(Long id) {
+    public IndustryResponse getIndustryById(UUID id) {
         Industry industry = industryRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Industry not found with id " + id));
         return toIndustryResponse(industry);
@@ -193,8 +226,8 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional
-    public IndustryResponse updateIndustry(Long id, IndustryUpdateRequest request) {
-        Industry industry = industryRepository.findById(id)
+    public IndustryResponse updateIndustry(UUID id, IndustryUpdateRequest request) {
+        Industry industry = industryRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Industry not found with id " + id));
 
         String name = normalizeBlankToNull(request.name());
@@ -202,6 +235,12 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Industry with name '" + name + "' already exists");
         }
 
+
+        industry.setParent(ListHierarchy.resolveParent(
+                industry.getId(), industry.getParent() == null ? null : industry.getParent().getId(), request.parentId(),
+                parentId -> industryRepository.findByIdForUpdate(parentId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Parent category was not found.")),
+                Industry::getParent));
         industry.setName(name);
         industry.setDescription(normalizeBlankToNull(request.description()));
         if (request.status() != null) {
@@ -213,9 +252,10 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
 
     @Override
     @Transactional
-    public void deleteIndustry(Long id) {
-        Industry industry = industryRepository.findById(id)
+    public void deleteIndustry(UUID id) {
+        Industry industry = industryRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Industry not found with id " + id));
+        ListHierarchy.requireNoChildren(industryRepository.existsByParent_Id(id));
         industryRepository.delete(industry);
     }
 
@@ -227,7 +267,9 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
                 category.getName(),
                 category.getDescription(),
                 category.getCreatedAt(),
-                category.getUpdatedAt()
+                category.getUpdatedAt(),
+                category.getParent() == null ? null : category.getParent().getId(),
+                category.getParent() == null ? null : category.getParent().getName()
         );
     }
 
@@ -242,7 +284,9 @@ public class AdminMetadataServiceImpl implements AdminMetadataService {
                 industry.getDescription(),
                 industry.getStatus(),
                 industry.getCreatedAt(),
-                industry.getUpdatedAt()
+                industry.getUpdatedAt(),
+                industry.getParent() == null ? null : industry.getParent().getId(),
+                industry.getParent() == null ? null : industry.getParent().getName()
         );
     }
 }

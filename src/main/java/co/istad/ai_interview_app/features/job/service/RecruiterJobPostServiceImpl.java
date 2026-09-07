@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -77,13 +78,13 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
 
     @Override
     @Transactional(readOnly = true)
-    public JobPostResponse getMyJob(Long id) {
+    public JobPostResponse getMyJob(UUID id) {
         return jobPostMapper.toResponse(resolveMyJob(id));
     }
 
     @Override
     @Transactional
-    public JobPostResponse updateMyJob(Long id, JobPostRequest request) {
+    public JobPostResponse updateMyJob(UUID id, JobPostRequest request) {
         validateSalaryRange(request.salaryMin(), request.salaryMax());
 
         JobPost jobPost = resolveMyJob(id);
@@ -98,7 +99,7 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
 
     @Override
     @Transactional
-    public JobPostResponse publishMyJob(Long id) {
+    public JobPostResponse publishMyJob(UUID id) {
         JobPost jobPost = resolveMyJob(id);
         if (jobPost.getStatus() == JobStatus.CLOSED || jobPost.getStatus() == JobStatus.EXPIRED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Closed or expired jobs cannot be published");
@@ -115,7 +116,7 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
 
     @Override
     @Transactional
-    public JobPostResponse resumeMyJob(Long id) {
+    public JobPostResponse resumeMyJob(UUID id) {
         JobPost jobPost = resolveMyJob(id);
         if (jobPost.getStatus() != JobStatus.PAUSED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only paused jobs can be resumed");
@@ -129,7 +130,7 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
 
     @Override
     @Transactional
-    public JobPostResponse pauseMyJob(Long id) {
+    public JobPostResponse pauseMyJob(UUID id) {
         JobPost jobPost = resolveMyJob(id);
         if (jobPost.getStatus() != JobStatus.PUBLISHED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only published jobs can be paused");
@@ -142,7 +143,7 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
 
     @Override
     @Transactional
-    public JobPostResponse closeMyJob(Long id) {
+    public JobPostResponse closeMyJob(UUID id) {
         JobPost jobPost = resolveMyJob(id);
         if (jobPost.getStatus() == JobStatus.CLOSED) {
             return jobPostMapper.toResponse(jobPost);
@@ -178,7 +179,7 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
                 ));
     }
 
-    private JobPost resolveMyJob(Long id) {
+    private JobPost resolveMyJob(UUID id) {
         return jobPostRepository.findByIdAndRecruiterProfile_UserAccount_KeycloakUserId(id, AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -186,13 +187,17 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
                 ));
     }
 
-    private JobCategory resolveCategory(Long categoryId) {
+    private JobCategory resolveCategory(UUID categoryId) {
         if (categoryId == null) {
             return null;
         }
 
-        return jobCategoryRepository.findById(categoryId)
+        JobCategory category = jobCategoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job category was not found"));
+        if (category.getParent() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a job subcategory.");
+        }
+        return category;
     }
 
     private void replaceSections(JobPost jobPost, List<JobPostSectionRequest> sectionRequests) {
@@ -221,7 +226,7 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
             return;
         }
 
-        Set<Long> skillIds = skillRequests.stream()
+        Set<UUID> skillIds = skillRequests.stream()
                 .map(JobPostSkillRequest::skillId)
                 .collect(Collectors.toCollection(HashSet::new));
 
@@ -229,17 +234,21 @@ public class RecruiterJobPostServiceImpl implements RecruiterJobPostService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate skills are not allowed");
         }
 
-        Map<Long, Skill> skillsById = skillRepository.findAllById(skillIds)
+        Map<UUID, Skill> skillsById = skillRepository.findAllById(skillIds)
                 .stream()
                 .collect(Collectors.toMap(Skill::getId, Function.identity()));
 
-        Set<Long> missingSkillIds = new HashSet<>(skillIds);
+        Set<UUID> missingSkillIds = new HashSet<>(skillIds);
         missingSkillIds.removeAll(skillsById.keySet());
         if (!missingSkillIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "One or more skills were not found");
         }
 
-        Map<Long, JobPostSkill> existingLinksBySkillId = jobPost.getSkills()
+        if (skillsById.values().stream().anyMatch(skill -> skill.getParent() == null)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose skill subcategories, not parent categories.");
+        }
+
+        Map<UUID, JobPostSkill> existingLinksBySkillId = jobPost.getSkills()
                 .stream()
                 .collect(Collectors.toMap(jobPostSkill -> jobPostSkill.getSkill().getId(), Function.identity()));
 

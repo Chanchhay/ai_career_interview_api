@@ -27,6 +27,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/public")
@@ -86,8 +87,8 @@ public class PublicJobController {
 
         private String keyword;
         private String location;
-        private List<Long> categoryId;
-        private List<Long> skillIds;
+        private List<UUID> categoryId;
+        private List<UUID> skillIds;
         private List<String> workMode;
         private List<String> jobType;
         private List<String> experienceLevel;
@@ -151,7 +152,7 @@ public class PublicJobController {
 
     @GetMapping("/jobs/{jobId}")
     public ApiResponse<PublicJobResponse> getPublicJob(
-            @PathVariable Long jobId
+            @PathVariable UUID jobId
     ) {
         return ApiResponse.success(publicJobService.getPublicJob(jobId));
     }

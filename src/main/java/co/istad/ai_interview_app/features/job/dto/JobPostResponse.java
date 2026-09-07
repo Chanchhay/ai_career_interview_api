@@ -5,13 +5,14 @@ import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public record JobPostResponse(
-        Long id,
-        Long companyId,
+        UUID id,
+        UUID companyId,
         String companyName,
-        Long recruiterProfileId,
-        Long categoryId,
+        UUID recruiterProfileId,
+        UUID categoryId,
         String categoryName,
         String title,
         String description,

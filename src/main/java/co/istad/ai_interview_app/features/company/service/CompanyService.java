@@ -7,6 +7,7 @@ import co.istad.ai_interview_app.features.company.dto.CompanyResponse;
 import co.istad.ai_interview_app.features.company.dto.CompanyUpdateRequest;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface CompanyService {
 
@@ -17,18 +18,18 @@ public interface CompanyService {
     CompanyResponse getMyCompany();
 
     CompanyResponse updateCompany(
-            Long id,
+            UUID id,
             CompanyUpdateRequest request
     );
 
     CompanyDocumentResponse addDocument(
-            Long companyId,
+            UUID companyId,
             CompanyDocumentRequest request
     );
 
-    List<CompanyDocumentResponse> getDocuments(Long companyId);
+    List<CompanyDocumentResponse> getDocuments(UUID companyId);
 
-    void deleteDocument(Long companyId, Long documentId);
+    void deleteDocument(UUID companyId, UUID documentId);
 
-    CompanyResponse submitVerification(Long companyId);
+    CompanyResponse submitVerification(UUID companyId);
 }

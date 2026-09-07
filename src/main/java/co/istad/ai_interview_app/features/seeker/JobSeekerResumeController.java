@@ -27,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/job-seeker/resumes")
@@ -48,26 +49,26 @@ public class JobSeekerResumeController {
     }
 
     @GetMapping("/{resumeId}")
-    public ApiResponse<ResumeResponse> getMyResume(@PathVariable Long resumeId) {
+    public ApiResponse<ResumeResponse> getMyResume(@PathVariable UUID resumeId) {
         return ApiResponse.success(resumeService.getMyResume(resumeId));
     }
 
     @PatchMapping("/{resumeId}")
     public ApiResponse<ResumeResponse> update(
-            @PathVariable Long resumeId,
+            @PathVariable UUID resumeId,
             @Valid @RequestBody ResumeUpdateRequest request
     ) {
         return ApiResponse.success(resumeService.update(resumeId, request));
     }
 
     @DeleteMapping("/{resumeId}")
-    public ApiResponse<Void> delete(@PathVariable Long resumeId) {
+    public ApiResponse<Void> delete(@PathVariable UUID resumeId) {
         resumeService.delete(resumeId);
         return ApiResponse.success(null);
     }
 
     @PostMapping("/{resumeId}/default")
-    public ApiResponse<ResumeResponse> setDefault(@PathVariable Long resumeId) {
+    public ApiResponse<ResumeResponse> setDefault(@PathVariable UUID resumeId) {
         return ApiResponse.success(resumeService.setDefault(resumeId));
     }
 
@@ -80,7 +81,7 @@ public class JobSeekerResumeController {
      */
     @PostMapping("/{resumeId}/generate")
     public ApiResponse<ResumeResponse> generate(
-            @PathVariable Long resumeId
+            @PathVariable UUID resumeId
     ) {
         return ApiResponse.success(resumeService.generate(resumeId));
     }
@@ -104,7 +105,7 @@ public class JobSeekerResumeController {
      */
     @GetMapping("/{resumeId}/download")
     public ResponseEntity<byte[]> download(
-            @PathVariable Long resumeId
+            @PathVariable UUID resumeId
     ) {
         DownloadedFile file = resumeService.download(resumeId);
 

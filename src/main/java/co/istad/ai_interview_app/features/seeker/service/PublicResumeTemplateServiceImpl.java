@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * The template catalog.
@@ -37,7 +38,7 @@ public class PublicResumeTemplateServiceImpl implements PublicResumeTemplateServ
 
     @Override
     @Transactional(readOnly = true)
-    public PublicResumeTemplateResponse getTemplate(Long templateId) {
+    public PublicResumeTemplateResponse getTemplate(UUID templateId) {
         return resumeTemplateRepository.findByIdAndStatus(templateId, ProfileStatus.ACTIVE)
                 .map(this::toResponse)
                 .orElseThrow(() -> new ResponseStatusException(

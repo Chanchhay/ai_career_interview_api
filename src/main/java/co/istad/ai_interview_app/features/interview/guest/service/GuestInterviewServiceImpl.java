@@ -80,7 +80,7 @@ public class GuestInterviewServiceImpl implements GuestInterviewService {
     }
 
     @Override
-    public GuestInterviewStartResponse start(Long jobId, String guestToken, String clientIp) {
+    public GuestInterviewStartResponse start(UUID jobId, String guestToken, String clientIp) {
         GuestInterviewSettingsResponse settings = settingsService.getSettings();
 
         if (!settings.enabled()) {
@@ -144,19 +144,19 @@ public class GuestInterviewServiceImpl implements GuestInterviewService {
     }
 
     @Override
-    public AiInterviewSessionResponse get(Long sessionId, String guestToken) {
+    public AiInterviewSessionResponse get(UUID sessionId, String guestToken) {
         return aiInterviewService.getGuestInterview(sessionId, guestToken);
     }
 
     @Override
-    public AiInterviewSessionResponse begin(Long sessionId, String guestToken) {
+    public AiInterviewSessionResponse begin(UUID sessionId, String guestToken) {
         return aiInterviewService.startGuestInterview(sessionId, guestToken);
     }
 
     @Override
     public AiInterviewSessionResponse answer(
-            Long sessionId,
-            Long questionId,
+            UUID sessionId,
+            UUID questionId,
             String guestToken,
             AiInterviewAnswerRequest request
     ) {
@@ -164,18 +164,18 @@ public class GuestInterviewServiceImpl implements GuestInterviewService {
     }
 
     @Override
-    public AiInterviewResultResponse complete(Long sessionId, String guestToken) {
+    public AiInterviewResultResponse complete(UUID sessionId, String guestToken) {
         return aiInterviewService.completeGuestInterview(sessionId, guestToken);
     }
 
     @Override
-    public AiInterviewResultResponse result(Long sessionId, String guestToken) {
+    public AiInterviewResultResponse result(UUID sessionId, String guestToken) {
         return aiInterviewService.getGuestResult(sessionId, guestToken);
     }
 
     @Override
     public AiInterviewSessionResponse bindVoiceCall(
-            Long sessionId,
+            UUID sessionId,
             String guestToken,
             VapiCallBindingRequest request
     ) {
@@ -191,7 +191,7 @@ public class GuestInterviewServiceImpl implements GuestInterviewService {
      */
     @Override
     public AiInterviewSessionResponse submitVoiceTranscript(
-            Long sessionId,
+            UUID sessionId,
             String guestToken,
             VoiceTranscriptRequest request
     ) {

@@ -5,9 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface CompanyVerificationRepository extends JpaRepository<CompanyVerification, Long> {
+public interface CompanyVerificationRepository extends JpaRepository<CompanyVerification, UUID> {
 
-    List<CompanyVerification> findAllByCompany_IdOrderByVerifiedAtDesc(Long companyId);
+    List<CompanyVerification> findAllByCompany_IdOrderByVerifiedAtDesc(UUID companyId);
 }

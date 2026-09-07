@@ -9,16 +9,17 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ResumeRepository extends JpaRepository<Resume, Long> {
+public interface ResumeRepository extends JpaRepository<Resume, UUID> {
 
-    Optional<Resume> findByIdAndJobSeekerProfile_Id(Long id, Long jobSeekerProfileId);
+    Optional<Resume> findByIdAndJobSeekerProfile_Id(UUID id, UUID jobSeekerProfileId);
 
-    List<Resume> findAllByJobSeekerProfile_IdOrderByCreatedAtDesc(Long jobSeekerProfileId);
+    List<Resume> findAllByJobSeekerProfile_IdOrderByCreatedAtDesc(UUID jobSeekerProfileId);
 
     List<Resume> findAllByJobSeekerProfile_IdAndVisibilityOrderByPublishedAtDescCreatedAtDesc(
-            Long jobSeekerProfileId,
+            UUID jobSeekerProfileId,
             VisibilityStatus visibility
     );
 
@@ -28,5 +29,5 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
             set resume.isDefault = false
             where resume.jobSeekerProfile.id = :jobSeekerProfileId
             """)
-    int clearDefaultForJobSeekerProfile(Long jobSeekerProfileId);
+    int clearDefaultForJobSeekerProfile(UUID jobSeekerProfileId);
 }

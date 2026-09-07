@@ -6,15 +6,16 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface CompanyDocumentRepository extends JpaRepository<CompanyDocument, Long> {
+public interface CompanyDocumentRepository extends JpaRepository<CompanyDocument, UUID> {
 
-    List<CompanyDocument> findAllByCompany_IdOrderByCreatedAtDesc(Long companyId);
+    List<CompanyDocument> findAllByCompany_IdOrderByCreatedAtDesc(UUID companyId);
 
     Optional<CompanyDocument> findByIdAndCompany_IdAndCompany_RecruiterProfile_UserAccount_KeycloakUserId(
-            Long id,
-            Long companyId,
+            UUID id,
+            UUID companyId,
             String keycloakUserId
     );
 }

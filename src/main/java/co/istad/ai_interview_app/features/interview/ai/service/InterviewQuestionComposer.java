@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 /**
  * Decides which questions an interview asks: the ones an administrator wrote
@@ -238,7 +239,7 @@ public class InterviewQuestionComposer {
     }
 
     /** A job's hand-written questions, in the shape the session builder uses. */
-    public List<GeneratedQuestion> writtenQuestions(Long jobPostId) {
+    public List<GeneratedQuestion> writtenQuestions(UUID jobPostId) {
         return writtenQuestionRepository.findAllByJobPost_IdOrderByDisplayOrderAsc(jobPostId)
                 .stream()
                 .map(question -> new GeneratedQuestion(

@@ -8,11 +8,12 @@ import co.istad.ai_interview_app.shared.enums.finance.InvoiceStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, Long> {
+public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, UUID> {
 
-    List<InvoiceItem> findAllByInvoice_IdOrderByIdAsc(Long invoiceId);
+    List<InvoiceItem> findAllByInvoice_IdOrderByIdAsc(UUID invoiceId);
 
     /**
      * The live invoice line for a commission, if one exists.
@@ -22,7 +23,7 @@ public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, Long> 
      * again rather than stranding them.
      */
     Optional<InvoiceItem> findFirstByCommissionRecord_IdAndInvoice_StatusNot(
-            Long commissionRecordId,
+            UUID commissionRecordId,
             InvoiceStatus excludedStatus
     );
 }

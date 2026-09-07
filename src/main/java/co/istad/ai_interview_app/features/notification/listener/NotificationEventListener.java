@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import java.util.UUID;
 
 /**
  * Turns domain events into notifications, and owns every word a notification
@@ -107,7 +108,7 @@ public class NotificationEventListener {
             Company company = companyRepository.findById(event.companyId()).orElse(null);
             if (company == null) return;
 
-            Long recruiterId = recruiterUserAccountId(company);
+            UUID recruiterId = recruiterUserAccountId(company);
             if (recruiterId == null) return;
 
             String note = event.note() == null || event.note().isBlank() ? null : event.note();
@@ -116,18 +117,26 @@ public class NotificationEventListener {
                 case APPROVED -> NotificationEventType.COMPANY_VERIFICATION_APPROVED;
                 case REJECTED -> NotificationEventType.COMPANY_VERIFICATION_REJECTED;
                 case NEEDS_REVISION -> NotificationEventType.COMPANY_VERIFICATION_REVISION_REQUESTED;
+                case SUSPENDED -> NotificationEventType.COMPANY_SUSPENDED;
+                case REINSTATED -> NotificationEventType.COMPANY_REINSTATED;
             };
 
             String title = switch (event.decision()) {
                 case APPROVED -> "Company verified";
                 case REJECTED -> "Company verification rejected";
                 case NEEDS_REVISION -> "Changes requested on your company";
+                case SUSPENDED -> "Company suspended";
+                case REINSTATED -> "Company reinstated";
             };
 
             String body = switch (event.decision()) {
                 case APPROVED -> "%s is verified. You can now publish jobs.".formatted(company.getName());
                 case REJECTED -> "%s was not verified.".formatted(company.getName());
                 case NEEDS_REVISION -> "%s needs changes before it can be verified.".formatted(company.getName());
+                case SUSPENDED -> "%s is suspended. Its jobs are hidden and no new ones can be published."
+                        .formatted(company.getName());
+                case REINSTATED -> "%s is active again. You can publish jobs."
+                        .formatted(company.getName());
             };
 
             notificationService.create(new NewNotification(
@@ -157,7 +166,7 @@ public class NotificationEventListener {
             // The applicant's own receipt. Recruiters are deliberately absent:
             // an application is private until a moderator forwards it, and a
             // notification would leak that it exists.
-            Long applicantId = applicantUserAccountId(application);
+            UUID applicantId = applicantUserAccountId(application);
             if (applicantId != null) {
                 notifications.add(new NewNotification(
                         applicantId,
@@ -196,7 +205,7 @@ public class NotificationEventListener {
             String jobTitle = application.getJobPost().getTitle();
             List<NewNotification> notifications = new ArrayList<>();
 
-            Long applicantId = applicantUserAccountId(application);
+            UUID applicantId = applicantUserAccountId(application);
             if (applicantId != null) {
                 notifications.add(new NewNotification(
                         applicantId,
@@ -221,7 +230,7 @@ public class NotificationEventListener {
             JobApplication application = jobApplicationRepository.findById(event.applicationId()).orElse(null);
             if (application == null) return;
 
-            Long recruiterId = recruiterUserAccountId(application);
+            UUID recruiterId = recruiterUserAccountId(application);
             if (recruiterId == null) return;
 
             notificationService.create(new NewNotification(
@@ -253,7 +262,7 @@ public class NotificationEventListener {
                     "Your interview for %s has been scored.".formatted(session.getJobPost().getTitle()),
                     "AiInterviewSession",
                     String.valueOf(session.getId()),
-                    "/job-seeker/interviews/%d/result".formatted(session.getId())
+                    "/job-seeker/interviews/%s/result".formatted(session.getId())
             ));
         });
     }
@@ -266,7 +275,7 @@ public class NotificationEventListener {
             if (interview == null) return;
 
             JobApplication application = interview.getApplication();
-            Long applicantId = applicantUserAccountId(application);
+            UUID applicantId = applicantUserAccountId(application);
             if (applicantId == null) return;
 
             notificationService.create(new NewNotification(
@@ -292,7 +301,7 @@ public class NotificationEventListener {
             if (interview == null) return;
 
             JobApplication application = interview.getApplication();
-            Long applicantId = applicantUserAccountId(application);
+            UUID applicantId = applicantUserAccountId(application);
             if (applicantId == null) return;
 
             /*
@@ -328,7 +337,7 @@ public class NotificationEventListener {
             if (interview == null) return;
 
             JobApplication application = interview.getApplication();
-            Long applicantId = applicantUserAccountId(application);
+            UUID applicantId = applicantUserAccountId(application);
             if (applicantId == null) return;
 
             notificationService.create(new NewNotification(
@@ -347,6 +356,15 @@ public class NotificationEventListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public void onConversationChanged(NotificationEvents.ConversationChanged event) {
+        safely("conversation changed", () -> participantRepository.findAllByConversation_Id(event.conversationId())
+                .forEach(participant -> notificationStreamService.pushMessage(
+                        participant.getUserAccount().getId(),
+                        new MessageStreamEvent(event.conversationId(), null, null, Instant.now()))));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onMessageReceived(NotificationEvents.MessageReceived event) {
         safely("message received", () -> {
@@ -354,7 +372,7 @@ public class NotificationEventListener {
             if (message == null) return;
 
             Conversation conversation = message.getConversation();
-            Long senderId = message.getSenderUserAccount().getId();
+            UUID senderId = message.getSenderUserAccount().getId();
 
             List<ConversationParticipant> recipients =
                     participantRepository.findRecipients(conversation.getId(), senderId);
@@ -372,7 +390,7 @@ public class NotificationEventListener {
                     message.getSentAt()
             );
 
-            recipients.forEach(participant -> notificationStreamService.pushMessage(
+            participantRepository.findAllByConversation_Id(conversation.getId()).forEach(participant -> notificationStreamService.pushMessage(
                     participant.getUserAccount().getId(),
                     streamEvent
             ));
@@ -436,7 +454,7 @@ public class NotificationEventListener {
      * company — the only account on the platform that represents the payer.
      */
     private void notifyInvoiceRecipient(
-            Long invoiceId,
+            UUID invoiceId,
             NotificationEventType eventType,
             String title,
             java.util.function.Function<Invoice, String> body
@@ -444,7 +462,7 @@ public class NotificationEventListener {
         Invoice invoice = invoiceRepository.findById(invoiceId).orElse(null);
         if (invoice == null) return;
 
-        Long recruiterId = Optional.ofNullable(invoice.getCompany().getRecruiterProfile())
+        UUID recruiterId = Optional.ofNullable(invoice.getCompany().getRecruiterProfile())
                 .map(profile -> profile.getUserAccount())
                 .map(account -> account.getId())
                 .orElse(null);
@@ -469,7 +487,7 @@ public class NotificationEventListener {
      * reach the same screens through the role hierarchy. Deduplicated because
      * one account can hold both profiles.
      */
-    private List<Long> moderatorRecipients() {
+    private List<UUID> moderatorRecipients() {
         return Stream.concat(
                         moderatorProfileRepository.findUserAccountIdsByStatus(ProfileStatus.ACTIVE).stream(),
                         adminProfileRepository.findUserAccountIdsByStatus(ProfileStatus.ACTIVE).stream()
@@ -478,14 +496,14 @@ public class NotificationEventListener {
                 .toList();
     }
 
-    private Long recruiterUserAccountId(Company company) {
+    private UUID recruiterUserAccountId(Company company) {
         return Optional.ofNullable(company.getRecruiterProfile())
                 .map(profile -> profile.getUserAccount())
                 .map(account -> account.getId())
                 .orElse(null);
     }
 
-    private Long recruiterUserAccountId(JobApplication application) {
+    private UUID recruiterUserAccountId(JobApplication application) {
         return Optional.ofNullable(application.getJobPost())
                 .map(jobPost -> jobPost.getRecruiterProfile())
                 .map(profile -> profile.getUserAccount())
@@ -493,7 +511,7 @@ public class NotificationEventListener {
                 .orElse(null);
     }
 
-    private Long applicantUserAccountId(JobApplication application) {
+    private UUID applicantUserAccountId(JobApplication application) {
         return Optional.ofNullable(application.getJobSeekerProfile())
                 .map(profile -> profile.getUserAccount())
                 .map(account -> account.getId())

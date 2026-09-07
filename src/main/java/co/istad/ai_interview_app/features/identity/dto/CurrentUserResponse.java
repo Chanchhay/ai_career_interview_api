@@ -1,9 +1,10 @@
 package co.istad.ai_interview_app.features.identity.dto;
 
 import java.util.List;
+import java.util.UUID;
 
 public record CurrentUserResponse(
-        Long userAccountId,
+        UUID userAccountId,
         String keycloakUserId,
         String username,
         String email,

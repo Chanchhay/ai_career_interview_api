@@ -6,11 +6,12 @@ import co.istad.ai_interview_app.shared.enums.interview.InterviewStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public record AiInterviewSessionResponse(
-        Long id,
-        Long applicationId,
-        Long jobId,
+        UUID id,
+        UUID applicationId,
+        UUID jobId,
         String jobTitle,
         InterviewStatus status,
         Instant startedAt,

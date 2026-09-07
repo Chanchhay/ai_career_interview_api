@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -59,7 +60,7 @@ public class JobSeekerPublicationServiceImpl implements JobSeekerPublicationServ
 
     @Override
     @Transactional
-    public PublicationResponse updatePortfolioPublication(Long portfolioId, PublicationRequest request) {
+    public PublicationResponse updatePortfolioPublication(UUID portfolioId, PublicationRequest request) {
         VisibilityStatus visibility = resolvePublicationVisibility(request);
         JobSeekerProfile profile = jobSeekerProfileResolver.resolve();
         Portfolio portfolio = portfolioRepository.findByIdAndJobSeekerProfile_Id(portfolioId, profile.getId())
@@ -84,7 +85,7 @@ public class JobSeekerPublicationServiceImpl implements JobSeekerPublicationServ
 
     @Override
     @Transactional
-    public PublicationResponse updateResumePublication(Long resumeId, PublicationRequest request) {
+    public PublicationResponse updateResumePublication(UUID resumeId, PublicationRequest request) {
         VisibilityStatus visibility = resolvePublicationVisibility(request);
         JobSeekerProfile profile = jobSeekerProfileResolver.resolve();
         Resume resume = resumeRepository.findByIdAndJobSeekerProfile_Id(resumeId, profile.getId())

@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.notification.dto;
 
 import co.istad.ai_interview_app.shared.enums.admin.NotificationEventType;
+import java.util.UUID;
 
 /**
  * What a listener hands to the notification service. Deliberately not a request
@@ -8,7 +9,7 @@ import co.istad.ai_interview_app.shared.enums.admin.NotificationEventType;
  * shape is never bound from a request body.
  */
 public record NewNotification(
-        Long recipientUserAccountId,
+        UUID recipientUserAccountId,
         NotificationEventType eventType,
         String title,
         String body,

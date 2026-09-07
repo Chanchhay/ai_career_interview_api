@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.notification.dto;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * A new message, pushed down the live stream so an open chat updates itself.
@@ -17,9 +18,9 @@ import java.time.Instant;
  * event costs a refetch rather than a missing message.
  */
 public record MessageStreamEvent(
-        Long conversationId,
-        Long messageId,
-        Long senderUserAccountId,
+        UUID conversationId,
+        UUID messageId,
+        UUID senderUserAccountId,
         Instant sentAt
 ) {
 }

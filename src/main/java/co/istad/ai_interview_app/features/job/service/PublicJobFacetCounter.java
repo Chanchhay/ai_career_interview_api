@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Counts how many jobs sit behind each option a filter could still offer.
@@ -140,7 +141,7 @@ public class PublicJobFacetCounter {
 
         return typedQuery.getResultList().stream()
                 .map(tuple -> new PublicJobFacetOption(
-                        tuple.get(0, Long.class),
+                        tuple.get(0, UUID.class),
                         tuple.get(1, String.class),
                         tuple.get(2, Long.class)
                 ))

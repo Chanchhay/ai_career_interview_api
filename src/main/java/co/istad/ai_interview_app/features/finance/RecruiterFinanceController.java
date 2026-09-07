@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 /**
  * What a recruiter can do with the money side: report a hire, and read.
@@ -38,7 +39,7 @@ public class RecruiterFinanceController {
     @PostMapping("/forwarded-applications/{applicationId}/hire")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<HiringRecordResponse> reportHire(
-            @PathVariable Long applicationId,
+            @PathVariable UUID applicationId,
             @Valid @RequestBody ReportHireRequest request
     ) {
         return ApiResponse.success(hiringRecordService.reportHire(applicationId, request));
@@ -60,7 +61,7 @@ public class RecruiterFinanceController {
 
     @GetMapping("/invoices/{invoiceId}")
     public ApiResponse<InvoiceResponse> getMyInvoice(
-            @PathVariable Long invoiceId
+            @PathVariable UUID invoiceId
     ) {
         return ApiResponse.success(invoiceService.getMyCompanyInvoice(invoiceId));
     }

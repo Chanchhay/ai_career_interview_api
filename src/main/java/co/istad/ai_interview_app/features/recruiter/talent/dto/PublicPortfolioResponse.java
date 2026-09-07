@@ -3,9 +3,10 @@ package co.istad.ai_interview_app.features.recruiter.talent.dto;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public record PublicPortfolioResponse(
-        Long id,
+        UUID id,
         String title,
         String summary,
         String publicUrl,

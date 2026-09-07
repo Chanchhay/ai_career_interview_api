@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 
 /**
  * One question in a saved set.
@@ -15,7 +16,7 @@ import jakarta.validation.constraints.Size;
  * does not name is deleted — the request is the whole set, not a patch.
  */
 public record JobInterviewQuestionRequest(
-        Long id,
+        UUID id,
 
         @NotBlank(message = "A question needs text")
         @Size(max = 2000, message = "A question must be 2000 characters or fewer")

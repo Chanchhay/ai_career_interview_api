@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/recruiter/companies")
@@ -45,7 +46,7 @@ public class CompanyController {
 
     @PutMapping("/{id}")
     public ApiResponse<CompanyResponse> updateCompany(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @Valid @RequestBody CompanyUpdateRequest request
     ) {
         return ApiResponse.success(
@@ -55,7 +56,7 @@ public class CompanyController {
 
     @PostMapping("/{companyId}/documents")
     public ApiResponse<CompanyDocumentResponse> addDocument(
-            @PathVariable Long companyId,
+            @PathVariable UUID companyId,
             @Valid @RequestBody CompanyDocumentRequest request
     ) {
         return ApiResponse.success(companyService.addDocument(companyId, request));
@@ -63,15 +64,15 @@ public class CompanyController {
 
     @GetMapping("/{companyId}/documents")
     public ApiResponse<List<CompanyDocumentResponse>> getDocuments(
-            @PathVariable Long companyId
+            @PathVariable UUID companyId
     ) {
         return ApiResponse.success(companyService.getDocuments(companyId));
     }
 
     @DeleteMapping("/{companyId}/documents/{documentId}")
     public ApiResponse<Void> deleteDocument(
-            @PathVariable Long companyId,
-            @PathVariable Long documentId
+            @PathVariable UUID companyId,
+            @PathVariable UUID documentId
     ) {
         companyService.deleteDocument(companyId, documentId);
         return ApiResponse.success(null);
@@ -79,7 +80,7 @@ public class CompanyController {
 
     @PostMapping("/{companyId}/submit-verification")
     public ApiResponse<CompanyResponse> submitVerification(
-            @PathVariable Long companyId
+            @PathVariable UUID companyId
     ) {
         return ApiResponse.success(companyService.submitVerification(companyId));
     }

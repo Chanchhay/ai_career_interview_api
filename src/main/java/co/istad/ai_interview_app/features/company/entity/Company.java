@@ -65,4 +65,18 @@ public class Company extends BaseEntity {
             columnDefinition = "varchar(50) default 'VISIBLE'"
     )
     private CompanyIdentityVisibility identityVisibility = CompanyIdentityVisibility.VISIBLE;
+
+    /**
+     * A stand-in logo shown to candidates while this company is masked.
+     *
+     * <p>Set by an administrator, never by the recruiter: the point of masking
+     * is that the company does not choose what candidates see of it. Null is
+     * ordinary and means a masked posting simply carries no mark.
+     *
+     * <p>Whoever sets this is responsible for it being neutral. A stand-in that
+     * is recognisably the company's own branding unmasks it just as thoroughly
+     * as leaking {@link #logoUrl} would.
+     */
+    @Column(length = 500)
+    private String maskedLogoUrl;
 }

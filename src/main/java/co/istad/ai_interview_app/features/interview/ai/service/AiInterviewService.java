@@ -9,27 +9,28 @@ import co.istad.ai_interview_app.features.interview.vapi.dto.VapiTranscriptTurn;
 import co.istad.ai_interview_app.features.interview.vapi.dto.VoiceTranscriptRequest;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface AiInterviewService {
 
-    AiInterviewSessionResponse createInterviewForJob(Long jobId);
+    AiInterviewSessionResponse createInterviewForJob(UUID jobId);
 
-    AiInterviewSessionResponse createInterviewForApplication(Long applicationId);
+    AiInterviewSessionResponse createInterviewForApplication(UUID applicationId);
 
     List<AiInterviewSessionResponse> getMyInterviews();
 
-    AiInterviewSessionResponse getMyInterview(Long sessionId);
+    AiInterviewSessionResponse getMyInterview(UUID sessionId);
 
-    AiInterviewSessionResponse startInterview(Long sessionId);
+    AiInterviewSessionResponse startInterview(UUID sessionId);
 
-    AiInterviewSessionResponse submitAnswer(Long sessionId, Long questionId, AiInterviewAnswerRequest request);
+    AiInterviewSessionResponse submitAnswer(UUID sessionId, UUID questionId, AiInterviewAnswerRequest request);
 
-    AiInterviewResultResponse completeInterview(Long sessionId);
+    AiInterviewResultResponse completeInterview(UUID sessionId);
 
-    AiInterviewResultResponse getResult(Long sessionId);
+    AiInterviewResultResponse getResult(UUID sessionId);
 
     /** Binds the Vapi call that is voicing this interview, so its webhook can find the session again. */
-    AiInterviewSessionResponse bindVapiCall(Long sessionId, VapiCallBindingRequest request);
+    AiInterviewSessionResponse bindVapiCall(UUID sessionId, VapiCallBindingRequest request);
 
     /**
      * Records a finished voice call and, if the transcript covered every
@@ -49,7 +50,7 @@ public interface AiInterviewService {
      * candidate's own request rather than by Vapi. Whichever path arrives first
      * scores the interview; the other finds it already done.
      */
-    AiInterviewSessionResponse submitVoiceTranscript(Long sessionId, VoiceTranscriptRequest request);
+    AiInterviewSessionResponse submitVoiceTranscript(UUID sessionId, VoiceTranscriptRequest request);
 
     /* ------------------------------------------------------------ guests --- */
 
@@ -62,37 +63,37 @@ public interface AiInterviewService {
      */
 
     AiInterviewSessionResponse createGuestInterview(
-            Long jobId,
+            UUID jobId,
             String guestToken,
             String guestIpHash,
             ManualQuestionMode modeOverride
     );
 
-    AiInterviewSessionResponse getGuestInterview(Long sessionId, String guestToken);
+    AiInterviewSessionResponse getGuestInterview(UUID sessionId, String guestToken);
 
-    AiInterviewSessionResponse startGuestInterview(Long sessionId, String guestToken);
+    AiInterviewSessionResponse startGuestInterview(UUID sessionId, String guestToken);
 
     AiInterviewSessionResponse submitGuestAnswer(
-            Long sessionId,
-            Long questionId,
+            UUID sessionId,
+            UUID questionId,
             String guestToken,
             AiInterviewAnswerRequest request
     );
 
-    AiInterviewResultResponse completeGuestInterview(Long sessionId, String guestToken);
+    AiInterviewResultResponse completeGuestInterview(UUID sessionId, String guestToken);
 
-    AiInterviewResultResponse getGuestResult(Long sessionId, String guestToken);
+    AiInterviewResultResponse getGuestResult(UUID sessionId, String guestToken);
 
     /** Attaches the voice call that is speaking a guest's interview. */
     AiInterviewSessionResponse bindGuestVapiCall(
-            Long sessionId,
+            UUID sessionId,
             String guestToken,
             VapiCallBindingRequest request
     );
 
     /** Scores a guest's finished voice call from its transcript. */
     AiInterviewSessionResponse submitGuestVoiceTranscript(
-            Long sessionId,
+            UUID sessionId,
             String guestToken,
             VoiceTranscriptRequest request
     );

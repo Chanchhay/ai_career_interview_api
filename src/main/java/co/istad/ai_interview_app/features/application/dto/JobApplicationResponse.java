@@ -3,12 +3,13 @@ package co.istad.ai_interview_app.features.application.dto;
 import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record JobApplicationResponse(
-        Long id,
-        Long jobId,
+        UUID id,
+        UUID jobId,
         String jobTitle,
-        Long resumeId,
+        UUID resumeId,
         String resumeTitle,
         String coverLetter,
         ApplicationStatus status,

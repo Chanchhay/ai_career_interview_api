@@ -2,6 +2,7 @@ package co.istad.ai_interview_app.features.company.dto;
 
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
 import jakarta.validation.constraints.NotBlank;
+import java.util.UUID;
 import jakarta.validation.constraints.Size;
 
 public record IndustryUpdateRequest(
@@ -11,6 +12,8 @@ public record IndustryUpdateRequest(
 
         String description,
 
-        ProfileStatus status
+        ProfileStatus status,
+
+        UUID parentId
 ) {
 }

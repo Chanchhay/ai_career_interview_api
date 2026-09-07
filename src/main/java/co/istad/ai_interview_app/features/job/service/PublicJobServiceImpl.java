@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -68,7 +69,7 @@ public class PublicJobServiceImpl implements PublicJobService {
                 .and(JobPostSpecification.orderedBy(pageable.getSort()));
 
         Page<JobPost> page = jobPostRepository.findAll(spec, withoutSort(pageable));
-        Set<Long> savedJobIds = resolveSavedJobIds(page.map(JobPost::getId).getContent());
+        Set<UUID> savedJobIds = resolveSavedJobIds(page.map(JobPost::getId).getContent());
 
         return page.map(jobPost -> toPublicResponse(jobPost, savedJobIds));
     }
@@ -167,7 +168,7 @@ public class PublicJobServiceImpl implements PublicJobService {
 
     @Override
     @Transactional(readOnly = true)
-    public PublicJobResponse getPublicJob(Long jobId) {
+    public PublicJobResponse getPublicJob(UUID jobId) {
         return jobPostRepository.findPublicJobById(
                         jobId,
                         JobStatus.PUBLISHED,
@@ -184,6 +185,7 @@ public class PublicJobServiceImpl implements PublicJobService {
     public List<PublicJobCategoryResponse> getJobCategories() {
         return jobCategoryRepository.findAllByOrderByNameAsc()
                 .stream()
+                .filter(item -> item.getParent() != null)
                 .map(this::toCategoryResponse)
                 .toList();
     }
@@ -193,6 +195,7 @@ public class PublicJobServiceImpl implements PublicJobService {
     public List<PublicSkillResponse> getSkills() {
         return skillRepository.findAllByOrderByNameAsc()
                 .stream()
+                .filter(item -> item.getParent() != null)
                 .map(this::toSkillResponse)
                 .toList();
     }
@@ -202,6 +205,7 @@ public class PublicJobServiceImpl implements PublicJobService {
     public List<PublicIndustryResponse> getIndustries() {
         return industryRepository.findAllByStatusOrderByNameAsc(ProfileStatus.ACTIVE)
                 .stream()
+                .filter(item -> item.getParent() != null && item.getParent().getStatus() == ProfileStatus.ACTIVE)
                 .map(this::toIndustryResponse)
                 .toList();
     }
@@ -216,7 +220,7 @@ public class PublicJobServiceImpl implements PublicJobService {
      * here; a recruiter or admin holds one but owns no favorites and matches
      * nothing.
      */
-    private Set<Long> resolveSavedJobIds(List<Long> jobPostIds) {
+    private Set<UUID> resolveSavedJobIds(List<UUID> jobPostIds) {
         Optional<String> keycloakUserId = AuthUtils.extractUserIdIfAuthenticated();
 
         if (keycloakUserId.isEmpty()) {
@@ -230,11 +234,12 @@ public class PublicJobServiceImpl implements PublicJobService {
         return Set.copyOf(favoriteJobRepository.findSavedJobPostIds(keycloakUserId.get(), jobPostIds));
     }
 
-    private PublicJobResponse toPublicResponse(JobPost jobPost, Set<Long> savedJobIds) {
+    private PublicJobResponse toPublicResponse(JobPost jobPost, Set<UUID> savedJobIds) {
         return new PublicJobResponse(
                 jobPost.getId(),
                 CompanyIdentity.displayId(jobPost.getCompany()),
                 CompanyIdentity.displayName(jobPost.getCompany()),
+                CompanyIdentity.displayLogoUrl(jobPost.getCompany()),
                 jobPost.getCategory() == null ? null : jobPost.getCategory().getId(),
                 jobPost.getCategory() == null ? null : jobPost.getCategory().getName(),
                 jobPost.getTitle(),
@@ -281,14 +286,20 @@ public class PublicJobServiceImpl implements PublicJobService {
     }
 
     private PublicJobCategoryResponse toCategoryResponse(JobCategory category) {
-        return new PublicJobCategoryResponse(category.getId(), category.getName(), category.getDescription());
+        return new PublicJobCategoryResponse(category.getId(), category.getName(), category.getDescription(),
+                category.getParent() == null ? null : category.getParent().getId(),
+                category.getParent() == null ? null : category.getParent().getName());
     }
 
     private PublicSkillResponse toSkillResponse(Skill skill) {
-        return new PublicSkillResponse(skill.getId(), skill.getName(), skill.getSkillType());
+        return new PublicSkillResponse(skill.getId(), skill.getName(), skill.getSkillType(),
+                skill.getParent() == null ? null : skill.getParent().getId(),
+                skill.getParent() == null ? null : skill.getParent().getName());
     }
 
     private PublicIndustryResponse toIndustryResponse(Industry industry) {
-        return new PublicIndustryResponse(industry.getId(), industry.getName(), industry.getDescription());
+        return new PublicIndustryResponse(industry.getId(), industry.getName(), industry.getDescription(),
+                industry.getParent() == null ? null : industry.getParent().getId(),
+                industry.getParent() == null ? null : industry.getParent().getName());
     }
 }

@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.job.dto;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * @param createdByRecruiterProfileId the recruiter who added this skill, or
@@ -11,12 +12,14 @@ import java.time.Instant;
  *                                    recruiter with no company yet
  */
 public record SkillResponse(
-        Long id,
+        UUID id,
         String name,
         String skillType,
-        Long createdByRecruiterProfileId,
+        UUID createdByRecruiterProfileId,
         String createdByCompanyName,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        UUID parentId,
+        String parentName
 ) {
 }

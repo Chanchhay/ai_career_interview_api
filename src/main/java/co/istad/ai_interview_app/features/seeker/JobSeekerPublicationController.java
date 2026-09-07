@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/job-seeker")
@@ -28,7 +29,7 @@ public class JobSeekerPublicationController {
 
     @PatchMapping("/portfolios/{portfolioId}/publication")
     public ApiResponse<PublicationResponse> updatePortfolioPublication(
-            @PathVariable Long portfolioId,
+            @PathVariable UUID portfolioId,
             @Valid @RequestBody PublicationRequest request
     ) {
         return ApiResponse.success(jobSeekerPublicationService.updatePortfolioPublication(portfolioId, request));
@@ -36,7 +37,7 @@ public class JobSeekerPublicationController {
 
     @PatchMapping("/resumes/{resumeId}/publication")
     public ApiResponse<PublicationResponse> updateResumePublication(
-            @PathVariable Long resumeId,
+            @PathVariable UUID resumeId,
             @Valid @RequestBody PublicationRequest request
     ) {
         return ApiResponse.success(jobSeekerPublicationService.updateResumePublication(resumeId, request));

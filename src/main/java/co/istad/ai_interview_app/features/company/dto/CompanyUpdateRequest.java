@@ -3,9 +3,10 @@ package co.istad.ai_interview_app.features.company.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 
 public record CompanyUpdateRequest(
-        Long industryId,
+        UUID industryId,
 
         @NotBlank(message = "Company name is required")
         @Size(max = 200, message = "Company name must be at most 200 characters")

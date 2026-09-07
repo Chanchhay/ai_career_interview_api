@@ -1,9 +1,10 @@
 package co.istad.ai_interview_app.features.seeker.dto;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record PortfolioProjectResponse(
-        Long id,
+        UUID id,
         String title,
         String description,
         String projectUrl,

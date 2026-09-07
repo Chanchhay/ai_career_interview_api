@@ -5,9 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface AiInterviewFeedbackRepository extends JpaRepository<AiInterviewFeedback, Long> {
+public interface AiInterviewFeedbackRepository extends JpaRepository<AiInterviewFeedback, UUID> {
 
-    Optional<AiInterviewFeedback> findBySession_Id(Long sessionId);
+    Optional<AiInterviewFeedback> findBySession_Id(UUID sessionId);
 }

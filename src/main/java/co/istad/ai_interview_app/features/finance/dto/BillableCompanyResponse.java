@@ -2,6 +2,7 @@ package co.istad.ai_interview_app.features.finance.dto;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * One company with commissions nobody has billed yet.
@@ -15,7 +16,7 @@ import java.time.Instant;
  * a single currency, so those are genuinely two different bills.
  */
 public record BillableCompanyResponse(
-        Long companyId,
+        UUID companyId,
         String companyName,
         long commissionCount,
         BigDecimal totalAmount,

@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.interview.vapi.dto;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * A whole voice interview handed to Gemini to be split back into answers.
@@ -14,7 +15,7 @@ public record TranscriptSegmentationRequest(
 ) {
 
     public record TranscriptQuestion(
-            Long questionId,
+            UUID questionId,
             Integer displayOrder,
             String questionText
     ) {

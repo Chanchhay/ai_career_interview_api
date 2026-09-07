@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 /**
  * Reading and rewriting a job's hand-written interview questions.
@@ -45,7 +46,7 @@ public class JobInterviewQuestionServiceImpl implements JobInterviewQuestionServ
 
     @Override
     @Transactional(readOnly = true)
-    public JobInterviewQuestionSetResponse getSet(Long jobId) {
+    public JobInterviewQuestionSetResponse getSet(UUID jobId) {
         JobPost jobPost = requireJob(jobId);
 
         return toResponse(
@@ -56,11 +57,11 @@ public class JobInterviewQuestionServiceImpl implements JobInterviewQuestionServ
 
     @Override
     @Transactional
-    public JobInterviewQuestionSetResponse saveSet(Long jobId, JobInterviewQuestionSetRequest request) {
+    public JobInterviewQuestionSetResponse saveSet(UUID jobId, JobInterviewQuestionSetRequest request) {
         JobPost jobPost = requireJob(jobId);
         int defaultMaxScore = configService.currentGenerationConfig().maxScorePerQuestion();
 
-        Map<Long, JobInterviewQuestion> existing = new LinkedHashMap<>();
+        Map<UUID, JobInterviewQuestion> existing = new LinkedHashMap<>();
         for (JobInterviewQuestion question : questionRepository.findAllByJobPost_IdOrderByDisplayOrderAsc(jobId)) {
             existing.put(question.getId(), question);
         }
@@ -110,7 +111,7 @@ public class JobInterviewQuestionServiceImpl implements JobInterviewQuestionServ
         return toResponse(jobPost, saved);
     }
 
-    private JobPost requireJob(Long jobId) {
+    private JobPost requireJob(UUID jobId) {
         return jobPostRepository.findById(jobId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job post was not found"));
     }

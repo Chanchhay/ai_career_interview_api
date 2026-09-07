@@ -34,6 +34,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 /**
  * Recording hires, and turning a confirmed one into a commission.
@@ -66,7 +67,7 @@ public class HiringRecordServiceImpl implements HiringRecordService {
      */
     @Override
     @Transactional
-    public HiringRecordResponse reportHire(Long applicationId, ReportHireRequest request) {
+    public HiringRecordResponse reportHire(UUID applicationId, ReportHireRequest request) {
         CandidateApplicationReview review = reviewRepository
                 .findByApplication_IdAndReviewStatusAndApplication_JobPost_RecruiterProfile_UserAccount_KeycloakUserId(
                         applicationId,
@@ -113,7 +114,7 @@ public class HiringRecordServiceImpl implements HiringRecordService {
     @Override
     @Transactional(readOnly = true)
     public Page<HiringRecordResponse> findMyCompanyHires(Pageable pageable) {
-        Long companyId = companyRepository
+        UUID companyId = companyRepository
                 .findByRecruiterProfile_UserAccount_KeycloakUserId(AuthUtils.extractUserId())
                 .map(company -> company.getId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -140,7 +141,7 @@ public class HiringRecordServiceImpl implements HiringRecordService {
 
     @Override
     @Transactional(readOnly = true)
-    public HiringRecordResponse get(Long hiringRecordId) {
+    public HiringRecordResponse get(UUID hiringRecordId) {
         HiringRecord record = resolve(hiringRecordId);
         return mapper.toResponse(record, commissionFor(record));
     }
@@ -154,7 +155,7 @@ public class HiringRecordServiceImpl implements HiringRecordService {
      */
     @Override
     @Transactional
-    public HiringRecordResponse confirm(Long hiringRecordId, HireReviewRequest request) {
+    public HiringRecordResponse confirm(UUID hiringRecordId, HireReviewRequest request) {
         HiringRecord record = resolve(hiringRecordId);
 
         if (record.getStatus() == HiringRecordStatus.CONFIRMED) {
@@ -205,7 +206,7 @@ public class HiringRecordServiceImpl implements HiringRecordService {
 
     @Override
     @Transactional
-    public HiringRecordResponse reject(Long hiringRecordId, HireReviewRequest request) {
+    public HiringRecordResponse reject(UUID hiringRecordId, HireReviewRequest request) {
         HiringRecord record = resolve(hiringRecordId);
 
         if (record.getStatus() == HiringRecordStatus.CONFIRMED) {
@@ -225,7 +226,7 @@ public class HiringRecordServiceImpl implements HiringRecordService {
 
     /* ----------------------------------------------------------- helpers --- */
 
-    private HiringRecord resolve(Long hiringRecordId) {
+    private HiringRecord resolve(UUID hiringRecordId) {
         return hiringRecordRepository.findById(hiringRecordId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,

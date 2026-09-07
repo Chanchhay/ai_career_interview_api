@@ -7,6 +7,7 @@ import co.istad.ai_interview_app.features.identity.repository.CurrentUserModerat
 import co.istad.ai_interview_app.features.identity.repository.CurrentUserRecruiterProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import java.util.UUID;
 
 /**
  * Which kind of account this is, judged by which profile row it owns.
@@ -38,7 +39,7 @@ public class UserAccountRoleResolver {
     private final CurrentUserAdminProfileRepository adminProfileRepository;
     private final CurrentUserFinanceProfileRepository financeProfileRepository;
 
-    public AccountRole resolve(Long userAccountId) {
+    public AccountRole resolve(UUID userAccountId) {
         if (userAccountId == null) return AccountRole.UNKNOWN;
 
         if (moderatorProfileRepository.findByUserAccount_Id(userAccountId).isPresent()) {
@@ -67,7 +68,7 @@ public class UserAccountRoleResolver {
      * notification carries one URL, so the path has to be chosen for the
      * recipient rather than left for the client to rewrite.
      */
-    public String messagesPath(Long userAccountId, Long conversationId) {
+    public String messagesPath(UUID userAccountId, UUID conversationId) {
         return switch (resolve(userAccountId)) {
             case SEEKER -> "/job-seeker/messages/" + conversationId;
             case RECRUITER -> "/recruiter/messages/" + conversationId;

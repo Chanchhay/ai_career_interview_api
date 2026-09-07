@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 /**
  * Rebuilds per-question answers from a voice interview transcript.
@@ -35,7 +36,7 @@ public class AiInterviewTranscriptSegmenterImpl implements AiInterviewTranscript
     public TranscriptSegmentationResult segment(TranscriptSegmentationRequest request) {
         String questionList = request.questions()
                 .stream()
-                .map(question -> "questionId=%d (order %d): %s".formatted(
+                .map(question -> "questionId=%s (order %d): %s".formatted(
                         question.questionId(),
                         question.displayOrder(),
                         question.questionText()
@@ -108,12 +109,12 @@ public class AiInterviewTranscriptSegmenterImpl implements AiInterviewTranscript
             throw new GeminiGenerationException("Gemini returned no transcript segmentation");
         }
 
-        Set<Long> expectedQuestionIds = request.questions()
+        Set<UUID> expectedQuestionIds = request.questions()
                 .stream()
                 .map(TranscriptSegmentationRequest.TranscriptQuestion::questionId)
                 .collect(Collectors.toCollection(HashSet::new));
 
-        Set<Long> segmentedQuestionIds = new HashSet<>();
+        Set<UUID> segmentedQuestionIds = new HashSet<>();
         List<TranscriptSegmentationResult.SegmentedAnswer> answers = result.answers();
 
         for (TranscriptSegmentationResult.SegmentedAnswer answer : answers) {

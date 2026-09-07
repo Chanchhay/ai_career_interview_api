@@ -1,7 +1,9 @@
 package co.istad.ai_interview_app.features.recruiter.talent.dto;
 
+import java.util.UUID;
+
 public record PublicPortfolioProjectResponse(
-        Long id,
+        UUID id,
         String title,
         String description,
         String projectUrl,

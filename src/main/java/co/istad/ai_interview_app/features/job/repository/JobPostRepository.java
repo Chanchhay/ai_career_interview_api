@@ -15,15 +15,38 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface JobPostRepository extends JpaRepository<JobPost, Long>, JpaSpecificationExecutor<JobPost> {
+public interface JobPostRepository extends JpaRepository<JobPost, UUID>, JpaSpecificationExecutor<JobPost> {
 
     List<JobPost> findAllByRecruiterProfile_UserAccount_KeycloakUserIdOrderByCreatedAtDesc(String keycloakUserId);
 
-    Optional<JobPost> findByIdAndRecruiterProfile_UserAccount_KeycloakUserId(Long id, String keycloakUserId);
+    Optional<JobPost> findByIdAndRecruiterProfile_UserAccount_KeycloakUserId(UUID id, String keycloakUserId);
 
-    Optional<JobPost> findByIdAndStatus(Long id, JobStatus status);
+    Optional<JobPost> findByIdAndStatus(UUID id, JobStatus status);
+
+    /**
+     * Job counts for a page of companies: total, and how many are live.
+     *
+     * <p>One query for the whole page rather than a count per row — the
+     * companies queue renders twenty at a time, and twenty extra round trips to
+     * print a number beside each name is not worth it.
+     */
+    @Query("""
+            select job.company.id, count(job),
+                   sum(case when job.status = :published then 1 else 0 end)
+            from JobPost job
+            where job.company.id in :companyIds
+            group by job.company.id
+            """)
+    List<Object[]> countByCompanyIds(
+            @Param("companyIds") List<UUID> companyIds,
+            @Param("published") JobStatus published
+    );
+
+    /** Every job a company has, whatever its state — the moderator's view. */
+    Page<JobPost> findAllByCompany_IdOrderByCreatedAtDesc(UUID companyId, Pageable pageable);
 
 
 
@@ -37,7 +60,7 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long>, JpaSpec
               and (job.expiredAt is null or job.expiredAt > :now)
             """)
     Optional<JobPost> findPublicJobById(
-            @Param("id") Long id,
+            @Param("id") UUID id,
             @Param("status") JobStatus status,
             @Param("verificationStatus") VerificationStatus verificationStatus,
             @Param("companyStatus") ProfileStatus companyStatus,

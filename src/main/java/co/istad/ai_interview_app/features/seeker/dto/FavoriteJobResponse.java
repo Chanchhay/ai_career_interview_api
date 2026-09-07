@@ -4,6 +4,7 @@ import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * One row of the saved-jobs page.
@@ -13,11 +14,11 @@ import java.time.Instant;
  * the row out instead of letting it vanish without explanation.
  */
 public record FavoriteJobResponse(
-        Long id,
+        UUID id,
         Instant savedAt,
-        Long jobId,
+        UUID jobId,
         String title,
-        Long companyId,
+        UUID companyId,
         String companyName,
         String location,
         String jobType,

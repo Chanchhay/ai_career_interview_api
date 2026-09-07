@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 /**
  * Trying an AI interview without an account.
@@ -67,7 +68,7 @@ public class PublicGuestInterviewController {
     @PostMapping("/jobs/{jobId}")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<GuestInterviewStartResponse> start(
-            @PathVariable Long jobId,
+            @PathVariable UUID jobId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken,
             HttpServletRequest request
     ) {
@@ -76,7 +77,7 @@ public class PublicGuestInterviewController {
 
     @GetMapping("/{sessionId}")
     public ApiResponse<AiInterviewSessionResponse> get(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken
     ) {
         return ApiResponse.success(guestInterviewService.get(sessionId, guestToken));
@@ -84,7 +85,7 @@ public class PublicGuestInterviewController {
 
     @PostMapping("/{sessionId}/start")
     public ApiResponse<AiInterviewSessionResponse> begin(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken
     ) {
         return ApiResponse.success(guestInterviewService.begin(sessionId, guestToken));
@@ -92,8 +93,8 @@ public class PublicGuestInterviewController {
 
     @PutMapping("/{sessionId}/questions/{questionId}/answer")
     public ApiResponse<AiInterviewSessionResponse> answer(
-            @PathVariable Long sessionId,
-            @PathVariable Long questionId,
+            @PathVariable UUID sessionId,
+            @PathVariable UUID questionId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken,
             @Valid @RequestBody AiInterviewAnswerRequest request
     ) {
@@ -107,7 +108,7 @@ public class PublicGuestInterviewController {
      */
     @PutMapping("/{sessionId}/vapi-call")
     public ApiResponse<AiInterviewSessionResponse> bindVoiceCall(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken,
             @Valid @RequestBody VapiCallBindingRequest request
     ) {
@@ -123,7 +124,7 @@ public class PublicGuestInterviewController {
      */
     @PostMapping("/{sessionId}/transcript")
     public ApiResponse<AiInterviewSessionResponse> submitVoiceTranscript(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken,
             @Valid @RequestBody VoiceTranscriptRequest request
     ) {
@@ -133,7 +134,7 @@ public class PublicGuestInterviewController {
 
     @PostMapping("/{sessionId}/complete")
     public ApiResponse<AiInterviewResultResponse> complete(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken
     ) {
         return ApiResponse.success(guestInterviewService.complete(sessionId, guestToken));
@@ -141,7 +142,7 @@ public class PublicGuestInterviewController {
 
     @GetMapping("/{sessionId}/result")
     public ApiResponse<AiInterviewResultResponse> result(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @RequestHeader(value = GUEST_TOKEN_HEADER, required = false) String guestToken
     ) {
         return ApiResponse.success(guestInterviewService.result(sessionId, guestToken));

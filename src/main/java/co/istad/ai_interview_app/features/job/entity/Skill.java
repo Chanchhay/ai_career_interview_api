@@ -12,6 +12,11 @@ import lombok.Setter;
 @Table(name = "skills")
 public class Skill extends BaseEntity {
 
+    /** Null for a parent category; subcategories point directly to a parent. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", foreignKey = @ForeignKey(name = "fk_skills_parent"))
+    private Skill parent;
+
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 

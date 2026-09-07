@@ -9,9 +9,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface CurrentUserAdminProfileRepository extends JpaRepository<AdminProfile, Long> {
+public interface CurrentUserAdminProfileRepository extends JpaRepository<AdminProfile, UUID> {
 
     /**
      * Active administrators' user-account ids. Administrators reach every
@@ -24,7 +25,7 @@ public interface CurrentUserAdminProfileRepository extends JpaRepository<AdminPr
             from AdminProfile adminProfile
             where adminProfile.status = :status
             """)
-    List<Long> findUserAccountIdsByStatus(@Param("status") ProfileStatus status);
+    List<UUID> findUserAccountIdsByStatus(@Param("status") ProfileStatus status);
 
-    Optional<AdminProfile> findByUserAccount_Id(Long userAccountId);
+    Optional<AdminProfile> findByUserAccount_Id(UUID userAccountId);
 }

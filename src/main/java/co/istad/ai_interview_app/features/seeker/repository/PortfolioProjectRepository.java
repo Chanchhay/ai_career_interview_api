@@ -6,13 +6,14 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PortfolioProjectRepository extends JpaRepository<PortfolioProject, Long> {
+public interface PortfolioProjectRepository extends JpaRepository<PortfolioProject, UUID> {
 
-    Optional<PortfolioProject> findByIdAndPortfolio_Id(Long id, Long portfolioId);
+    Optional<PortfolioProject> findByIdAndPortfolio_Id(UUID id, UUID portfolioId);
 
-    List<PortfolioProject> findAllByPortfolio_IdOrderByDisplayOrderAscCreatedAtDesc(Long portfolioId);
+    List<PortfolioProject> findAllByPortfolio_IdOrderByDisplayOrderAscCreatedAtDesc(UUID portfolioId);
 
-    void deleteAllByPortfolio_Id(Long portfolioId);
+    void deleteAllByPortfolio_Id(UUID portfolioId);
 }

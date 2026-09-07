@@ -9,9 +9,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ModeratorProfileRepository extends JpaRepository<ModeratorProfile, Long> {
+public interface ModeratorProfileRepository extends JpaRepository<ModeratorProfile, UUID> {
 
     Optional<ModeratorProfile> findByUserAccount_KeycloakUserId(String keycloakUserId);
 
@@ -26,5 +27,5 @@ public interface ModeratorProfileRepository extends JpaRepository<ModeratorProfi
             from ModeratorProfile moderatorProfile
             where moderatorProfile.status = :status
             """)
-    List<Long> findUserAccountIdsByStatus(@Param("status") ProfileStatus status);
+    List<UUID> findUserAccountIdsByStatus(@Param("status") ProfileStatus status);
 }

@@ -11,33 +11,34 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface InvoiceService {
 
     /* Finance. */
 
-    Page<CommissionRecordResponse> findCommissions(Long companyId, PaymentStatus status, Pageable pageable);
+    Page<CommissionRecordResponse> findCommissions(UUID companyId, PaymentStatus status, Pageable pageable);
 
-    List<CommissionRecordResponse> findUnbilledCommissions(Long companyId);
+    List<CommissionRecordResponse> findUnbilledCommissions(UUID companyId);
 
     /** Every company with something billable, newest debt last. */
     List<BillableCompanyResponse> findBillableCompanies();
 
-    Page<InvoiceResponse> findInvoices(Long companyId, InvoiceStatus status, Pageable pageable);
+    Page<InvoiceResponse> findInvoices(UUID companyId, InvoiceStatus status, Pageable pageable);
 
-    InvoiceResponse getInvoice(Long invoiceId);
+    InvoiceResponse getInvoice(UUID invoiceId);
 
     InvoiceResponse createInvoice(CreateInvoiceRequest request);
 
-    InvoiceResponse issueInvoice(Long invoiceId);
+    InvoiceResponse issueInvoice(UUID invoiceId);
 
-    InvoiceResponse cancelInvoice(Long invoiceId);
+    InvoiceResponse cancelInvoice(UUID invoiceId);
 
-    InvoiceResponse recordPayment(Long invoiceId, RecordPaymentRequest request);
+    InvoiceResponse recordPayment(UUID invoiceId, RecordPaymentRequest request);
 
     /* Recruiter, read-only and scoped to their own company. */
 
     Page<InvoiceResponse> findMyCompanyInvoices(Pageable pageable);
 
-    InvoiceResponse getMyCompanyInvoice(Long invoiceId);
+    InvoiceResponse getMyCompanyInvoice(UUID invoiceId);
 }

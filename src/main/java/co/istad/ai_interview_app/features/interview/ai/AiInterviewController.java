@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/job-seeker")
@@ -28,14 +29,14 @@ public class AiInterviewController {
 
     @PostMapping("/jobs/{jobId}/ai-interviews")
     public ApiResponse<AiInterviewSessionResponse> createInterviewForJob(
-            @PathVariable Long jobId
+            @PathVariable UUID jobId
     ) {
         return ApiResponse.success(aiInterviewService.createInterviewForJob(jobId));
     }
 
     @PostMapping("/applications/{applicationId}/ai-interviews")
     public ApiResponse<AiInterviewSessionResponse> createInterviewForApplication(
-            @PathVariable Long applicationId
+            @PathVariable UUID applicationId
     ) {
         return ApiResponse.success(aiInterviewService.createInterviewForApplication(applicationId));
     }
@@ -47,22 +48,22 @@ public class AiInterviewController {
 
     @GetMapping("/ai-interviews/{sessionId}")
     public ApiResponse<AiInterviewSessionResponse> getMyInterview(
-            @PathVariable Long sessionId
+            @PathVariable UUID sessionId
     ) {
         return ApiResponse.success(aiInterviewService.getMyInterview(sessionId));
     }
 
     @PostMapping("/ai-interviews/{sessionId}/start")
     public ApiResponse<AiInterviewSessionResponse> startInterview(
-            @PathVariable Long sessionId
+            @PathVariable UUID sessionId
     ) {
         return ApiResponse.success(aiInterviewService.startInterview(sessionId));
     }
 
     @PutMapping("/ai-interviews/{sessionId}/questions/{questionId}/answer")
     public ApiResponse<AiInterviewSessionResponse> submitAnswer(
-            @PathVariable Long sessionId,
-            @PathVariable Long questionId,
+            @PathVariable UUID sessionId,
+            @PathVariable UUID questionId,
             @Valid @RequestBody AiInterviewAnswerRequest request
     ) {
         return ApiResponse.success(aiInterviewService.submitAnswer(sessionId, questionId, request));
@@ -71,7 +72,7 @@ public class AiInterviewController {
     /** Attaches the Vapi call that is voicing this interview, so its webhook can find the session. */
     @PutMapping("/ai-interviews/{sessionId}/vapi-call")
     public ApiResponse<AiInterviewSessionResponse> bindVapiCall(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @Valid @RequestBody VapiCallBindingRequest request
     ) {
         return ApiResponse.success(aiInterviewService.bindVapiCall(sessionId, request));
@@ -86,7 +87,7 @@ public class AiInterviewController {
      */
     @PostMapping("/ai-interviews/{sessionId}/transcript")
     public ApiResponse<AiInterviewSessionResponse> submitVoiceTranscript(
-            @PathVariable Long sessionId,
+            @PathVariable UUID sessionId,
             @Valid @RequestBody VoiceTranscriptRequest request
     ) {
         return ApiResponse.success(aiInterviewService.submitVoiceTranscript(sessionId, request));
@@ -94,14 +95,14 @@ public class AiInterviewController {
 
     @PostMapping("/ai-interviews/{sessionId}/complete")
     public ApiResponse<AiInterviewResultResponse> completeInterview(
-            @PathVariable Long sessionId
+            @PathVariable UUID sessionId
     ) {
         return ApiResponse.success(aiInterviewService.completeInterview(sessionId));
     }
 
     @GetMapping("/ai-interviews/{sessionId}/result")
     public ApiResponse<AiInterviewResultResponse> getResult(
-            @PathVariable Long sessionId
+            @PathVariable UUID sessionId
     ) {
         return ApiResponse.success(aiInterviewService.getResult(sessionId));
     }

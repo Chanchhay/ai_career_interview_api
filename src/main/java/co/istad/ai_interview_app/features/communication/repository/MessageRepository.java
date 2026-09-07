@@ -11,13 +11,14 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface MessageRepository extends JpaRepository<Message, Long> {
+public interface MessageRepository extends JpaRepository<Message, UUID> {
 
-    Page<Message> findAllByConversation_IdOrderBySentAtDesc(Long conversationId, Pageable pageable);
+    Page<Message> findAllByConversation_IdOrderBySentAtDesc(UUID conversationId, Pageable pageable);
 
-    Optional<Message> findByIdAndConversation_Id(Long id, Long conversationId);
+    Optional<Message> findByIdAndConversation_Id(UUID id, UUID conversationId);
 
     /**
      * The newest message in each of the given threads, as one query rather than
@@ -37,7 +38,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
               )
             """)
     List<Message> findLatestPerConversation(
-            @Param("conversationIds") Collection<Long> conversationIds
+            @Param("conversationIds") Collection<UUID> conversationIds
     );
 
     /**
@@ -62,7 +63,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             group by message.conversation.id
             """)
     List<Object[]> countUnreadPerConversation(
-            @Param("userAccountId") Long userAccountId,
-            @Param("conversationIds") Collection<Long> conversationIds
+            @Param("userAccountId") UUID userAccountId,
+            @Param("conversationIds") Collection<UUID> conversationIds
     );
 }

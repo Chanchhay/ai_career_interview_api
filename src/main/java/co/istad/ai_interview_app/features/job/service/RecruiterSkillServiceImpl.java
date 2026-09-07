@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
 
@@ -65,7 +66,7 @@ public class RecruiterSkillServiceImpl implements RecruiterSkillService {
             if (name != null) {
                 requestedByKey.putIfAbsent(
                         name.toLowerCase(Locale.ROOT),
-                        new SkillCreateRequest(name, request.skillType())
+                        new SkillCreateRequest(name, request.skillType(), request.parentId())
                 );
             }
         }
@@ -89,6 +90,7 @@ public class RecruiterSkillServiceImpl implements RecruiterSkillService {
         for (Map.Entry<String, SkillCreateRequest> entry : requestedByKey.entrySet()) {
             Skill existing = existingByKey.get(entry.getKey());
             if (existing != null) {
+                requireSubcategory(existing);
                 resolved.add(new ResolvedSkill(skillMapper.toResponse(existing), false));
                 continue;
             }
@@ -98,7 +100,7 @@ public class RecruiterSkillServiceImpl implements RecruiterSkillService {
             }
 
             SkillCreateRequest request = entry.getValue();
-            resolved.add(create(request.name(), request.skillType(), author));
+            resolved.add(create(request.name(), request.skillType(), author, request.parentId()));
         }
 
         return List.copyOf(resolved);
@@ -107,18 +109,31 @@ public class RecruiterSkillServiceImpl implements RecruiterSkillService {
     private ResolvedSkill create(
             String name,
             String skillType,
-            RecruiterProfile author
+            RecruiterProfile author,
+            UUID parentId
     ) {
         try {
-            Skill created = skillCreator.create(name, normalizeType(skillType), author);
+            Skill created = parentId == null
+                    ? skillCreator.create(name, normalizeType(skillType), author)
+                    : skillCreator.create(name, normalizeType(skillType), author, parentId);
             return new ResolvedSkill(skillMapper.toResponse(created), true);
         } catch (DataIntegrityViolationException e) {
             // Another recruiter named the same new skill first. The insert ran
             // in its own transaction, so this one is still usable and can read
             // back the row that won.
             return skillRepository.findFirstByNameIgnoreCase(name)
-                    .map(skill -> new ResolvedSkill(skillMapper.toResponse(skill), false))
+                    .map(skill -> {
+                        requireSubcategory(skill);
+                        return new ResolvedSkill(skillMapper.toResponse(skill), false);
+                    })
                     .orElseThrow(() -> e);
+        }
+    }
+
+    private void requireSubcategory(Skill skill) {
+        if (skill.getParent() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "This name belongs to a parent category. Choose a skill subcategory instead.");
         }
     }
 

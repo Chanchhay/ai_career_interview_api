@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.UUID;
 
 /**
  * Reading and replying, for whoever is in the thread.
@@ -50,7 +51,7 @@ public class ConversationController {
 
     @GetMapping("/{conversationId}")
     public ApiResponse<ConversationResponse> getConversation(
-            @PathVariable Long conversationId
+            @PathVariable UUID conversationId
     ) {
         return ApiResponse.success(conversationService.getConversation(conversationId));
     }
@@ -58,7 +59,7 @@ public class ConversationController {
     /** Newest first, so opening a thread costs one page rather than its whole history. */
     @GetMapping("/{conversationId}/messages")
     public ApiResponse<Page<MessageResponse>> findMessages(
-            @PathVariable Long conversationId,
+            @PathVariable UUID conversationId,
             @PageableDefault(size = 30) Pageable pageable
     ) {
         validate(pageable);
@@ -68,7 +69,7 @@ public class ConversationController {
     @PostMapping("/{conversationId}/messages")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<MessageResponse> sendMessage(
-            @PathVariable Long conversationId,
+            @PathVariable UUID conversationId,
             @Valid @RequestBody SendMessageRequest request
     ) {
         return ApiResponse.success(conversationService.sendMessage(conversationId, request));
@@ -91,7 +92,7 @@ public class ConversationController {
 
     @PostMapping("/{conversationId}/read")
     public ApiResponse<ConversationResponse> markAsRead(
-            @PathVariable Long conversationId
+            @PathVariable UUID conversationId
     ) {
         return ApiResponse.success(conversationService.markAsRead(conversationId));
     }
@@ -99,8 +100,8 @@ public class ConversationController {
     @DeleteMapping("/{conversationId}/messages/{messageId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteMessage(
-            @PathVariable Long conversationId,
-            @PathVariable Long messageId
+            @PathVariable UUID conversationId,
+            @PathVariable UUID messageId
     ) {
         conversationService.deleteMessage(conversationId, messageId);
     }

@@ -7,9 +7,10 @@ import co.istad.ai_interview_app.shared.enums.visibility.VisibilityStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 public record JobSeekerProfileResponse(
-        Long id,
+        UUID id,
         String avatarUrl,
         String headline,
         String bio,

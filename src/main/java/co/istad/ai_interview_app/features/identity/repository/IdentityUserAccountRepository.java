@@ -10,9 +10,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface IdentityUserAccountRepository extends JpaRepository<UserAccount, Long> {
+public interface IdentityUserAccountRepository extends JpaRepository<UserAccount, UUID> {
 
     Optional<UserAccount> findByKeycloakUserId(String keycloakUserId);
 

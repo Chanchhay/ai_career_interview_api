@@ -11,20 +11,21 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface NotificationRepository extends JpaRepository<Notification, Long> {
+public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
-    Page<Notification> findAllByRecipient_IdOrderByCreatedAtDesc(Long recipientId, Pageable pageable);
+    Page<Notification> findAllByRecipient_IdOrderByCreatedAtDesc(UUID recipientId, Pageable pageable);
 
     Page<Notification> findAllByRecipient_IdAndReadAtIsNullOrderByCreatedAtDesc(
-            Long recipientId,
+            UUID recipientId,
             Pageable pageable
     );
 
-    long countByRecipient_IdAndReadAtIsNull(Long recipientId);
+    long countByRecipient_IdAndReadAtIsNull(UUID recipientId);
 
-    Optional<Notification> findByIdAndRecipient_Id(Long id, Long recipientId);
+    Optional<Notification> findByIdAndRecipient_Id(UUID id, UUID recipientId);
 
     /**
      * Marks everything unread as read in one statement rather than loading the
@@ -40,5 +41,5 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             where notification.recipient.id = :recipientId
               and notification.readAt is null
             """)
-    int markAllAsRead(@Param("recipientId") Long recipientId, @Param("readAt") Instant readAt);
+    int markAllAsRead(@Param("recipientId") UUID recipientId, @Param("readAt") Instant readAt);
 }

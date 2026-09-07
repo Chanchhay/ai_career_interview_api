@@ -67,6 +67,7 @@ import java.util.stream.Stream;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -101,12 +102,12 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     );
 
     @Override
-    public AiInterviewSessionResponse createInterviewForJob(Long jobId) {
+    public AiInterviewSessionResponse createInterviewForJob(UUID jobId) {
         return fillSession(transactionTemplate.execute(status -> createPreparingSession(jobId)));
     }
 
     @Override
-    public AiInterviewSessionResponse createInterviewForApplication(Long applicationId) {
+    public AiInterviewSessionResponse createInterviewForApplication(UUID applicationId) {
         return fillSession(transactionTemplate.execute(status -> createPreparingApplicationSession(applicationId)));
     }
 
@@ -155,20 +156,20 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     @Override
-    public AiInterviewSessionResponse getMyInterview(Long sessionId) {
+    public AiInterviewSessionResponse getMyInterview(UUID sessionId) {
         return transactionTemplate.execute(status -> mapper.toSessionResponse(resolveMySessionWithQuestions(sessionId)));
     }
 
     @Override
-    public AiInterviewSessionResponse startInterview(Long sessionId) {
+    public AiInterviewSessionResponse startInterview(UUID sessionId) {
         return transactionTemplate.execute(status ->
                 startSession(resolveMySessionWithQuestions(sessionId)));
     }
 
     @Override
     public AiInterviewSessionResponse submitAnswer(
-            Long sessionId,
-            Long questionId,
+            UUID sessionId,
+            UUID questionId,
             AiInterviewAnswerRequest request
     ) {
         return transactionTemplate.execute(status -> {
@@ -210,7 +211,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      */
     private void recordAnswer(
             AiInterviewSession session,
-            Long questionId,
+            UUID questionId,
             AiInterviewAnswerRequest request
     ) {
         if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
@@ -245,7 +246,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     @Override
-    public AiInterviewResultResponse completeInterview(Long sessionId) {
+    public AiInterviewResultResponse completeInterview(UUID sessionId) {
         EvaluationContext context = transactionTemplate.execute(status -> prepareEvaluation(sessionId));
         if (context.alreadyCompleted()) {
             return transactionTemplate.execute(status -> mapper.toResultResponse(resolveMySessionWithResult(sessionId)));
@@ -268,7 +269,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     @Override
-    public AiInterviewResultResponse getResult(Long sessionId) {
+    public AiInterviewResultResponse getResult(UUID sessionId) {
         return transactionTemplate.execute(status -> {
             AiInterviewSession session = resolveMySessionWithResult(sessionId);
             if (session.getStatus() != InterviewStatus.COMPLETED) {
@@ -279,7 +280,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     @Override
-    public AiInterviewSessionResponse bindVapiCall(Long sessionId, VapiCallBindingRequest request) {
+    public AiInterviewSessionResponse bindVapiCall(UUID sessionId, VapiCallBindingRequest request) {
         return transactionTemplate.execute(status ->
                 bindCall(resolveMySessionWithQuestions(sessionId), request));
     }
@@ -293,7 +294,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      */
     private AiInterviewSessionResponse bindCall(AiInterviewSession session, VapiCallBindingRequest request) {
         {
-            Long sessionId = session.getId();
+            UUID sessionId = session.getId();
 
             if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
                 throw new ResponseStatusException(
@@ -325,7 +326,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             String transcript,
             List<VapiTranscriptTurn> turns
     ) {
-        Long sessionId = transactionTemplate.execute(status -> {
+        UUID sessionId = transactionTemplate.execute(status -> {
             Optional<AiInterviewSession> found =
                     sessionRepository.findWithQuestionsByCallSessionId(vapiCallId);
 
@@ -348,7 +349,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewSessionResponse submitVoiceTranscript(
-            Long sessionId,
+            UUID sessionId,
             VoiceTranscriptRequest request
     ) {
         return submitVoiceTranscript(sessionId, request, this::resolveMySessionWithQuestions);
@@ -361,9 +362,9 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * transcript and a guest doing it, so it is the only thing passed in.
      */
     private AiInterviewSessionResponse submitVoiceTranscript(
-            Long sessionId,
+            UUID sessionId,
             VoiceTranscriptRequest request,
-            java.util.function.LongFunction<AiInterviewSession> resolve
+            java.util.function.Function<UUID, AiInterviewSession> resolve
     ) {
         List<VapiTranscriptTurn> turns = request.turns()
                 .stream()
@@ -374,7 +375,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 .filter(turn -> turn.role() != null)
                 .toList();
 
-        Long readySessionId = transactionTemplate.execute(status -> acceptTranscript(
+        UUID readySessionId = transactionTemplate.execute(status -> acceptTranscript(
                 resolve.apply(sessionId),
                 VapiTranscriptTurn.toTranscript(turns),
                 turns
@@ -399,7 +400,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * @return the session id when the interview is ready to be split and scored,
      * or {@code null} when it is not — already scored, or not in progress.
      */
-    private Long acceptTranscript(
+    private UUID acceptTranscript(
             AiInterviewSession session,
             String transcript,
             List<VapiTranscriptTurn> turns
@@ -442,7 +443,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * @param propagateErrors whether a failure should reach the caller, or be
      *                        logged and left for a later attempt
      */
-    private void scoreFromTranscript(Long sessionId, boolean propagateErrors) {
+    private void scoreFromTranscript(UUID sessionId, boolean propagateErrors) {
         try {
             TranscriptSegmentationRequest segmentationRequest = transactionTemplate.execute(status ->
                     buildSegmentationRequest(sessionId));
@@ -486,7 +487,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         }
     }
 
-    private TranscriptSegmentationRequest buildSegmentationRequest(Long sessionId) {
+    private TranscriptSegmentationRequest buildSegmentationRequest(UUID sessionId) {
         AiInterviewSession session = requireSession(sessionId);
 
         List<TranscriptSegmentationRequest.TranscriptQuestion> questions = session.getQuestions()
@@ -507,12 +508,12 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * empty when the interview is complete enough to score
      */
     private List<Integer> applySegmentedAnswers(
-            Long sessionId,
+            UUID sessionId,
             TranscriptSegmentationResult segmentation
     ) {
         AiInterviewSession session = requireSession(sessionId);
 
-        Map<Long, String> answersByQuestionId = segmentation.answers()
+        Map<UUID, String> answersByQuestionId = segmentation.answers()
                 .stream()
                 .filter(answer -> !Boolean.FALSE.equals(answer.answered()))
                 .filter(answer -> normalizeBlankToNull(answer.answerText()) != null)
@@ -565,7 +566,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 .toList();
     }
 
-    private AiInterviewSession requireSession(Long sessionId) {
+    private AiInterviewSession requireSession(UUID sessionId) {
         return sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -573,7 +574,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 ));
     }
 
-    private AiInterviewSession requireSessionWithResult(Long sessionId) {
+    private AiInterviewSession requireSessionWithResult(UUID sessionId) {
         return sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -581,7 +582,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 ));
     }
 
-    private GenerationContext createPreparingSession(Long jobId) {
+    private GenerationContext createPreparingSession(UUID jobId) {
         JobSeekerProfile jobSeekerProfile = resolveMyJobSeekerProfile();
         JobPost jobPost = jobPostRepository.findByIdAndStatus(jobId, JobStatus.PUBLISHED)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Published job was not found"));
@@ -622,7 +623,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         );
     }
 
-    private GenerationContext createPreparingApplicationSession(Long applicationId) {
+    private GenerationContext createPreparingApplicationSession(UUID applicationId) {
         JobApplication application = applicationRepository
                 .findByIdAndJobSeekerProfile_UserAccount_KeycloakUserId(applicationId, AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -705,7 +706,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * doubt. It is validated where it is generated.
      */
     private AiInterviewSessionResponse persistQuestions(
-            Long sessionId,
+            UUID sessionId,
             List<GeneratedQuestion> questions
     ) {
         AiInterviewSession session = sessionRepository.findById(sessionId)
@@ -729,7 +730,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         return mapper.toSessionResponse(session);
     }
 
-    private EvaluationContext prepareEvaluation(Long sessionId) {
+    private EvaluationContext prepareEvaluation(UUID sessionId) {
         return prepareEvaluation(resolveMySessionWithQuestions(sessionId));
     }
 
@@ -772,7 +773,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     private AiInterviewResultResponse persistEvaluation(
-            Long sessionId,
+            UUID sessionId,
             InterviewEvaluationResult evaluation
     ) {
         return persistEvaluation(resolveMySessionWithResult(sessionId), evaluation);
@@ -788,7 +789,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
         validateEvaluation(session, evaluation);
 
-        Map<Long, EvaluatedAnswer> evaluatedAnswersByQuestionId = evaluation.answers()
+        Map<UUID, EvaluatedAnswer> evaluatedAnswersByQuestionId = evaluation.answers()
                 .stream()
                 .collect(Collectors.toMap(EvaluatedAnswer::questionId, Function.identity()));
 
@@ -886,7 +887,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 ));
     }
 
-    private AiInterviewSession resolveMySessionWithQuestions(Long sessionId) {
+    private AiInterviewSession resolveMySessionWithQuestions(UUID sessionId) {
         return sessionRepository.findWithQuestionsByIdAndJobSeeker_KeycloakUserId(sessionId, AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -894,7 +895,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 ));
     }
 
-    private AiInterviewSession resolveMySessionWithResult(Long sessionId) {
+    private AiInterviewSession resolveMySessionWithResult(UUID sessionId) {
         return sessionRepository.findWithResultByIdAndJobSeeker_KeycloakUserId(sessionId, AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -902,7 +903,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 ));
     }
 
-    private void markSessionFailed(Long sessionId) {
+    private void markSessionFailed(UUID sessionId) {
         sessionRepository.findById(sessionId).ifPresent(session -> {
             session.setStatus(InterviewStatus.FAILED);
             if (session.getApplication() != null) {
@@ -954,12 +955,12 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         validateScore(evaluation.problemSolvingScore());
         validateScore(evaluation.overallScore());
 
-        Set<Long> questionIds = session.getQuestions()
+        Set<UUID> questionIds = session.getQuestions()
                 .stream()
                 .map(AiInterviewQuestion::getId)
                 .collect(Collectors.toSet());
 
-        Set<Long> evaluatedQuestionIds = new HashSet<>();
+        Set<UUID> evaluatedQuestionIds = new HashSet<>();
         for (EvaluatedAnswer answer : evaluation.answers()) {
             if (answer == null
                     || answer.questionId() == null
@@ -990,7 +991,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * administrator saving new questions mid-generation.
      */
     private record GenerationContext(
-            Long sessionId,
+            UUID sessionId,
             String jobTitle,
             String jobDescription,
             String experienceLevel,
@@ -1010,7 +1011,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewSessionResponse createGuestInterview(
-            Long jobId,
+            UUID jobId,
             String guestToken,
             String guestIpHash,
             ManualQuestionMode modeOverride
@@ -1028,7 +1029,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * must not be able to interview against a draft by guessing its id.
      */
     private GenerationContext createPreparingGuestSession(
-            Long jobId,
+            UUID jobId,
             String guestToken,
             String guestIpHash,
             ManualQuestionMode modeOverride
@@ -1062,21 +1063,21 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     @Override
-    public AiInterviewSessionResponse getGuestInterview(Long sessionId, String guestToken) {
+    public AiInterviewSessionResponse getGuestInterview(UUID sessionId, String guestToken) {
         return transactionTemplate.execute(status ->
                 mapper.toSessionResponse(resolveGuestSession(sessionId, guestToken)));
     }
 
     @Override
-    public AiInterviewSessionResponse startGuestInterview(Long sessionId, String guestToken) {
+    public AiInterviewSessionResponse startGuestInterview(UUID sessionId, String guestToken) {
         return transactionTemplate.execute(status ->
                 startSession(resolveGuestSession(sessionId, guestToken)));
     }
 
     @Override
     public AiInterviewSessionResponse submitGuestAnswer(
-            Long sessionId,
-            Long questionId,
+            UUID sessionId,
+            UUID questionId,
             String guestToken,
             AiInterviewAnswerRequest request
     ) {
@@ -1089,7 +1090,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     @Override
-    public AiInterviewResultResponse completeGuestInterview(Long sessionId, String guestToken) {
+    public AiInterviewResultResponse completeGuestInterview(UUID sessionId, String guestToken) {
         EvaluationContext context = transactionTemplate.execute(status ->
                 prepareEvaluation(resolveGuestSession(sessionId, guestToken)));
 
@@ -1113,7 +1114,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewSessionResponse bindGuestVapiCall(
-            Long sessionId,
+            UUID sessionId,
             String guestToken,
             VapiCallBindingRequest request
     ) {
@@ -1123,7 +1124,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewSessionResponse submitGuestVoiceTranscript(
-            Long sessionId,
+            UUID sessionId,
             String guestToken,
             VoiceTranscriptRequest request
     ) {
@@ -1131,7 +1132,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     }
 
     @Override
-    public AiInterviewResultResponse getGuestResult(Long sessionId, String guestToken) {
+    public AiInterviewResultResponse getGuestResult(UUID sessionId, String guestToken) {
         return transactionTemplate.execute(status ->
                 mapper.toResultResponse(resolveGuestSessionWithResult(sessionId, guestToken)));
     }
@@ -1143,7 +1144,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * exist.
      */
 
-    private AiInterviewSession resolveGuestSession(Long sessionId, String guestToken) {
+    private AiInterviewSession resolveGuestSession(UUID sessionId, String guestToken) {
         if (guestToken == null || guestToken.isBlank()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest interview was not found");
         }
@@ -1155,7 +1156,7 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                 ));
     }
 
-    private AiInterviewSession resolveGuestSessionWithResult(Long sessionId, String guestToken) {
+    private AiInterviewSession resolveGuestSessionWithResult(UUID sessionId, String guestToken) {
         if (guestToken == null || guestToken.isBlank()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Guest interview was not found");
         }

@@ -7,11 +7,12 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface ResumeTemplateRepository extends JpaRepository<ResumeTemplate, Long> {
+public interface ResumeTemplateRepository extends JpaRepository<ResumeTemplate, UUID> {
 
     List<ResumeTemplate> findAllByStatusOrderByNameAsc(ProfileStatus status);
 
-    Optional<ResumeTemplate> findByIdAndStatus(Long id, ProfileStatus status);
+    Optional<ResumeTemplate> findByIdAndStatus(UUID id, ProfileStatus status);
 }

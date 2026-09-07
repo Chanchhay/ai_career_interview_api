@@ -1,6 +1,7 @@
 package co.istad.ai_interview_app.features.seeker.dto;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * A layout a job seeker can build a resume in.
@@ -10,7 +11,7 @@ import java.util.Map;
  * database row, which is what an administrator toggles.
  */
 public record PublicResumeTemplateResponse(
-        Long id,
+        UUID id,
         String templateKey,
         String name,
         String description,

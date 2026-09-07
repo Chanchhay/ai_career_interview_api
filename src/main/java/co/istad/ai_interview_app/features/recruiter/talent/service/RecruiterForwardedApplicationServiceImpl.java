@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +46,7 @@ public class RecruiterForwardedApplicationServiceImpl implements RecruiterForwar
 
     @Override
     @Transactional(readOnly = true)
-    public ForwardedApplicationResponse getForwardedApplication(Long applicationId) {
+    public ForwardedApplicationResponse getForwardedApplication(UUID applicationId) {
         CandidateApplicationReview review = reviewRepository
                 .findByApplication_IdAndReviewStatusAndApplication_JobPost_RecruiterProfile_UserAccount_KeycloakUserId(
                         applicationId,

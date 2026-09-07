@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * The resume template catalog, readable signed out.
@@ -31,7 +32,7 @@ public class PublicResumeTemplateController {
 
     @GetMapping("/{templateId}")
     public ApiResponse<PublicResumeTemplateResponse> getTemplate(
-            @PathVariable Long templateId
+            @PathVariable UUID templateId
     ) {
         return ApiResponse.success(publicResumeTemplateService.getTemplate(templateId));
     }

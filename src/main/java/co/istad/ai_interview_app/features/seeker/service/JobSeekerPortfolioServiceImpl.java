@@ -24,6 +24,7 @@ import java.util.List;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.hasText;
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -64,14 +65,14 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
 
     @Override
     @Transactional(readOnly = true)
-    public PortfolioResponse getMyPortfolio(Long portfolioId) {
+    public PortfolioResponse getMyPortfolio(UUID portfolioId) {
         JobSeekerProfile profile = profileResolver.resolve();
         return toResponse(resolveOwnedPortfolio(portfolioId, profile.getId()));
     }
 
     @Override
     @Transactional
-    public PortfolioResponse updatePortfolio(Long portfolioId, PortfolioUpdateRequest request) {
+    public PortfolioResponse updatePortfolio(UUID portfolioId, PortfolioUpdateRequest request) {
         JobSeekerProfile profile = profileResolver.resolve();
         Portfolio portfolio = resolveOwnedPortfolio(portfolioId, profile.getId());
 
@@ -93,7 +94,7 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
 
     @Override
     @Transactional
-    public void deletePortfolio(Long portfolioId) {
+    public void deletePortfolio(UUID portfolioId) {
         JobSeekerProfile profile = profileResolver.resolve();
         Portfolio portfolio = resolveOwnedPortfolio(portfolioId, profile.getId());
 
@@ -103,7 +104,7 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
 
     @Override
     @Transactional
-    public PortfolioProjectResponse createProject(Long portfolioId, PortfolioProjectRequest request) {
+    public PortfolioProjectResponse createProject(UUID portfolioId, PortfolioProjectRequest request) {
         JobSeekerProfile profile = profileResolver.resolve();
         Portfolio portfolio = resolveOwnedPortfolio(portfolioId, profile.getId());
 
@@ -122,7 +123,7 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
 
     @Override
     @Transactional
-    public PortfolioProjectResponse updateProject(Long portfolioId, Long projectId, PortfolioProjectUpdateRequest request) {
+    public PortfolioProjectResponse updateProject(UUID portfolioId, UUID projectId, PortfolioProjectUpdateRequest request) {
         JobSeekerProfile profile = profileResolver.resolve();
         Portfolio portfolio = resolveOwnedPortfolio(portfolioId, profile.getId());
         PortfolioProject project = resolveProject(projectId, portfolio.getId());
@@ -154,7 +155,7 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
 
     @Override
     @Transactional
-    public void deleteProject(Long portfolioId, Long projectId) {
+    public void deleteProject(UUID portfolioId, UUID projectId) {
         JobSeekerProfile profile = profileResolver.resolve();
         Portfolio portfolio = resolveOwnedPortfolio(portfolioId, profile.getId());
         PortfolioProject project = resolveProject(projectId, portfolio.getId());
@@ -167,7 +168,7 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
         return portfolioMapper.toResponse(portfolio, projects);
     }
 
-    private Portfolio resolveOwnedPortfolio(Long portfolioId, Long profileId) {
+    private Portfolio resolveOwnedPortfolio(UUID portfolioId, UUID profileId) {
         return portfolioRepository.findByIdAndJobSeekerProfile_Id(portfolioId, profileId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -175,7 +176,7 @@ public class JobSeekerPortfolioServiceImpl implements JobSeekerPortfolioService 
                 ));
     }
 
-    private PortfolioProject resolveProject(Long projectId, Long portfolioId) {
+    private PortfolioProject resolveProject(UUID projectId, UUID portfolioId) {
         return projectRepository.findByIdAndPortfolio_Id(projectId, portfolioId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,

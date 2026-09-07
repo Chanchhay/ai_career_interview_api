@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/job-seeker")
@@ -24,7 +25,7 @@ public class JobSeekerApplicationController {
 
     @PostMapping("/jobs/{jobId}/applications")
     public ApiResponse<JobApplicationResponse> apply(
-            @PathVariable Long jobId,
+            @PathVariable UUID jobId,
             @Valid @RequestBody JobApplicationCreateRequest request
     ) {
         return ApiResponse.success(applicationService.apply(jobId, request));
@@ -37,14 +38,14 @@ public class JobSeekerApplicationController {
 
     @GetMapping("/applications/{applicationId}")
     public ApiResponse<JobApplicationResponse> getMyApplication(
-            @PathVariable Long applicationId
+            @PathVariable UUID applicationId
     ) {
         return ApiResponse.success(applicationService.getMyApplication(applicationId));
     }
 
     @PostMapping("/applications/{applicationId}/withdraw")
     public ApiResponse<JobApplicationResponse> withdraw(
-            @PathVariable Long applicationId
+            @PathVariable UUID applicationId
     ) {
         return ApiResponse.success(applicationService.withdraw(applicationId));
     }

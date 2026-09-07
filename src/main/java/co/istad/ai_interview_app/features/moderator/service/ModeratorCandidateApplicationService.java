@@ -10,24 +10,25 @@ import co.istad.ai_interview_app.features.moderator.dto.HumanInterviewResponse;
 import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.util.UUID;
 
 public interface ModeratorCandidateApplicationService {
 
     Page<CandidateApplicationListItemResponse> getReviewQueue(CandidateApplicationReviewStatus status, Pageable pageable);
 
-    CandidateApplicationDetailResponse getReviewDetail(Long applicationId);
+    CandidateApplicationDetailResponse getReviewDetail(UUID applicationId);
 
-    HumanInterviewResponse scheduleHumanInterview(Long applicationId, HumanInterviewRequest request);
+    HumanInterviewResponse scheduleHumanInterview(UUID applicationId, HumanInterviewRequest request);
 
-    HumanInterviewResponse rescheduleHumanInterview(Long interviewId, HumanInterviewRequest request);
+    HumanInterviewResponse rescheduleHumanInterview(UUID interviewId, HumanInterviewRequest request);
 
-    HumanInterviewResponse completeHumanInterview(Long interviewId, HumanInterviewCompleteRequest request);
+    HumanInterviewResponse completeHumanInterview(UUID interviewId, HumanInterviewCompleteRequest request);
 
-    HumanInterviewResponse cancelHumanInterview(Long interviewId);
+    HumanInterviewResponse cancelHumanInterview(UUID interviewId);
 
-    CandidateApplicationReviewResponse approve(Long applicationId, DecisionRequest request);
+    CandidateApplicationReviewResponse approve(UUID applicationId, DecisionRequest request);
 
-    CandidateApplicationReviewResponse reject(Long applicationId, DecisionRequest request);
+    CandidateApplicationReviewResponse reject(UUID applicationId, DecisionRequest request);
 
-    CandidateApplicationReviewResponse forward(Long applicationId);
+    CandidateApplicationReviewResponse forward(UUID applicationId);
 }

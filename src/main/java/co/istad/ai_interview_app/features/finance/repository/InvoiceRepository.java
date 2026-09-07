@@ -12,22 +12,36 @@ import org.springframework.stereotype.Repository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
+public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
+
+    /**
+     * Next value of the invoice-number sequence.
+     *
+     * <p>The number used to be derived from the row's own id, which only worked
+     * while that id was a sequential bigint. A UUID carries no such counter, so
+     * the sequence became its own object — and it can now be read before the
+     * insert rather than patched in afterwards.
+     */
+    @Query(value = "select nextval('invoice_no_seq')", nativeQuery = true)
+    long nextInvoiceNumber();
 
     Page<Invoice> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     Page<Invoice> findAllByStatusOrderByCreatedAtDesc(InvoiceStatus status, Pageable pageable);
 
-    Page<Invoice> findAllByCompany_IdOrderByCreatedAtDesc(Long companyId, Pageable pageable);
+    Page<Invoice> findAllByCompany_IdOrderByCreatedAtDesc(UUID companyId, Pageable pageable);
+
+    Page<Invoice> findAllByCompany_IdAndStatusOrderByCreatedAtDesc(UUID companyId, InvoiceStatus status, Pageable pageable);
 
     /**
      * Recruiters read invoices through their own company, never by id alone —
      * pairing the two in the query is what stops one company reading another's
      * bill by guessing.
      */
-    Optional<Invoice> findByIdAndCompany_Id(Long id, Long companyId);
+    Optional<Invoice> findByIdAndCompany_Id(UUID id, UUID companyId);
 
     /**
      * Issued or part-paid invoices whose due date has passed.

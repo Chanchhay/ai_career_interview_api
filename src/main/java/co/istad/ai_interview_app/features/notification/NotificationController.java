@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.util.UUID;
 
 /**
  * A signed-in account's own notifications. Not role-scoped: recruiters,
@@ -60,9 +61,9 @@ public class NotificationController {
         return ApiResponse.success(notificationService.unreadCount());
     }
 
-    @PostMapping("/{notificationId}/read")
+    @PostMapping("/{notificationId:[0-9a-fA-F\\-]{36}}/read")
     public ApiResponse<NotificationResponse> markAsRead(
-            @PathVariable Long notificationId
+            @PathVariable UUID notificationId
     ) {
         return ApiResponse.success(notificationService.markAsRead(notificationId));
     }
@@ -72,10 +73,10 @@ public class NotificationController {
         return ApiResponse.success(notificationService.markAllAsRead());
     }
 
-    @DeleteMapping("/{notificationId}")
+    @DeleteMapping("/{notificationId:[0-9a-fA-F\\-]{36}}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(
-            @PathVariable Long notificationId
+            @PathVariable UUID notificationId
     ) {
         notificationService.delete(notificationId);
     }
@@ -94,7 +95,7 @@ public class NotificationController {
      */
     @GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream() {
-        Long userAccountId = userAccountRepository
+        UUID userAccountId = userAccountRepository
                 .findByKeycloakUserId(AuthUtils.extractUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,

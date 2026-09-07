@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Builds skill responses, naming the recruiter behind any skill that did not
@@ -29,7 +30,7 @@ public class SkillMapper {
     private final CompanyRepository companyRepository;
 
     public SkillResponse toResponse(Skill skill) {
-        Long recruiterProfileId = authorId(skill);
+        UUID recruiterProfileId = authorId(skill);
 
         String companyName = recruiterProfileId == null
                 ? null
@@ -48,15 +49,15 @@ public class SkillMapper {
      * per skill, since the admin list is the main caller.
      */
     public List<SkillResponse> toResponses(List<Skill> skills) {
-        Set<Long> recruiterProfileIds = new HashSet<>();
+        Set<UUID> recruiterProfileIds = new HashSet<>();
         for (Skill skill : skills) {
-            Long recruiterProfileId = authorId(skill);
+            UUID recruiterProfileId = authorId(skill);
             if (recruiterProfileId != null) {
                 recruiterProfileIds.add(recruiterProfileId);
             }
         }
 
-        Map<Long, String> companyNamesByProfileId = new HashMap<>();
+        Map<UUID, String> companyNamesByProfileId = new HashMap<>();
         if (!recruiterProfileIds.isEmpty()) {
             for (Company company : companyRepository.findAllByRecruiterProfile_IdIn(recruiterProfileIds)) {
                 companyNamesByProfileId.putIfAbsent(
@@ -68,7 +69,7 @@ public class SkillMapper {
 
         return skills.stream()
                 .map(skill -> {
-                    Long recruiterProfileId = authorId(skill);
+                    UUID recruiterProfileId = authorId(skill);
                     return toResponse(
                             skill,
                             recruiterProfileId,
@@ -80,7 +81,7 @@ public class SkillMapper {
                 .toList();
     }
 
-    private Long authorId(Skill skill) {
+    private UUID authorId(Skill skill) {
         RecruiterProfile author = skill.getCreatedByRecruiterProfile();
 
         return author == null ? null : author.getId();
@@ -88,7 +89,7 @@ public class SkillMapper {
 
     private SkillResponse toResponse(
             Skill skill,
-            Long recruiterProfileId,
+            UUID recruiterProfileId,
             String companyName
     ) {
         return new SkillResponse(
@@ -98,7 +99,9 @@ public class SkillMapper {
                 recruiterProfileId,
                 companyName,
                 skill.getCreatedAt(),
-                skill.getUpdatedAt()
+                skill.getUpdatedAt(),
+                skill.getParent() == null ? null : skill.getParent().getId(),
+                skill.getParent() == null ? null : skill.getParent().getName()
         );
     }
 }
