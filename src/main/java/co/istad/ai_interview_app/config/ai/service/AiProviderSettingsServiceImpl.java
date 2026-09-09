@@ -199,18 +199,23 @@ public class AiProviderSettingsServiceImpl implements AiProviderSettingsService 
 
         long startedAt = System.nanoTime();
         try {
-            String reply = chatClientFactory
+            AiConnectionProbe reply = chatClientFactory
                     .clientFor(apiKey, model, settings)
                     .prompt()
-                    .user("Reply with the single word: ready")
+                    .user("Return status as ready.")
                     .call()
-                    .content();
+                    .entity(
+                            AiConnectionProbe.class,
+                            specification -> specification
+                                    .useProviderStructuredOutput()
+                                    .validateSchema()
+                    );
 
             long millis = (System.nanoTime() - startedAt) / 1_000_000;
 
             return new AiConnectionTestResponse(
                     true, model, keySource, millis,
-                    "The provider answered: " + normalizeBlankToNull(reply)
+                    "The provider answered: " + normalizeBlankToNull(reply.status())
             );
         } catch (Exception ex) {
             long millis = (System.nanoTime() - startedAt) / 1_000_000;
@@ -562,5 +567,8 @@ public class AiProviderSettingsServiceImpl implements AiProviderSettingsService 
 
         String message = normalizeBlankToNull(current.getMessage());
         return message == null ? current.getClass().getSimpleName() : message;
+    }
+
+    private record AiConnectionProbe(String status) {
     }
 }
