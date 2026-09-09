@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.interview.ai.service;
 
+import co.istad.ai_interview_app.config.ai.AiCalls;
 import co.istad.ai_interview_app.config.ai.AiChatClientFactory;
 import co.istad.ai_interview_app.shared.enums.admin.AiTask;
 import co.istad.ai_interview_app.features.interview.ai.dto.AiInterviewGenerationConfig;
@@ -45,7 +46,7 @@ public class AiInterviewQuestionGeneratorImpl
             List<String> requiredSkills,
             AiInterviewGenerationConfig config
     ) {
-        GeneratedQuestionSet result = chatClients.forTask(AiTask.QUESTION_GENERATION)
+        GeneratedQuestionSet result = AiCalls.timed(AiTask.QUESTION_GENERATION, () -> chatClients.forTask(AiTask.QUESTION_GENERATION)
                 .prompt()
                 .system(buildSystemPrompt(config))
                 .user(user -> user
@@ -74,7 +75,7 @@ public class AiInterviewQuestionGeneratorImpl
                         specification -> specification
                                 .useProviderStructuredOutput()
                                 .validateSchema()
-                );
+                ));
 
         validate(result, config);
 
