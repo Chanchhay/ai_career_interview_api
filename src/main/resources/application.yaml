@@ -55,10 +55,13 @@ spring:
       # instead of quietly issuing DDL of its own and failing halfway through
       # against real data.
       ddl-auto: ${DDL_AUTO:update}
-    show-sql: true
+    # Off by default: logging and pretty-printing every statement costs real
+    # time on request paths that touch many rows, and buries the AI timings that
+    # are worth reading. SHOW_SQL=true brings it back when debugging a query.
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${SHOW_SQL:false}
   flyway:
     # An existing database that predates Flyway is stamped as version 1 rather
     # than being rebuilt, so migrations from V2 on apply to what is already

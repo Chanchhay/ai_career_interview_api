@@ -34,6 +34,8 @@ class SecurityRulesTest {
     private static final String RECRUITER_PATH = "/api/v1/recruiter/profile";
     private static final String IDENTITY_PATH = "/api/v1/me";
     private static final String PUBLIC_PATH = "/api/v1/public/jobs";
+    private static final String PUBLIC_INTERVIEW_QUESTIONS_PATH =
+            "/api/v1/public/jobs/00000000-0000-0000-0000-000000000000/interview-questions";
 
     @Autowired
     private MockMvc mockMvc;
@@ -130,6 +132,21 @@ class SecurityRulesTest {
 
         assertThat(result.getResponse().getStatus())
                 .as("public jobs must be readable while signed out")
+                .isNotIn(HttpStatus.UNAUTHORIZED.value(), HttpStatus.FORBIDDEN.value());
+    }
+
+    /**
+     * The interview preview is nested a level deeper than the rest of the
+     * board, so it is pinned separately: a 404 for the made-up job id proves
+     * the route reached its handler rather than a security rule.
+     */
+    @Test
+    @DisplayName("A job's interview questions are readable while signed out")
+    void publicInterviewQuestionsAreAnonymous() throws Exception {
+        MvcResult result = mockMvc.perform(get(PUBLIC_INTERVIEW_QUESTIONS_PATH)).andReturn();
+
+        assertThat(result.getResponse().getStatus())
+                .as("interview question previews must be readable while signed out")
                 .isNotIn(HttpStatus.UNAUTHORIZED.value(), HttpStatus.FORBIDDEN.value());
     }
 
