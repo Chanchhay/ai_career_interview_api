@@ -23,7 +23,7 @@ public final class CompanyIdentity {
      * masked company — anything derived from the real name (an initial, an
      * industry-and-size phrase) narrows down who it is.
      */
-    public static final String MASKED_NAME = "Confidential company";
+    public static final String MASKED_NAME = "Partnership";
 
     private CompanyIdentity() {
     }

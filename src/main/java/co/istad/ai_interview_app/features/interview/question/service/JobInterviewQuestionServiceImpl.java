@@ -6,23 +6,32 @@ import co.istad.ai_interview_app.features.interview.question.dto.JobInterviewQue
 import co.istad.ai_interview_app.features.interview.question.dto.JobInterviewQuestionResponse;
 import co.istad.ai_interview_app.features.interview.question.dto.JobInterviewQuestionSetRequest;
 import co.istad.ai_interview_app.features.interview.question.dto.JobInterviewQuestionSetResponse;
+import co.istad.ai_interview_app.features.interview.question.dto.PublicJobInterviewPreviewResponse;
+import co.istad.ai_interview_app.features.interview.question.dto.PublicJobInterviewQuestionResponse;
 import co.istad.ai_interview_app.features.interview.question.entity.JobInterviewQuestion;
 import co.istad.ai_interview_app.features.interview.question.repository.JobInterviewQuestionRepository;
 import co.istad.ai_interview_app.features.job.entity.JobPost;
 import co.istad.ai_interview_app.features.job.repository.JobPostRepository;
 import co.istad.ai_interview_app.shared.enums.interview.InterviewQuestionType;
 import co.istad.ai_interview_app.shared.enums.interview.ManualQuestionMode;
+import co.istad.ai_interview_app.shared.enums.job.JobStatus;
+import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static co.istad.ai_interview_app.shared.util.TextUtils.normalizeBlankToNull;
 import java.util.UUID;
@@ -39,6 +48,13 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class JobInterviewQuestionServiceImpl implements JobInterviewQuestionService {
+
+    /**
+     * Minutes a candidate spends on one question, used only to put a rough
+     * number on the practice page. Two minutes is the AI interview's own pacing
+     * — long enough to answer, short enough that nobody treats it as a promise.
+     */
+    private static final int MINUTES_PER_QUESTION = 2;
 
     private final JobInterviewQuestionRepository questionRepository;
     private final JobPostRepository jobPostRepository;
@@ -111,9 +127,109 @@ public class JobInterviewQuestionServiceImpl implements JobInterviewQuestionServ
         return toResponse(jobPost, saved);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PublicJobInterviewPreviewResponse getPublicPreview(UUID jobId) {
+        JobPost jobPost = requirePublicJob(jobId);
+
+        List<JobInterviewQuestion> written =
+                questionRepository.findAllByJobPost_IdOrderByDisplayOrderAsc(jobId);
+
+        return toPublicPreview(
+                jobPost,
+                written,
+                configService.currentGenerationConfig().questionCount()
+        );
+    }
+
+    /** The one place a public preview is shaped, for one job or for a page. */
+    private PublicJobInterviewPreviewResponse toPublicPreview(
+            JobPost jobPost,
+            List<JobInterviewQuestion> written,
+            int targetCount
+    ) {
+        int questionCount = written.size()
+                + generatedCount(jobPost.getManualQuestionMode(), written.size(), targetCount);
+
+        return new PublicJobInterviewPreviewResponse(
+                jobPost.getId(),
+                jobPost.getTitle(),
+                questionCount,
+                questionCount == 0 ? null : questionCount * MINUTES_PER_QUESTION,
+                written.stream()
+                        .sorted(Comparator.comparing(JobInterviewQuestion::getDisplayOrder))
+                        .map(question -> new PublicJobInterviewQuestionResponse(
+                                question.getId(),
+                                question.getDisplayOrder(),
+                                question.getQuestionType(),
+                                question.getQuestionText(),
+                                question.getMaxScore()
+                        ))
+                        .toList()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PublicJobInterviewPreviewResponse> getPublicPreviews(List<UUID> jobIds) {
+        if (jobIds.isEmpty()) return List.of();
+
+        Map<UUID, JobPost> publicJobs = jobPostRepository.findPublicJobsByIds(
+                        jobIds,
+                        JobStatus.PUBLISHED,
+                        VerificationStatus.APPROVED,
+                        ProfileStatus.ACTIVE,
+                        Instant.now()
+                )
+                .stream()
+                .collect(Collectors.toMap(JobPost::getId, jobPost -> jobPost));
+
+        if (publicJobs.isEmpty()) return List.of();
+
+        // One query for every job's questions, then grouped in memory. Asking
+        // per job would put the board's page size straight into the query count.
+        Map<UUID, List<JobInterviewQuestion>> byJob =
+                questionRepository.findAllByJobPost_IdInOrderByDisplayOrderAsc(List.copyOf(publicJobs.keySet()))
+                        .stream()
+                        .collect(Collectors.groupingBy(question -> question.getJobPost().getId()));
+
+        int targetCount = configService.currentGenerationConfig().questionCount();
+
+        // The caller's order is the order on screen, so it is preserved rather
+        // than handing back whatever order the database chose.
+        return jobIds.stream()
+                .distinct()
+                .map(publicJobs::get)
+                .filter(Objects::nonNull)
+                .map(jobPost -> toPublicPreview(
+                        jobPost,
+                        byJob.getOrDefault(jobPost.getId(), List.of()),
+                        targetCount
+                ))
+                .toList();
+    }
+
     private JobPost requireJob(UUID jobId) {
         return jobPostRepository.findById(jobId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job post was not found"));
+    }
+
+    /**
+     * The job as a signed-out visitor may see it.
+     *
+     * <p>Applies the same test the public job listing applies rather than a
+     * looser one of its own: an expired posting, or one whose company was
+     * suspended, disappears from the board and its questions go with it.
+     */
+    private JobPost requirePublicJob(UUID jobId) {
+        return jobPostRepository.findPublicJobById(
+                        jobId,
+                        JobStatus.PUBLISHED,
+                        VerificationStatus.APPROVED,
+                        ProfileStatus.ACTIVE,
+                        Instant.now()
+                )
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Public job was not found"));
     }
 
     private JobInterviewQuestionSetResponse toResponse(JobPost jobPost, List<JobInterviewQuestion> questions) {
