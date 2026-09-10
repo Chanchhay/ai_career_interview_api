@@ -33,3 +33,9 @@ keycloak:
     realm: master
     target-realm: test
     client-secret: test-secret
+
+app:
+  ai:
+    # Run generation and scoring inline so a test can assert on the result
+    # instead of racing a background thread.
+    async-enabled: false
