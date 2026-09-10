@@ -9,6 +9,7 @@ import co.istad.ai_interview_app.features.seeker.entity.FavoriteJob;
 import co.istad.ai_interview_app.features.seeker.entity.JobSeekerProfile;
 import co.istad.ai_interview_app.shared.enums.job.JobStatus;
 import co.istad.ai_interview_app.shared.enums.profile.ProfileStatus;
+import co.istad.ai_interview_app.features.company.service.CompanyIdentity;
 import co.istad.ai_interview_app.shared.enums.visibility.CompanyIdentityVisibility;
 import co.istad.ai_interview_app.shared.enums.visibility.VerificationStatus;
 import jakarta.persistence.EntityManager;
@@ -67,7 +68,7 @@ class MaskedCompanyIdentityIntegrationTest {
 
         mockMvc.perform(get("/api/v1/public/jobs/{jobId}", seed.jobId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.companyName").value("Confidential company"))
+                .andExpect(jsonPath("$.data.companyName").value(CompanyIdentity.MASKED_NAME))
                 // The id is a handle back to the company, so it is withheld too.
                 .andExpect(jsonPath("$.data.companyId").doesNotExist())
                 .andExpect(content().string(not(containsString(seed.companyName()))));
@@ -144,7 +145,7 @@ class MaskedCompanyIdentityIntegrationTest {
                         .with(jwtFor(seekerKeycloakId, "SEEKER")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString(seed.companyName()))))
-                .andExpect(jsonPath("$.data.content[0].companyName").value("Confidential company"));
+                .andExpect(jsonPath("$.data.content[0].companyName").value(CompanyIdentity.MASKED_NAME));
     }
 
     @Test
@@ -159,7 +160,7 @@ class MaskedCompanyIdentityIntegrationTest {
                 .andExpect(jsonPath("$.data.company.identityVisibility").value("MASKED"));
 
         mockMvc.perform(get("/api/v1/public/jobs/{jobId}", seed.jobId()))
-                .andExpect(jsonPath("$.data.companyName").value("Confidential company"));
+                .andExpect(jsonPath("$.data.companyName").value(CompanyIdentity.MASKED_NAME));
 
         mockMvc.perform(patch("/api/v1/moderator/companies/{id}/identity-visibility", seed.companyId())
                         .with(moderatorJwt())
