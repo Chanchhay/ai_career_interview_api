@@ -14,4 +14,7 @@ public interface JobInterviewQuestionRepository extends JpaRepository<JobIntervi
     List<JobInterviewQuestion> findAllByJobPost_IdOrderByDisplayOrderAsc(UUID jobPostId);
 
     boolean existsByJobPost_Id(UUID jobPostId);
+
+    /** The same, for several jobs at once, so a listing is one query not N. */
+    List<JobInterviewQuestion> findAllByJobPost_IdInOrderByDisplayOrderAsc(List<UUID> jobPostIds);
 }

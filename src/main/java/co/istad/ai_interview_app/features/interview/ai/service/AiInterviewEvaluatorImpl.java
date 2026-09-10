@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.interview.ai.service;
 
+import co.istad.ai_interview_app.config.ai.AiCalls;
 import co.istad.ai_interview_app.config.ai.AiChatClientFactory;
 import co.istad.ai_interview_app.shared.enums.admin.AiTask;
 import co.istad.ai_interview_app.features.interview.ai.dto.EvaluatedAnswer;
@@ -24,7 +25,7 @@ public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
 
     @Override
     public InterviewEvaluationResult evaluate(InterviewEvaluationRequest request) {
-        InterviewEvaluationResult result = chatClients.forTask(AiTask.ANSWER_EVALUATION)
+        InterviewEvaluationResult result = AiCalls.timed(AiTask.ANSWER_EVALUATION, () -> chatClients.forTask(AiTask.ANSWER_EVALUATION)
                 .prompt()
                 .system("""
                         You are a strict but fair technical interview evaluator.
@@ -80,7 +81,7 @@ public class AiInterviewEvaluatorImpl implements AiInterviewEvaluator {
                         specification -> specification
                                 .useProviderStructuredOutput()
                                 .validateSchema()
-                );
+                ));
 
         validate(request, result);
 

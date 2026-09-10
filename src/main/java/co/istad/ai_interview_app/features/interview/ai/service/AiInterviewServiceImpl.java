@@ -48,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -89,6 +90,8 @@ public class AiInterviewServiceImpl implements AiInterviewService {
     private final AiInterviewMapper mapper;
     private final AiInterviewTranscriptSegmenter transcriptSegmenter;
     private final TransactionTemplate transactionTemplate;
+    /** Named for the bean, so it resolves past Boot's own applicationTaskExecutor. */
+    private final TaskExecutor aiTaskExecutor;
     private final ApplicationEventPublisher events;
 
     @Value("${spring.ai.google.genai.chat.model:gemini}")
@@ -98,7 +101,8 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             InterviewStatus.PREPARING,
             InterviewStatus.READY,
             InterviewStatus.PENDING,
-            InterviewStatus.IN_PROGRESS
+            InterviewStatus.IN_PROGRESS,
+            InterviewStatus.SCORING
     );
 
     @Override
@@ -119,14 +123,38 @@ public class AiInterviewServiceImpl implements AiInterviewService {
      * this, which is exactly how they would come to differ.
      */
     private AiInterviewSessionResponse fillSession(GenerationContext context) {
+        /*
+         * Handed to the pool rather than run here. Writing an interview's
+         * questions is a Gemini call of tens of seconds; held inside the request
+         * it made a candidate wait on a blank screen for all of it, and behind a
+         * load balancer with a 30 second backend timeout it could be cut off
+         * while the generation ran on and completed unseen.
+         *
+         * The session is returned PREPARING and the client polls it — a state
+         * the interview screen already renders, because it was always meant to
+         * work this way.
+         */
+        aiTaskExecutor.execute(() -> generateQuestionsFor(context));
+
+        return transactionTemplate.execute(status ->
+                mapper.toSessionResponse(requireSession(context.sessionId())));
+    }
+
+    /**
+     * Writes a PREPARING session's questions and moves it to READY.
+     *
+     * <p>Runs on {@code aiTaskExecutor}, so nothing here may assume a request or
+     * an authenticated caller: the session id is the whole context. A failure
+     * marks the session FAILED, which is how the waiting client is told.
+     */
+    private void generateQuestionsFor(GenerationContext context) {
         // Read once, so the interview that is generated and the interview that
         // is validated are the same one even if an admin saves new settings
         // while Gemini is still answering.
         AiInterviewGenerationConfig config = configService.currentGenerationConfig();
 
-        List<GeneratedQuestion> questions;
         try {
-            questions = questionComposer.compose(
+            List<GeneratedQuestion> questions = questionComposer.compose(
                     new InterviewQuestionComposer.JobFacts(
                             context.jobTitle(),
                             context.jobDescription(),
@@ -137,12 +165,13 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                     context.writtenQuestions(),
                     config
             );
-        } catch (RuntimeException ex) {
-            transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
-            throw ex;
-        }
 
-        return transactionTemplate.execute(status -> persistQuestions(context.sessionId(), questions));
+            transactionTemplate.execute(status -> persistQuestions(context.sessionId(), questions));
+        } catch (RuntimeException ex) {
+            // Nowhere to throw to: the caller was answered long ago.
+            log.error("Generating questions for session={} failed", context.sessionId(), ex);
+            transactionTemplate.executeWithoutResult(status -> markSessionFailed(context.sessionId()));
+        }
     }
 
 
@@ -247,24 +276,82 @@ public class AiInterviewServiceImpl implements AiInterviewService {
 
     @Override
     public AiInterviewResultResponse completeInterview(UUID sessionId) {
-        EvaluationContext context = transactionTemplate.execute(status -> prepareEvaluation(sessionId));
-        if (context.alreadyCompleted()) {
-            return transactionTemplate.execute(status -> mapper.toResultResponse(resolveMySessionWithResult(sessionId)));
+        ScoringStart start = transactionTemplate.execute(status -> beginScoring(sessionId));
+
+        if (start == ScoringStart.STARTED) {
+            aiTaskExecutor.execute(() -> runEvaluation(sessionId));
         }
 
-        InterviewEvaluationResult evaluation;
-        try {
-            evaluation = evaluator.evaluate(context.request());
-        } catch (RuntimeException ex) {
-            transactionTemplate.executeWithoutResult(status -> markSessionFailed(sessionId));
-            throw ex;
+        /*
+         * Returns straight away, with the session in SCORING and no feedback on
+         * it yet. Waiting for Gemini here held the request open for the whole
+         * evaluation, which behind a load balancer that gives up at 30 seconds
+         * reported a failure for an interview that went on to be marked fine.
+         * The client watches the session's status for the result instead.
+         */
+        return transactionTemplate.execute(status ->
+                mapper.toResultResponse(resolveMySessionWithResult(sessionId)));
+    }
+
+    /** What a request to score an interview found when it got there. */
+    private enum ScoringStart {
+        STARTED,
+        ALREADY_SCORING,
+        ALREADY_COMPLETED
+    }
+
+    /**
+     * Claims an interview for scoring by moving it to SCORING.
+     *
+     * <p>The move is the lock. Scoring runs on another thread, so without a
+     * state to claim, a second click — or a reload offering "finish" again —
+     * would start a duplicate evaluation and pay for it twice.
+     *
+     * <p>Validation happens here, in the caller's transaction, so an interview
+     * with unanswered questions is refused while there is still someone to tell.
+     */
+    private ScoringStart beginScoring(UUID sessionId) {
+        AiInterviewSession session = resolveMySessionWithQuestions(sessionId);
+
+        if (session.getStatus() == InterviewStatus.COMPLETED) {
+            return ScoringStart.ALREADY_COMPLETED;
         }
 
+        if (session.getStatus() == InterviewStatus.SCORING) {
+            return ScoringStart.ALREADY_SCORING;
+        }
+
+        prepareEvaluation(session);
+        session.setStatus(InterviewStatus.SCORING);
+
+        return ScoringStart.STARTED;
+    }
+
+    /**
+     * Scores an interview already claimed by {@link #beginScoring}.
+     *
+     * <p>Runs on {@code aiTaskExecutor}: no request, no authenticated caller,
+     * and nowhere to throw. A failure marks the session FAILED, which is how the
+     * waiting client is told.
+     */
+    private void runEvaluation(UUID sessionId) {
         try {
-            return transactionTemplate.execute(status -> persistEvaluation(sessionId, evaluation));
+            EvaluationContext context = transactionTemplate.execute(status ->
+                    prepareEvaluation(requireSession(sessionId)));
+
+            if (context == null || context.alreadyCompleted()) {
+                return;
+            }
+
+            InterviewEvaluationResult evaluation = evaluator.evaluate(context.request());
+
+            transactionTemplate.executeWithoutResult(status ->
+                    persistEvaluation(requireSessionWithResult(sessionId), evaluation));
+
+            log.info("Scored interview session={}", sessionId);
         } catch (RuntimeException ex) {
+            log.error("Scoring session={} failed", sessionId, ex);
             transactionTemplate.executeWithoutResult(status -> markSessionFailed(sessionId));
-            throw ex;
         }
     }
 
@@ -382,9 +469,17 @@ public class AiInterviewServiceImpl implements AiInterviewService {
         ));
 
         if (readySessionId != null) {
-            // The candidate is waiting on this response, so failures surface as
-            // an error rather than a silently unscored interview.
-            scoreFromTranscript(readySessionId, true);
+            /*
+             * Scoring is two Gemini calls back to back — splitting the
+             * transcript, then evaluating it — and the transcript is already
+             * saved by this point. Waiting for them would hold the request open
+             * for a minute or so, long enough for a load balancer to give up on
+             * it and report a failure for work that in fact succeeded.
+             *
+             * The session stays IN_PROGRESS until the score lands, and the
+             * client polls it; a failure marks it FAILED the same way.
+             */
+            aiTaskExecutor.execute(() -> scoreFromTranscript(readySessionId, false));
         }
 
         return transactionTemplate.execute(status ->
@@ -411,10 +506,15 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             session.setTranscript(VapiTranscriptTurn.toTranscript(turns));
         }
 
-        if (session.getStatus() == InterviewStatus.COMPLETED) {
+        if (session.getStatus() == InterviewStatus.COMPLETED
+                || session.getStatus() == InterviewStatus.SCORING) {
             // The webhook and the browser both report the same call ending, and
-            // Vapi retries. Whichever arrives second finds the work already done.
-            log.info("Transcript for session={} arrived after it was scored", session.getId());
+            // Vapi retries. Whichever arrives second finds the work already done
+            // or already under way, and must not start a second evaluation.
+            log.info(
+                    "Transcript for session={} arrived while status={}",
+                    session.getId(), session.getStatus()
+            );
             return null;
         }
 
@@ -430,6 +530,10 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             log.warn("Transcript for session={} was empty; not scoring", session.getId());
             return null;
         }
+
+        // Claims the interview before anyone leaves this transaction, so the
+        // browser's submission and Vapi's webhook cannot both start scoring it.
+        session.setStatus(InterviewStatus.SCORING);
 
         return session.getId();
     }
@@ -455,13 +559,18 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                     applySegmentedAnswers(sessionId, segmentation));
 
             if (unanswered == null || !unanswered.isEmpty()) {
-                // Left IN_PROGRESS on purpose: the candidate can still answer the
-                // remaining questions by typing rather than being scored on an
-                // interview they did not finish.
+                /*
+                 * Put back to IN_PROGRESS rather than scored: the candidate can
+                 * still answer what the call missed by typing. Releasing the
+                 * claim matters — left in SCORING the interview would wait on an
+                 * evaluation that is never coming, with no way to finish it.
+                 */
                 log.warn(
                         "Session={} transcript left questions {} unanswered; leaving the interview open",
                         sessionId, unanswered
                 );
+                transactionTemplate.executeWithoutResult(status ->
+                        releaseScoringClaim(sessionId));
                 return;
             }
 
@@ -746,7 +855,8 @@ public class AiInterviewServiceImpl implements AiInterviewService {
             return new EvaluationContext(null, true);
         }
 
-        if (session.getStatus() != InterviewStatus.IN_PROGRESS) {
+        if (session.getStatus() != InterviewStatus.IN_PROGRESS
+                && session.getStatus() != InterviewStatus.SCORING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Interview must be in progress before it can be completed");
         }
 
@@ -901,6 +1011,15 @@ public class AiInterviewServiceImpl implements AiInterviewService {
                         HttpStatus.NOT_FOUND,
                         "AI interview session was not found for authenticated job seeker"
                 ));
+    }
+
+    /** Hands a claimed interview back to the candidate to finish. */
+    private void releaseScoringClaim(UUID sessionId) {
+        sessionRepository.findById(sessionId).ifPresent(session -> {
+            if (session.getStatus() == InterviewStatus.SCORING) {
+                session.setStatus(InterviewStatus.IN_PROGRESS);
+            }
+        });
     }
 
     private void markSessionFailed(UUID sessionId) {

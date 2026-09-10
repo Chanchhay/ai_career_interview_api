@@ -1,5 +1,6 @@
 package co.istad.ai_interview_app.features.interview.vapi.service;
 
+import co.istad.ai_interview_app.config.ai.AiCalls;
 import co.istad.ai_interview_app.config.ai.AiChatClientFactory;
 import co.istad.ai_interview_app.shared.enums.admin.AiTask;
 import co.istad.ai_interview_app.features.interview.vapi.dto.TranscriptSegmentationRequest;
@@ -43,7 +44,7 @@ public class AiInterviewTranscriptSegmenterImpl implements AiInterviewTranscript
                 ))
                 .collect(Collectors.joining("\n"));
 
-        TranscriptSegmentationResult result = chatClients.forTask(AiTask.TRANSCRIPT_SEGMENTATION)
+        TranscriptSegmentationResult result = AiCalls.timed(AiTask.TRANSCRIPT_SEGMENTATION, () -> chatClients.forTask(AiTask.TRANSCRIPT_SEGMENTATION)
                 .prompt()
                 .system("""
                         You reconstruct a spoken job interview from its transcript.
@@ -94,7 +95,7 @@ public class AiInterviewTranscriptSegmenterImpl implements AiInterviewTranscript
                         specification -> specification
                                 .useProviderStructuredOutput()
                                 .validateSchema()
-                );
+                ));
 
         validate(request, result);
 

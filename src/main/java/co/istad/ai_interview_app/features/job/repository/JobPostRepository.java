@@ -66,4 +66,27 @@ public interface JobPostRepository extends JpaRepository<JobPost, UUID>, JpaSpec
             @Param("companyStatus") ProfileStatus companyStatus,
             @Param("now") Instant now
     );
+
+    /**
+     * The same visibility test as {@link #findPublicJobById}, for many ids at
+     * once. Ids that are not public are simply absent from the result rather
+     * than an error — a caller holding a stale list should get the jobs that
+     * are still on the board, not a failure.
+     */
+    @Query("""
+            select job
+            from JobPost job
+            where job.id in :ids
+              and job.status = :status
+              and job.company.verificationStatus = :verificationStatus
+              and job.company.status = :companyStatus
+              and (job.expiredAt is null or job.expiredAt > :now)
+            """)
+    List<JobPost> findPublicJobsByIds(
+            @Param("ids") List<UUID> ids,
+            @Param("status") JobStatus status,
+            @Param("verificationStatus") VerificationStatus verificationStatus,
+            @Param("companyStatus") ProfileStatus companyStatus,
+            @Param("now") Instant now
+    );
 }

@@ -14,12 +14,14 @@ import co.istad.ai_interview_app.features.identity.entity.UserAccount;
 import co.istad.ai_interview_app.features.identity.repository.IdentityUserAccountRepository;
 import co.istad.ai_interview_app.features.moderator.entity.CandidateApplicationReview;
 import co.istad.ai_interview_app.features.moderator.repository.CandidateApplicationReviewRepository;
+import co.istad.ai_interview_app.features.notification.event.NotificationEvents;
 import co.istad.ai_interview_app.features.company.repository.CompanyRepository;
 import co.istad.ai_interview_app.shared.enums.application.ApplicationStatus;
 import co.istad.ai_interview_app.shared.enums.finance.HiringRecordStatus;
 import co.istad.ai_interview_app.shared.enums.finance.PaymentStatus;
 import co.istad.ai_interview_app.shared.enums.review.CandidateApplicationReviewStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -56,6 +58,7 @@ public class HiringRecordServiceImpl implements HiringRecordService {
     private final IdentityUserAccountRepository userAccountRepository;
     private final FinanceSettingsService financeSettingsService;
     private final FinanceResponseMapper mapper;
+    private final ApplicationEventPublisher events;
 
     /* --------------------------------------------------------- recruiter --- */
 
@@ -108,7 +111,10 @@ public class HiringRecordServiceImpl implements HiringRecordService {
         record.setStatus(HiringRecordStatus.REPORTED);
         record.setReportedByUserAccount(currentUserAccount());
 
-        return mapper.toResponse(hiringRecordRepository.save(record), null);
+        HiringRecord saved = hiringRecordRepository.save(record);
+        events.publishEvent(new NotificationEvents.HireReported(saved.getId()));
+
+        return mapper.toResponse(saved, null);
     }
 
     @Override
